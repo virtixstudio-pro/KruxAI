@@ -1,43 +1,59 @@
 package com.virtixstudio.kruxai.ui;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.auth.FirebaseUser;
 import com.virtixstudio.kruxai.R;
+import com.virtixstudio.kruxai.adapters.ChatAdapter;
 import com.virtixstudio.kruxai.api.GroqApiClient;
-import com.virtixstudio.kruxai.db.AppDatabase;
-import com.virtixstudio.kruxai.db.MemoryEntity;
+import com.virtixstudio.kruxai.models.ChatMessage;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int SPEECH_REQUEST_CODE = 101;
     private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
+    private static final int PERMISSION_AUDIO_CODE = 101;
 
-    private TextView tvGreeting, tvChatDisplay;
-    private LinearLayout welcomeContainer;
-    private EditText etMessage;
-    private ImageButton btnSend, btnVoice, btnAddAttachment;
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend;
+    private EditText etInput;
+    private RecyclerView rvChat;
 
+    private ChatAdapter chatAdapter;
+    private List<ChatMessage> messageList;
     private GroqApiClient groqClient;
-    private AppDatabase db;
-    private String userName = "Développeur";
+
+    private SpeechRecognizer speechRecognizer;
+    private boolean isListening = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,108 +61,204 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         groqClient = new GroqApiClient(GROQ_API_KEY);
-        db = AppDatabase.getInstance(this);
 
-        tvGreeting = findViewById(R.id.tvGreeting);
-        tvChatDisplay = findViewById(R.id.tvChatDisplay);
-        welcomeContainer = findViewById(R.id.welcomeContainer);
-        etMessage = findViewById(R.id.etMessage);
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        btnMenu = findViewById(R.id.btnMenu);
+        btnAccount = findViewById(R.id.btnAccount);
+        btnPlus = findViewById(R.id.btnPlus);
+        btnMic = findViewById(R.id.btnMic);
         btnSend = findViewById(R.id.btnSend);
-        btnVoice = findViewById(R.id.btnVoice);
-        btnAddAttachment = findViewById(R.id.btnAddAttachment);
+        etInput = findViewById(R.id.etInput);
+        rvChat = findViewById(R.id.rvChat);
 
-        loadUserProfile();
+        messageList = new ArrayList<>();
+        chatAdapter = new ChatAdapter(messageList);
 
-        btnSend.setOnClickListener(v -> handleSendMessage());
-        btnVoice.setOnClickListener(v -> startVoiceRecognition());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setStackFromEnd(true);
+        rvChat.setLayoutManager(layoutManager);
+        rvChat.setAdapter(chatAdapter);
+
+        addMessage("Salut ! Je suis KRUX AI. Comment puis-je vous aider aujourd'hui ?", false);
+
+        btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+        btnAccount.setOnClickListener(v -> showAccountBottomSheet());
+        btnPlus.setOnClickListener(v -> Toast.makeText(this, "Menu d'actions rapides / Fichiers", Toast.LENGTH_SHORT).show());
+        btnSend.setOnClickListener(v -> sendMessage());
+        btnMic.setOnClickListener(v -> toggleVoiceRecognition());
+
+        setupDrawerNavigation();
+        initSpeechRecognizer();
     }
 
-    private void loadUserProfile() {
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            String uid = auth.getCurrentUser().getUid();
-            FirebaseFirestore.getInstance().collection("users").document(uid)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists() && documentSnapshot.contains("firstName")) {
-                        userName = documentSnapshot.getString("firstName");
-                        tvGreeting.setText("Salut " + userName + " ! On fait quoi aujourd'hui ?");
+    private void initSpeechRecognizer() {
+        if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                @Override
+                public void onReadyForSpeech(Bundle params) {
+                    Toast.makeText(MainActivity.this, "Écoute en cours...", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onBeginningOfSpeech() {}
+
+                @Override
+                public void onRmsChanged(float rmsdB) {}
+
+                @Override
+                public void onBufferReceived(byte[] buffer) {}
+
+                @Override
+                public void onEndOfSpeech() {
+                    isListening = false;
+                }
+
+                @Override
+                public void onError(int error) {
+                    isListening = false;
+                    Toast.makeText(MainActivity.this, "Erreur d'écoute vocale.", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onResults(Bundle results) {
+                    isListening = false;
+                    ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null && !matches.isEmpty()) {
+                        etInput.setText(matches.get(0));
                     }
-                });
+                }
+
+                @Override
+                public void onPartialResults(Bundle partialResults) {}
+
+                @Override
+                public void onEvent(int eventType, Bundle params) {}
+            });
         }
     }
 
-    private void handleSendMessage() {
-        String text = etMessage.getText().toString().trim();
-        if (text.isEmpty()) return;
+    private void toggleVoiceRecognition() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_AUDIO_CODE);
+            return;
+        }
 
-        welcomeContainer.setVisibility(View.GONE);
-        appendChat("Vous: " + text + "\n\n");
-        etMessage.setText("");
+        if (speechRecognizer == null) return;
 
-        // Récupérer la mémoire locale pour l'inclure dans le Prompt Système
-        Executors.newSingleThreadExecutor().execute(() -> {
-            List<MemoryEntity> memories = db.memoryDao().getAllMemories();
-            StringBuilder memoryContext = new StringBuilder("Informations retenues sur l'utilisateur (" + userName + ") :\n");
-            for (MemoryEntity m : memories) {
-                memoryContext.append("- ").append(m.key).append(" : ").append(m.value).append("\n");
+        if (isListening) {
+            speechRecognizer.stopListening();
+            isListening = false;
+        } else {
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+            speechRecognizer.startListening(intent);
+            isListening = true;
+        }
+    }
+
+    private void showAccountBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_account, null);
+        dialog.setContentView(view);
+
+        TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
+        TextView optCustomize = view.findViewById(R.id.optCustomize);
+        TextView optMemory = view.findViewById(R.id.optMemory);
+        TextView optSocials = view.findViewById(R.id.optSocials);
+        Button btnLogout = view.findViewById(R.id.btnLogout);
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            tvUserEmail.setText(user.getEmail());
+        } else {
+            tvUserEmail.setText("Utilisateur KruxAI");
+        }
+
+        optCustomize.setOnClickListener(v -> {
+            Toast.makeText(this, "Module de personnalisation des couleurs à venir.", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        optMemory.setOnClickListener(v -> {
+            Toast.makeText(this, "Mémoire active : Profil utilisateur retenu par KruxAI.", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        optSocials.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Virtixstudio-pro/KruxAI"));
+            startActivity(intent);
+            dialog.dismiss();
+        });
+
+        btnLogout.setOnClickListener(v -> {
+            dialog.dismiss();
+            FirebaseAuth.getInstance().signOut();
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+            finish();
+        });
+
+        dialog.show();
+    }
+
+    private void sendMessage() {
+        String prompt = etInput.getText().toString().trim();
+        if (prompt.isEmpty()) return;
+
+        addMessage(prompt, true);
+        etInput.setText("");
+
+        groqClient.sendMessage("llama-3.3-70b-versatile", "Tu es KruxAI, un assistant intelligent, fluide et direct.", prompt, new GroqApiClient.GroqCallback() {
+            @Override
+            public void onSuccess(String responseText) {
+                addMessage(responseText, false);
             }
 
-            String systemPrompt = "Tu es KRUX AI, créé par Virtix Studio. Sois ultra-précis, logique et effectue un raisonnement étape par étape (Deep Thinking). " 
-                    + memoryContext.toString();
-
-            runOnUiThread(() -> {
-                appendChat("KRUX AI : Génération en cours...\n\n");
-                groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt, text, new GroqApiClient.GroqCallback() {
-                    @Override
-                    public void onSuccess(String responseText) {
-                        updateLastResponse(responseText);
-                    }
-
-                    @Override
-                    public void onError(String errorMessage) {
-                        updateLastResponse("Erreur : " + errorMessage);
-                    }
-                });
-            });
+            @Override
+            public void onError(String errorMessage) {
+                addMessage("Erreur : " + errorMessage, false);
+            }
         });
     }
 
-    private void appendChat(String text) {
-        tvChatDisplay.append(text);
+    private void addMessage(String text, boolean isUser) {
+        messageList.add(new ChatMessage(text, isUser));
+        chatAdapter.notifyItemInserted(messageList.size() - 1);
+        rvChat.smoothScrollToPosition(messageList.size() - 1);
     }
 
-    private void updateLastResponse(String response) {
-        String currentText = tvChatDisplay.getText().toString();
-        int lastIndex = currentText.lastIndexOf("KRUX AI : Génération en cours...\n\n");
-        if (lastIndex != -1) {
-            String updatedText = currentText.substring(0, lastIndex) + "KRUX AI :\n" + response + "\n\n-------------------\n\n";
-            tvChatDisplay.setText(updatedText);
-        } else {
-            tvChatDisplay.append("KRUX AI :\n" + response + "\n\n-------------------\n\n");
-        }
+    private void setupDrawerNavigation() {
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_studio) {
+                startActivity(new Intent(MainActivity.this, StudioActivity.class));
+            } else if (id == R.id.nav_logout) {
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                finish();
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
     }
 
-    private void startVoiceRecognition() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Parlez maintenant...");
-        try {
-            startActivityForResult(intent, SPEECH_REQUEST_CODE);
-        } catch (Exception e) {
-            Toast.makeText(this, "Reconnaissance vocale non disponible sur cet appareil.", Toast.LENGTH_SHORT).show();
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (speechRecognizer != null) {
+            speechRecognizer.destroy();
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (results != null && !results.isEmpty()) {
-                etMessage.setText(results.get(0));
-            }
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_AUDIO_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            toggleVoiceRecognition();
+        } else {
+            Toast.makeText(this, "Permission micro refusée.", Toast.LENGTH_SHORT).show();
         }
     }
 }
