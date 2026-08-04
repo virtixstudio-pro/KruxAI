@@ -343,4 +343,21 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             textToSpeech.shutdown();
         }
     }
+
+    private boolean isGenerating = false;
+    
+    private void setGeneratingState(boolean generating) {
+        isGenerating = generating;
+        ImageButton btnSend = findViewById(R.id.btnSend); // Assurez-vous que l id correspond
+        if (btnSend != null) {
+            if (generating) {
+                // Icône ou couleur Stop
+                btnSend.setBackgroundColor(0xFFD32F2F); // Rouge d arrêt
+            } else {
+                // Icône ou couleur Envoi normal
+                btnSend.setBackgroundColor(0xFF1E88E5); // Bleu brillant
+            }
+        }
+    }
+    
 }
