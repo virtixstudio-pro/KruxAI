@@ -1,14 +1,18 @@
 package com.virtixstudio.kruxai.models;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ChatMessage {
     private String id;
     private String text;
     private boolean isUser;
     private String reasoning;
     private long timestamp;
+    private List<SearchResult> sources;
 
-    // Constructeur vide requis pour la désérialisation Firebase
     public ChatMessage() {
+        this.sources = new ArrayList<>();
     }
 
     public ChatMessage(String text, boolean isUser) {
@@ -16,13 +20,15 @@ public class ChatMessage {
         this.isUser = isUser;
         this.reasoning = "";
         this.timestamp = System.currentTimeMillis();
+        this.sources = new ArrayList<>();
     }
 
-    public ChatMessage(String text, boolean isUser, String reasoning) {
+    public ChatMessage(String text, boolean isUser, List<SearchResult> sources) {
         this.text = text;
         this.isUser = isUser;
-        this.reasoning = reasoning;
+        this.reasoning = "";
         this.timestamp = System.currentTimeMillis();
+        this.sources = sources != null ? sources : new ArrayList<>();
     }
 
     public String getId() { return id; }
@@ -39,4 +45,7 @@ public class ChatMessage {
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public List<SearchResult> getSources() { return sources; }
+    public void setSources(List<SearchResult> sources) { this.sources = sources; }
 }

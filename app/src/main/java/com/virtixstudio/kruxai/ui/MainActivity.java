@@ -32,7 +32,9 @@ import com.google.firebase.firestore.Query;
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.adapters.ChatAdapter;
 import com.virtixstudio.kruxai.api.GroqApiClient;
+import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.models.ChatMessage;
+import com.virtixstudio.kruxai.models.SearchResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
     private GroqApiClient groqClient;
+    private WebSearchEngine webSearchEngine;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -63,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private boolean isListening = false;
 
     private boolean isLearningMode = false;
-    private boolean isDeepSearchEnabled = false;
+    private boolean isDeepSearchEnabled = true; // Recherche Web activée par défaut
     private boolean isThinkingMode = true;
 
     @Override
@@ -76,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         currentUser = mAuth.getCurrentUser();
 
         groqClient = new GroqApiClient(GROQ_API_KEY);
+        webSearchEngine = new WebSearchEngine();
 
         drawerLayout = findViewById(R.id.drawerLayout);
         btnMenu = findViewById(R.id.btnMenu);
@@ -114,9 +118,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
     private void initTextToSpeech() {
         textToSpeech = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                textToSpeech.setLanguage(Locale.FRENCH);
-            }
+            if (status == TextToSpeech.SUCCESS) textToSpeech.setLanguage(Locale.FRENCH);
         });
     }
 
@@ -168,35 +170,39 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         saveMessageToFirebase(userMessage);
         etInput.setText("");
 
-        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
-        if (isThinkingMode) systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE.");
-        if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage.");
-
         if (isDeepSearchEnabled) {
-            // Exécution d'une VRAIE recherche Web
-            String tavilyApiKey = com.virtixstudio.kruxai.BuildConfig.TAVILY_API_KEY; // Ajouter la clé dans local.properties
-            com.virtixstudio.kruxai.api.WebSearchService.performSearch(prompt, tavilyApiKey, new com.virtixstudio.kruxai.api.WebSearchService.SearchCallback() {
+            // VRAIE RECHERCHE EN TEMPS RÉEL SUR LE WEB
+            webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
-                public void onSuccess(String searchContext) {
-                    systemPrompt.append("\n\n").append(searchContext).append("\nUtilise ces informations en temps réel pour répondre précisément avec les sources.");
-                    executeGroqCall(systemPrompt.toString(), prompt);
+                public void onSuccess(List<SearchResult> results, String formattedContext) {
+                    executeAiQuery(prompt, formattedContext, results);
                 }
 
                 @Override
-                public void onError(String errorMessage) {
-                    executeGroqCall(systemPrompt.toString(), prompt);
+                public void onError(String error) {
+                    executeAiQuery(prompt, "", new ArrayList<>());
                 }
             });
         } else {
-            executeGroqCall(systemPrompt.toString(), prompt);
+            executeAiQuery(prompt, "", new ArrayList<>());
         }
     }
 
-    private void executeGroqCall(String systemPrompt, String userPrompt) {
-        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt, userPrompt, new GroqApiClient.GroqCallback() {
+    private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
+        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert et ultra-précis.");
+        if (isThinkingMode) systemPrompt.append(" Réfléchis toujours ÉTAPE PAR ÉTAPE.");
+        if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique.");
+
+        String fullPrompt = userPrompt;
+        if (!webContext.isEmpty()) {
+            systemPrompt.append(" Tu as un accès direct aux données du Web en temps réel ci-dessous. Utilise ces informations fraîches pour répondre précisément et cite les numéros des sources si nécessaire.");
+            fullPrompt = webContext + "\nQuestion de l'utilisateur : " + userPrompt;
+        }
+
+        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), fullPrompt, new GroqApiClient.GroqCallback() {
             @Override
             public void onSuccess(String responseText) {
-                ChatMessage aiMessage = new ChatMessage(responseText, false);
+                ChatMessage aiMessage = new ChatMessage(responseText, false, sources);
                 saveMessageToFirebase(aiMessage);
             }
 
@@ -218,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         TextView optThinking = view.findViewById(R.id.optThinking);
 
         if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
-        if (isDeepSearchEnabled) optDeepSearch.setText("🌐 Deep Search [ACTIF]");
+        if (isDeepSearchEnabled) optDeepSearch.setText("🌐 Recherche Web Temps Réel [ACTIF]");
         if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion [ACTIF]");
 
         optLearning.setOnClickListener(v -> {
@@ -228,6 +234,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
         optDeepSearch.setOnClickListener(v -> {
             isDeepSearchEnabled = !isDeepSearchEnabled;
+            Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Temps Réel Activée 🌐" : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 

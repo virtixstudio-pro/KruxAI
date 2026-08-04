@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.virtixstudio.kruxai.R;
@@ -76,6 +77,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             markwon.setMarkdown(aiHolder.tvMessage, message.getText());
 
+            // Affichage des Cartes de Sources si présentes
+            if (message.getSources() != null && !message.getSources().isEmpty()) {
+                aiHolder.layoutSources.setVisibility(View.VISIBLE);
+                aiHolder.rvSources.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false));
+                aiHolder.rvSources.setAdapter(new SourcesAdapter(message.getSources()));
+            } else {
+                aiHolder.layoutSources.setVisibility(View.GONE);
+            }
+
+            // Affichage de la réflexion
             if (message.getReasoning() != null && !message.getReasoning().trim().isEmpty()) {
                 aiHolder.layoutReasoning.setVisibility(View.VISIBLE);
                 aiHolder.tvReasoningContent.setText(message.getReasoning());
@@ -89,34 +100,29 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 aiHolder.layoutReasoning.setVisibility(View.GONE);
             }
 
-            // Bouton Copier
+            // Boutons d'actions
             aiHolder.btnCopy.setOnClickListener(v -> {
                 ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("KruxAI", message.getText());
                 if (clipboard != null) {
                     clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, "Copié dans le presse-papier !", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Copié !", Toast.LENGTH_SHORT).show();
                 }
             });
 
-            // Bouton Partager
             aiHolder.btnShare.setOnClickListener(v -> {
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/plain");
                 shareIntent.putExtra(Intent.EXTRA_TEXT, message.getText());
-                context.startActivity(Intent.createChooser(shareIntent, "Partager le code / texte"));
+                context.startActivity(Intent.createChooser(shareIntent, "Partager"));
             });
 
-            // Bouton Télécharger au format TXT
             aiHolder.btnDownload.setOnClickListener(v -> {
                 FileUtils.saveTextFile(context, message.getText(), "KruxAI_Export");
             });
 
-            // Bouton TTS (Lire à haute voix)
             aiHolder.btnSpeak.setOnClickListener(v -> {
-                if (speechListener != null) {
-                    speechListener.onSpeakRequested(message.getText());
-                }
+                if (speechListener != null) speechListener.onSpeakRequested(message.getText());
             });
         }
     }
@@ -137,8 +143,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class AiViewHolder extends RecyclerView.ViewHolder {
         TextView tvMessage, tvReasoningContent;
-        LinearLayout layoutReasoning, btnToggleReasoning;
+        LinearLayout layoutReasoning, btnToggleReasoning, layoutSources;
         ImageView ivArrowReasoning;
+        RecyclerView rvSources;
         ImageButton btnCopy, btnShare, btnDownload, btnSpeak;
 
         AiViewHolder(@NonNull View itemView) {
@@ -148,6 +155,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             layoutReasoning = itemView.findViewById(R.id.layoutReasoning);
             btnToggleReasoning = itemView.findViewById(R.id.btnToggleReasoning);
             ivArrowReasoning = itemView.findViewById(R.id.ivArrowReasoning);
+            layoutSources = itemView.findViewById(R.id.layoutSources);
+            rvSources = itemView.findViewById(R.id.rvSources);
             btnCopy = itemView.findViewById(R.id.btnCopy);
             btnShare = itemView.findViewById(R.id.btnShare);
             btnDownload = itemView.findViewById(R.id.btnDownload);
