@@ -28,6 +28,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.adapters.ChatAdapter;
 import com.virtixstudio.kruxai.api.GroqApiClient;
@@ -52,18 +55,25 @@ public class MainActivity extends AppCompatActivity {
     private List<ChatMessage> messageList;
     private GroqApiClient groqClient;
 
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private FirebaseUser currentUser;
+
     private SpeechRecognizer speechRecognizer;
     private boolean isListening = false;
 
-    // États des modes avancés
     private boolean isLearningMode = false;
     private boolean isDeepSearchEnabled = false;
-    private boolean isThinkingMode = true; // Activé par défaut pour exiger la rigueur
+    private boolean isThinkingMode = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+        currentUser = mAuth.getCurrentUser();
 
         groqClient = new GroqApiClient(GROQ_API_KEY);
 
@@ -85,8 +95,6 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setLayoutManager(layoutManager);
         rvChat.setAdapter(chatAdapter);
 
-        addMessage("Salut ! Je suis KRUX AI. Comment puis-je vous aider aujourd'hui ?", false);
-
         btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
         btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
@@ -95,6 +103,71 @@ public class MainActivity extends AppCompatActivity {
 
         setupDrawerNavigation();
         initSpeechRecognizer();
+        listenToFirebaseMessages();
+    }
+
+    private void listenToFirebaseMessages() {
+        if (currentUser == null) return;
+
+        db.collection("users")
+                .document(currentUser.getUid())
+                .collection("chats")
+                .orderBy("timestamp", Query.Direction.ASCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null || value == null) return;
+
+                    for (DocumentChange dc : value.getDocumentChanges()) {
+                        if (dc.getType() == DocumentChange.Type.ADDED) {
+                            ChatMessage msg = dc.getDocument().toObject(ChatMessage.class);
+                            messageList.add(msg);
+                            chatAdapter.notifyItemInserted(messageList.size() - 1);
+                            rvChat.smoothScrollToPosition(messageList.size() - 1);
+                        }
+                    }
+                });
+    }
+
+    private void saveMessageToFirebase(ChatMessage message) {
+        if (currentUser == null) return;
+
+        db.collection("users")
+                .document(currentUser.getUid())
+                .collection("chats")
+                .add(message);
+    }
+
+    private void sendMessage() {
+        String prompt = etInput.getText().toString().trim();
+        if (prompt.isEmpty()) return;
+
+        ChatMessage userMessage = new ChatMessage(prompt, true);
+        saveMessageToFirebase(userMessage);
+        etInput.setText("");
+
+        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
+        if (isThinkingMode) {
+            systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE avant de formuler ta réponse finale.");
+        }
+        if (isLearningMode) {
+            systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage.");
+        }
+        if (isDeepSearchEnabled) {
+            systemPrompt.append(" Agis comme si tu avais effectué une recherche web approfondie en temps réel.");
+        }
+
+        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), prompt, new GroqApiClient.GroqCallback() {
+            @Override
+            public void onSuccess(String responseText) {
+                ChatMessage aiMessage = new ChatMessage(responseText, false);
+                saveMessageToFirebase(aiMessage);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                ChatMessage errorMsg = new ChatMessage("Erreur : " + errorMessage, false);
+                saveMessageToFirebase(errorMsg);
+            }
+        });
     }
 
     private void showPlusBottomSheet() {
@@ -107,7 +180,6 @@ public class MainActivity extends AppCompatActivity {
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
 
-        // Mettre à jour visuellement l'état des modes actifs
         if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("🌐 Deep Search [ACTIF]");
         if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion (Étape par étape) [ACTIF]");
@@ -125,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
 
         optDeepSearch.setOnClickListener(v -> {
             isDeepSearchEnabled = !isDeepSearchEnabled;
-            Toast.makeText(this, isDeepSearchEnabled ? "Deep Search (Google/Bing/DuckDuckGo) activé 🌐" : "Deep Search désactivé", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, isDeepSearchEnabled ? "Deep Search activé 🌐" : "Deep Search désactivé", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
@@ -147,10 +219,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override public void onRmsChanged(float rmsdB) {}
                 @Override public void onBufferReceived(byte[] buffer) {}
                 @Override public void onEndOfSpeech() { isListening = false; }
-                @Override public void onError(int error) {
-                    isListening = false;
-                    Toast.makeText(MainActivity.this, "Erreur d'écoute vocale.", Toast.LENGTH_SHORT).show();
-                }
+                @Override public void onError(int error) { isListening = false; }
                 @Override public void onResults(Bundle results) {
                     isListening = false;
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -189,80 +258,20 @@ public class MainActivity extends AppCompatActivity {
         dialog.setContentView(view);
 
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
-        TextView optCustomize = view.findViewById(R.id.optCustomize);
-        TextView optMemory = view.findViewById(R.id.optMemory);
-        TextView optSocials = view.findViewById(R.id.optSocials);
         Button btnLogout = view.findViewById(R.id.btnLogout);
 
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null && user.getEmail() != null) {
-            tvUserEmail.setText(user.getEmail());
-        } else {
-            tvUserEmail.setText("Utilisateur KruxAI");
+        if (currentUser != null && currentUser.getEmail() != null) {
+            tvUserEmail.setText(currentUser.getEmail());
         }
-
-        optCustomize.setOnClickListener(v -> {
-            Toast.makeText(this, "Module de personnalisation à venir.", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        optMemory.setOnClickListener(v -> {
-            Toast.makeText(this, "Mémoire active : Contexte de l'utilisateur retenu.", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        optSocials.setOnClickListener(v -> {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Virtixstudio-pro/KruxAI")));
-            dialog.dismiss();
-        });
 
         btnLogout.setOnClickListener(v -> {
             dialog.dismiss();
-            FirebaseAuth.getInstance().signOut();
+            mAuth.signOut();
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             finish();
         });
 
         dialog.show();
-    }
-
-    private void sendMessage() {
-        String prompt = etInput.getText().toString().trim();
-        if (prompt.isEmpty()) return;
-
-        addMessage(prompt, true);
-        etInput.setText("");
-
-        // Construction du System Prompt dynamique selon les modes activés
-        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
-        
-        if (isThinkingMode) {
-            systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE avant de formuler ta réponse finale. Décompose ton raisonnement méthodiquement pour éviter toute erreur ou réponse superficielle.");
-        }
-        if (isLearningMode) {
-            systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage : explique les concepts en détail comme un professeur bienveillant.");
-        }
-        if (isDeepSearchEnabled) {
-            systemPrompt.append(" Agis comme si tu avais effectué une recherche approfondie sur le web (sources croisées Google, Bing, DuckDuckGo) pour fournir des faits actualisés et sourcés.");
-        }
-
-        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), prompt, new GroqApiClient.GroqCallback() {
-            @Override
-            public void onSuccess(String responseText) {
-                addMessage(responseText, false);
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                addMessage("Erreur : " + errorMessage, false);
-            }
-        });
-    }
-
-    private void addMessage(String text, boolean isUser) {
-        messageList.add(new ChatMessage(text, isUser));
-        chatAdapter.notifyItemInserted(messageList.size() - 1);
-        rvChat.smoothScrollToPosition(messageList.size() - 1);
     }
 
     private void setupDrawerNavigation() {
@@ -271,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
             if (id == R.id.nav_studio) {
                 startActivity(new Intent(MainActivity.this, StudioActivity.class));
             } else if (id == R.id.nav_logout) {
-                FirebaseAuth.getInstance().signOut();
+                mAuth.signOut();
                 startActivity(new Intent(MainActivity.this, LoginActivity.class));
                 finish();
             }
@@ -285,16 +294,6 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_AUDIO_CODE && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            toggleVoiceRecognition();
-        } else {
-            Toast.makeText(this, "Permission micro refusée.", Toast.LENGTH_SHORT).show();
         }
     }
 }
