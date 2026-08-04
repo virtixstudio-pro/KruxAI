@@ -2,82 +2,109 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#1E293B"
+    android:background="@drawable/bg_bottom_sheet"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="24dp"
+    android:gravity="center_horizontal">
 
+    <!-- Poignée de glissement (Drag handle) -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:background="#334155"
+        android:layout_marginBottom="20dp"
+        android:backgroundTint="#475569" />
+
+    <!-- Avatar Cercle -->
+    <FrameLayout
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@drawable/bg_rounded_input"
+        android:backgroundTint="#1E293B"
+        android:layout_marginBottom="12dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvAvatarLetter"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="U"
+            android:textColor="#38BDF8"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- Email Utilisateur -->
     <TextView
         android:id="@+id/tvUserEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="compte@kruxai.com"
-        android:textColor="#38BDF8"
-        android:textSize="18sp"
+        android:text="utilisateur@kruxai.com"
+        android:textColor="#F8FAFC"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#334155"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="4dp" />
 
     <TextView
-        android:id="@+id/optCustomize"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:drawableStart="@drawable/ic_palette"
-        android:drawablePadding="16dp"
-        android:text="Personnalisation des bulles"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Compte Google / Firebase actif"
+        android:textColor="#64748B"
+        android:textSize="12sp"
+        android:layout_marginBottom="24dp" />
 
-    <TextView
-        android:id="@+id/optMemory"
+    <!-- Carte d'options -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:drawableStart="@drawable/ic_memory"
-        android:drawablePadding="16dp"
-        android:text="Mémoire &amp; Contexte IA"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:layout_height="wrap_content"
+        android:background="#1E293B"
+        android:orientation="vertical"
+        android:padding="4dp"
+        android:layout_marginBottom="20dp"
+        android:outlineSpotShadowColor="#000000">
 
-    <TextView
-        android:id="@+id/optSocials"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:drawableStart="@drawable/ic_globe"
-        android:drawablePadding="16dp"
-        android:text="Suivre Virtix Studio"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        <Button
+            android:id="@+id/btnMemory"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?attr/selectableItemBackground"
+            android:text="🧠 Gérer la mémoire de l'IA"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp"
+            android:gravity="start|center_vertical"
+            android:paddingStart="16dp"
+            android:textAllCaps="false" />
 
-    <TextView
-        android:id="@+id/optVersion"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:drawableStart="@drawable/ic_info"
-        android:drawablePadding="16dp"
-        android:text="Version 1.0.0 (KruxAI Build)"
-        android:textColor="#94A3B8"
-        android:textSize="14sp" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#334155"
+            android:layout_marginHorizontal="16dp" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#334155"
-        android:layout_marginVertical="12dp" />
+        <Button
+            android:id="@+id/btnSettings"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?attr/selectableItemBackground"
+            android:text="⚙️ Paramètres et Thèmes"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp"
+            android:gravity="start|center_vertical"
+            android:paddingStart="16dp"
+            android:textAllCaps="false" />
+    </LinearLayout>
 
+    <!-- Bouton Déconnexion dans la modale -->
     <Button
         android:id="@+id/btnLogout"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
+        android:layout_height="52dp"
+        android:backgroundTint="#7F1D1D"
         android:text="Se déconnecter"
-        android:textColor="#EF4444" />
+        android:textColor="#FCA5A5"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textAllCaps="false" />
 
 </LinearLayout>
