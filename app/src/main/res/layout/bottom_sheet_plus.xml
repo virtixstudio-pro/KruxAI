@@ -44,7 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:gravity="center_vertical"
-        android:text="🌐 Deep Search (Recherche Web Live)"
+        android:text="@drawable/ic_globe Deep Search (Recherche Web Live)"
         android:textColor="#FFFFFF"
         android:textSize="16sp" />
 
