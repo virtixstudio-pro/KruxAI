@@ -55,6 +55,11 @@ public class MainActivity extends AppCompatActivity {
     private SpeechRecognizer speechRecognizer;
     private boolean isListening = false;
 
+    // États des modes avancés
+    private boolean isLearningMode = false;
+    private boolean isDeepSearchEnabled = false;
+    private boolean isThinkingMode = true; // Activé par défaut pour exiger la rigueur
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
         btnAccount.setOnClickListener(v -> showAccountBottomSheet());
-        btnPlus.setOnClickListener(v -> Toast.makeText(this, "Menu d'actions rapides / Fichiers", Toast.LENGTH_SHORT).show());
+        btnPlus.setOnClickListener(v -> showPlusBottomSheet());
         btnSend.setOnClickListener(v -> sendMessage());
         btnMic.setOnClickListener(v -> toggleVoiceRecognition());
 
@@ -92,49 +97,69 @@ public class MainActivity extends AppCompatActivity {
         initSpeechRecognizer();
     }
 
+    private void showPlusBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_plus, null);
+        dialog.setContentView(view);
+
+        TextView optFiles = view.findViewById(R.id.optFiles);
+        TextView optLearning = view.findViewById(R.id.optLearning);
+        TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
+        TextView optThinking = view.findViewById(R.id.optThinking);
+
+        // Mettre à jour visuellement l'état des modes actifs
+        if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
+        if (isDeepSearchEnabled) optDeepSearch.setText("🌐 Deep Search [ACTIF]");
+        if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion (Étape par étape) [ACTIF]");
+
+        optFiles.setOnClickListener(v -> {
+            Toast.makeText(this, "Sélection de fichiers / images (Bientôt disponible)", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        optLearning.setOnClickListener(v -> {
+            isLearningMode = !isLearningMode;
+            Toast.makeText(this, isLearningMode ? "Mode Apprentissage activé 🎓" : "Mode Apprentissage désactivé", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        optDeepSearch.setOnClickListener(v -> {
+            isDeepSearchEnabled = !isDeepSearchEnabled;
+            Toast.makeText(this, isDeepSearchEnabled ? "Deep Search (Google/Bing/DuckDuckGo) activé 🌐" : "Deep Search désactivé", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        optThinking.setOnClickListener(v -> {
+            isThinkingMode = !isThinkingMode;
+            Toast.makeText(this, isThinkingMode ? "Mode Réflexion étape par étape activé 🧠" : "Mode Réflexion standard", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
     private void initSpeechRecognizer() {
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override
-                public void onReadyForSpeech(Bundle params) {
-                    Toast.makeText(MainActivity.this, "Écoute en cours...", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onBeginningOfSpeech() {}
-
-                @Override
-                public void onRmsChanged(float rmsdB) {}
-
-                @Override
-                public void onBufferReceived(byte[] buffer) {}
-
-                @Override
-                public void onEndOfSpeech() {
-                    isListening = false;
-                }
-
-                @Override
-                public void onError(int error) {
+                @Override public void onReadyForSpeech(Bundle params) { Toast.makeText(MainActivity.this, "Écoute en cours...", Toast.LENGTH_SHORT).show(); }
+                @Override public void onBeginningOfSpeech() {}
+                @Override public void onRmsChanged(float rmsdB) {}
+                @Override public void onBufferReceived(byte[] buffer) {}
+                @Override public void onEndOfSpeech() { isListening = false; }
+                @Override public void onError(int error) {
                     isListening = false;
                     Toast.makeText(MainActivity.this, "Erreur d'écoute vocale.", Toast.LENGTH_SHORT).show();
                 }
-
-                @Override
-                public void onResults(Bundle results) {
+                @Override public void onResults(Bundle results) {
                     isListening = false;
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (matches != null && !matches.isEmpty()) {
                         etInput.setText(matches.get(0));
                     }
                 }
-
-                @Override
-                public void onPartialResults(Bundle partialResults) {}
-
-                @Override
-                public void onEvent(int eventType, Bundle params) {}
+                @Override public void onPartialResults(Bundle partialResults) {}
+                @Override public void onEvent(int eventType, Bundle params) {}
             });
         }
     }
@@ -144,7 +169,6 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_AUDIO_CODE);
             return;
         }
-
         if (speechRecognizer == null) return;
 
         if (isListening) {
@@ -178,18 +202,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
         optCustomize.setOnClickListener(v -> {
-            Toast.makeText(this, "Module de personnalisation des couleurs à venir.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Module de personnalisation à venir.", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         optMemory.setOnClickListener(v -> {
-            Toast.makeText(this, "Mémoire active : Profil utilisateur retenu par KruxAI.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Mémoire active : Contexte de l'utilisateur retenu.", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         optSocials.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Virtixstudio-pro/KruxAI"));
-            startActivity(intent);
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Virtixstudio-pro/KruxAI")));
             dialog.dismiss();
         });
 
@@ -210,7 +233,20 @@ public class MainActivity extends AppCompatActivity {
         addMessage(prompt, true);
         etInput.setText("");
 
-        groqClient.sendMessage("llama-3.3-70b-versatile", "Tu es KruxAI, un assistant intelligent, fluide et direct.", prompt, new GroqApiClient.GroqCallback() {
+        // Construction du System Prompt dynamique selon les modes activés
+        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
+        
+        if (isThinkingMode) {
+            systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE avant de formuler ta réponse finale. Décompose ton raisonnement méthodiquement pour éviter toute erreur ou réponse superficielle.");
+        }
+        if (isLearningMode) {
+            systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage : explique les concepts en détail comme un professeur bienveillant.");
+        }
+        if (isDeepSearchEnabled) {
+            systemPrompt.append(" Agis comme si tu avais effectué une recherche approfondie sur le web (sources croisées Google, Bing, DuckDuckGo) pour fournir des faits actualisés et sourcés.");
+        }
+
+        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), prompt, new GroqApiClient.GroqCallback() {
             @Override
             public void onSuccess(String responseText) {
                 addMessage(responseText, false);
