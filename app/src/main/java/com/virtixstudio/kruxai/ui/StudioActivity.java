@@ -3,7 +3,6 @@ package com.virtixstudio.kruxai.ui;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,8 +20,7 @@ public class StudioActivity extends AppCompatActivity {
     private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
 
     private EditText etAgentName, etAgentRole, etStudioTask;
-    private Button btnAddAgent;
-    private ImageButton btnRunStudio;
+    private Button btnAddAgent, btnRunStudio;
     private TextView tvAgentsList, tvStudioOutput;
 
     private List<StudioAgent> agents = new ArrayList<>();
@@ -80,8 +78,8 @@ public class StudioActivity extends AppCompatActivity {
         etStudioTask.setText("");
 
         for (StudioAgent agent : agents) {
-            String systemPrompt = "Tu es " + agent.getName() + ", membre de l'équipe Virtix Studio. Ton rôle est : " 
-                    + agent.getRole() + ". Sois concis, ultra-spécialisé dans ton domaine et collabore efficacement.";
+            String systemPrompt = "Tu es " + agent.getName() + ", membre de l'équipe Virtix Studio. Ton rôle est : "
+                    + agent.getRole() + ". Sois concis et ultra-spécialisé.";
 
             groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt, task, new GroqApiClient.GroqCallback() {
                 @Override

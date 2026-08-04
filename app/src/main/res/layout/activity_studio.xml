@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_main_gradient"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/etAgentName"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_rounded_input"
+        android:hint="Nom de l'agent"
+        android:textColorHint="#94A3B8"
+        android:textColor="#FFFFFF"
+        android:paddingHorizontal="12dp"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etAgentRole"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_rounded_input"
+        android:hint="Rôle de l'agent"
+        android:textColorHint="#94A3B8"
+        android:textColor="#FFFFFF"
+        android:paddingHorizontal="12dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnAddAgent"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_rounded_input"
+        android:text="Ajouter l'Agent"
+        android:textColor="#38BDF8"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvAgentsList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#94A3B8"
+        android:textSize="14sp"
+        android:layout_marginBottom="12dp" />
+
+    <EditText
+        android:id="@+id/etStudioTask"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_rounded_input"
+        android:hint="Objectif du Studio"
+        android:textColorHint="#94A3B8"
+        android:textColor="#FFFFFF"
+        android:paddingHorizontal="12dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnRunStudio"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_rounded_input"
+        android:text="Démarrer le Studio"
+        android:textColor="#38BDF8"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tvStudioOutput"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:scrollbars="vertical" />
+</LinearLayout>
