@@ -171,9 +171,29 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
         if (isThinkingMode) systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE.");
         if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage.");
-        if (isDeepSearchEnabled) systemPrompt.append(" Agis comme si tu avais effectué une recherche web approfondie.");
 
-        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), prompt, new GroqApiClient.GroqCallback() {
+        if (isDeepSearchEnabled) {
+            // Exécution d'une VRAIE recherche Web
+            String tavilyApiKey = com.virtixstudio.kruxai.BuildConfig.TAVILY_API_KEY; // Ajouter la clé dans local.properties
+            com.virtixstudio.kruxai.api.WebSearchService.performSearch(prompt, tavilyApiKey, new com.virtixstudio.kruxai.api.WebSearchService.SearchCallback() {
+                @Override
+                public void onSuccess(String searchContext) {
+                    systemPrompt.append("\n\n").append(searchContext).append("\nUtilise ces informations en temps réel pour répondre précisément avec les sources.");
+                    executeGroqCall(systemPrompt.toString(), prompt);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    executeGroqCall(systemPrompt.toString(), prompt);
+                }
+            });
+        } else {
+            executeGroqCall(systemPrompt.toString(), prompt);
+        }
+    }
+
+    private void executeGroqCall(String systemPrompt, String userPrompt) {
+        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt, userPrompt, new GroqApiClient.GroqCallback() {
             @Override
             public void onSuccess(String responseText) {
                 ChatMessage aiMessage = new ChatMessage(responseText, false);
