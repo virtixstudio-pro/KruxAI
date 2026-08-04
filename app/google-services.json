@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "294133519242",
+    "firebase_url": "https://krux-9fd33-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "krux-9fd33",
+    "storage_bucket": "krux-9fd33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:294133519242:android:e5faa2327e702ec4c62e73",
+        "android_client_info": {
+          "package_name": "com.studio.krux"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdSV0D53PPqtHqPnhCsVLTg1A49emhDmo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
