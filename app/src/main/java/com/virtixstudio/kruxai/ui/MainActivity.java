@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         TextView optThinking = view.findViewById(R.id.optThinking);
 
         if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
-        if (isDeepSearchEnabled) optDeepSearch.setText("@drawable/ic_globe Recherche Web Temps Réel [ACTIF]");
+        if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
         if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion [ACTIF]");
 
         optLearning.setOnClickListener(v -> {
@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
         optDeepSearch.setOnClickListener(v -> {
             isDeepSearchEnabled = !isDeepSearchEnabled;
-            Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Temps Réel Activée @drawable/ic_globe" : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Temps Réel Activée " : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
