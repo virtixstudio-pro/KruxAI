@@ -3,11 +3,11 @@ package com.virtixstudio.kruxai.ui;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -15,7 +15,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -25,7 +24,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
@@ -40,14 +38,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpeechRequestedListener {
 
     private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
-    private NavigationView navigationView;
-    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend;
+    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend, btnCloseSidebar;
+    private View navStudio, navLogout;
+    private Button btnNewChat;
     private EditText etInput;
     private RecyclerView rvChat;
 
@@ -60,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser currentUser;
 
     private SpeechRecognizer speechRecognizer;
+    private TextToSpeech textToSpeech;
     private boolean isListening = false;
 
     private boolean isLearningMode = false;
@@ -78,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
         groqClient = new GroqApiClient(GROQ_API_KEY);
 
         drawerLayout = findViewById(R.id.drawerLayout);
-        navigationView = findViewById(R.id.navigationView);
         btnMenu = findViewById(R.id.btnMenu);
         btnAccount = findViewById(R.id.btnAccount);
         btnPlus = findViewById(R.id.btnPlus);
@@ -87,8 +86,13 @@ public class MainActivity extends AppCompatActivity {
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
 
+        btnCloseSidebar = findViewById(R.id.btnCloseSidebar);
+        btnNewChat = findViewById(R.id.btnNewChat);
+        navStudio = findViewById(R.id.navStudio);
+        navLogout = findViewById(R.id.navLogout);
+
         messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList);
+        chatAdapter = new ChatAdapter(messageList, this);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
@@ -96,14 +100,35 @@ public class MainActivity extends AppCompatActivity {
         rvChat.setAdapter(chatAdapter);
 
         btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+        if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
         btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
         btnSend.setOnClickListener(v -> sendMessage());
         btnMic.setOnClickListener(v -> toggleVoiceRecognition());
 
-        setupDrawerNavigation();
+        setupSidebarEvents();
         initSpeechRecognizer();
+        initTextToSpeech();
         listenToFirebaseMessages();
+    }
+
+    private void initTextToSpeech() {
+        textToSpeech = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech.setLanguage(Locale.FRENCH);
+            }
+        });
+    }
+
+    @Override
+    public void onSpeakRequested(String text) {
+        if (textToSpeech != null) {
+            if (textToSpeech.isSpeaking()) {
+                textToSpeech.stop();
+            } else {
+                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "KruxAI_TTS");
+            }
+        }
     }
 
     private void listenToFirebaseMessages() {
@@ -129,7 +154,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveMessageToFirebase(ChatMessage message) {
         if (currentUser == null) return;
-
         db.collection("users")
                 .document(currentUser.getUid())
                 .collection("chats")
@@ -145,15 +169,9 @@ public class MainActivity extends AppCompatActivity {
         etInput.setText("");
 
         StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert, ultra-précis et technique.");
-        if (isThinkingMode) {
-            systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE avant de formuler ta réponse finale.");
-        }
-        if (isLearningMode) {
-            systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage.");
-        }
-        if (isDeepSearchEnabled) {
-            systemPrompt.append(" Agis comme si tu avais effectué une recherche web approfondie en temps réel.");
-        }
+        if (isThinkingMode) systemPrompt.append(" Règle absolue : Réfléchis toujours ÉTAPE PAR ÉTAPE.");
+        if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique et d'Apprentissage.");
+        if (isDeepSearchEnabled) systemPrompt.append(" Agis comme si tu avais effectué une recherche web approfondie.");
 
         groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), prompt, new GroqApiClient.GroqCallback() {
             @Override
@@ -175,35 +193,26 @@ public class MainActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_plus, null);
         dialog.setContentView(view);
 
-        TextView optFiles = view.findViewById(R.id.optFiles);
         TextView optLearning = view.findViewById(R.id.optLearning);
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
 
         if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("🌐 Deep Search [ACTIF]");
-        if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion (Étape par étape) [ACTIF]");
-
-        optFiles.setOnClickListener(v -> {
-            Toast.makeText(this, "Sélection de fichiers / images (Bientôt disponible)", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
+        if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion [ACTIF]");
 
         optLearning.setOnClickListener(v -> {
             isLearningMode = !isLearningMode;
-            Toast.makeText(this, isLearningMode ? "Mode Apprentissage activé 🎓" : "Mode Apprentissage désactivé", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         optDeepSearch.setOnClickListener(v -> {
             isDeepSearchEnabled = !isDeepSearchEnabled;
-            Toast.makeText(this, isDeepSearchEnabled ? "Deep Search activé 🌐" : "Deep Search désactivé", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
         optThinking.setOnClickListener(v -> {
             isThinkingMode = !isThinkingMode;
-            Toast.makeText(this, isThinkingMode ? "Mode Réflexion étape par étape activé 🧠" : "Mode Réflexion standard", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
@@ -214,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override public void onReadyForSpeech(Bundle params) { Toast.makeText(MainActivity.this, "Écoute en cours...", Toast.LENGTH_SHORT).show(); }
+                @Override public void onReadyForSpeech(Bundle params) {}
                 @Override public void onBeginningOfSpeech() {}
                 @Override public void onRmsChanged(float rmsdB) {}
                 @Override public void onBufferReceived(byte[] buffer) {}
@@ -274,26 +283,37 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void setupDrawerNavigation() {
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_studio) {
+    private void setupSidebarEvents() {
+        if (navStudio != null) {
+            navStudio.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
                 startActivity(new Intent(MainActivity.this, StudioActivity.class));
-            } else if (id == R.id.nav_logout) {
+            });
+        }
+        if (navLogout != null) {
+            navLogout.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
                 mAuth.signOut();
                 startActivity(new Intent(MainActivity.this, LoginActivity.class));
                 finish();
-            }
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return true;
-        });
+            });
+        }
+        if (btnNewChat != null) {
+            btnNewChat.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                messageList.clear();
+                chatAdapter.notifyDataSetChanged();
+            });
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (speechRecognizer != null) {
-            speechRecognizer.destroy();
+        if (speechRecognizer != null) speechRecognizer.destroy();
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
         }
     }
 }

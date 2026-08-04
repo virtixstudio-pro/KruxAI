@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.models.ChatMessage;
+import com.virtixstudio.kruxai.utils.FileUtils;
 
 import java.util.List;
 
@@ -29,10 +30,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int VIEW_TYPE_AI = 2;
 
     private final List<ChatMessage> messageList;
+    private final OnSpeechRequestedListener speechListener;
     private Markwon markwon;
 
-    public ChatAdapter(List<ChatMessage> messageList) {
+    public interface OnSpeechRequestedListener {
+        void onSpeakRequested(String text);
+    }
+
+    public ChatAdapter(List<ChatMessage> messageList, OnSpeechRequestedListener speechListener) {
         this.messageList = messageList;
+        this.speechListener = speechListener;
     }
 
     @Override
@@ -67,10 +74,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             AiViewHolder aiHolder = (AiViewHolder) holder;
             Context context = aiHolder.itemView.getContext();
 
-            // Rendu Markdown du message de l'IA
             markwon.setMarkdown(aiHolder.tvMessage, message.getText());
 
-            // Gestion du bloc de réflexion rétractable
             if (message.getReasoning() != null && !message.getReasoning().trim().isEmpty()) {
                 aiHolder.layoutReasoning.setVisibility(View.VISIBLE);
                 aiHolder.tvReasoningContent.setText(message.getReasoning());
@@ -84,21 +89,34 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 aiHolder.layoutReasoning.setVisibility(View.GONE);
             }
 
-            // Boutons d'action (Copier & Partager)
+            // Bouton Copier
             aiHolder.btnCopy.setOnClickListener(v -> {
                 ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("KruxAI Response", message.getText());
+                ClipData clip = ClipData.newPlainText("KruxAI", message.getText());
                 if (clipboard != null) {
                     clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, "Texte copié !", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Copié dans le presse-papier !", Toast.LENGTH_SHORT).show();
                 }
             });
 
+            // Bouton Partager
             aiHolder.btnShare.setOnClickListener(v -> {
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/plain");
                 shareIntent.putExtra(Intent.EXTRA_TEXT, message.getText());
-                context.startActivity(Intent.createChooser(shareIntent, "Partager via"));
+                context.startActivity(Intent.createChooser(shareIntent, "Partager le code / texte"));
+            });
+
+            // Bouton Télécharger au format TXT
+            aiHolder.btnDownload.setOnClickListener(v -> {
+                FileUtils.saveTextFile(context, message.getText(), "KruxAI_Export");
+            });
+
+            // Bouton TTS (Lire à haute voix)
+            aiHolder.btnSpeak.setOnClickListener(v -> {
+                if (speechListener != null) {
+                    speechListener.onSpeakRequested(message.getText());
+                }
             });
         }
     }
@@ -121,7 +139,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView tvMessage, tvReasoningContent;
         LinearLayout layoutReasoning, btnToggleReasoning;
         ImageView ivArrowReasoning;
-        ImageButton btnCopy, btnShare, btnRegenerate;
+        ImageButton btnCopy, btnShare, btnDownload, btnSpeak;
 
         AiViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -132,7 +150,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ivArrowReasoning = itemView.findViewById(R.id.ivArrowReasoning);
             btnCopy = itemView.findViewById(R.id.btnCopy);
             btnShare = itemView.findViewById(R.id.btnShare);
-            btnRegenerate = itemView.findViewById(R.id.btnRegenerate);
+            btnDownload = itemView.findViewById(R.id.btnDownload);
+            btnSpeak = itemView.findViewById(R.id.btnSpeak);
         }
     }
 }
