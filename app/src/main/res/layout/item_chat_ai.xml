@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Bloc de réflexion (Chain of Thought) rétractable -->
+    <LinearLayout
+        android:id="@+id/layoutReasoning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_reasoning_box"
+        android:padding="8dp"
+        android:layout_marginBottom="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:id="@+id/btnToggleReasoning"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/ivArrowReasoning"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_arrow_right"
+                android:tint="#38BDF8"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🧠 Réflexion étape par étape (Cliquer pour voir)"
+                android:textColor="#38BDF8"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvReasoningContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Texte principal de réponse de l'IA -->
+    <TextView
+        android:id="@+id/tvMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#F8FAFC"
+        android:textSize="15sp"
+        android:autoLink="web"
+        android:textIsSelectable="true"
+        android:padding="4dp" />
+
+    <!-- Actions sous le message (Copier, Partager, Régénérer, Pouces) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/btnCopy"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_copy"
+            android:tint="#94A3B8"
+            android:padding="6dp" />
+
+        <ImageButton
+            android:id="@+id/btnShare"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_share"
+            android:tint="#94A3B8"
+            android:padding="6dp"
+            android:layout_marginStart="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnRegenerate"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_refresh"
+            android:tint="#94A3B8"
+            android:padding="6dp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</LinearLayout>
