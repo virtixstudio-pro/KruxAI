@@ -1,3 +1,4 @@
+import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 package com.virtixstudio.kruxai.ui;
 
 import android.Manifest;
@@ -41,6 +42,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpeechRequestedListener {
+    private KruxDatabaseHelper dbHelper;
+    private String currentSessionId = "default_session";
+
 
     private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
     private static final int PERMISSION_AUDIO_CODE = 101;
@@ -72,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        dbHelper = new KruxDatabaseHelper(this);
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
