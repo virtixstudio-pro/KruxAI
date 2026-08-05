@@ -14,78 +14,61 @@ public class ApiClient {
 
     private static final String TAG = "KruxApiClient";
 
-    private static String getGroqKey() {
-        return "gsk_" + "Es1aGhAXfAp13fc2Xp43WGdyb3FYTzzb7RWscMDr5TreMLc29AFR";
-    }
-
-    private static String getCerebrasKey() {
-        return "csk-" + "dn9r4erm96c6nxth48xpdw86236ny6w2cncfvrf4erdwxh4c";
-    }
-
-    private static String getMistralKey() {
-        return "zGIpy" + "ICsBLkzVPReND2CLNzRCwQGdBWb";
-    }
-
-    private static String getHfKey() {
-        return "hf_" + "HVNppOmGdmsjqIOpGecfYoaEGthlOkjRUO";
-    }
-
-    private static String getGeminiKey() {
-        return "AQ.Ab8" + "RN6LJfiuhkizss1oCB6OyvgIJOMDjX4AR_1ckEoMn6RuExA";
-    }
+    private static String getGroqKey() { return "gsk_" + "Es1aGhAXfAp13fc2Xp43WGdyb3FYTzzb7RWscMDr5TreMLc29AFR"; }
+    private static String getCerebrasKey() { return "csk-" + "dn9r4erm96c6nxth48xpdw86236ny6w2cncfvrf4erdwxh4c"; }
+    private static String getMistralKey() { return "zGIpy" + "ICsBLkzVPReND2CLNzRCwQGdBWb"; }
+    private static String getHfKey() { return "hf_" + "HVNppOmGdmsjqIOpGecfYoaEGthlOkjRUO"; }
+    private static String getGeminiKey() { return "AQ.Ab8" + "RN6LJfiuhkizss1oCB6OyvgIJOMDjX4AR_1ckEoMn6RuExA"; }
 
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
-        void onError(String error);
+        void onError(String friendlyMessage);
     }
 
     public static void sendRequest(String systemPrompt, String userMessage, ApiCallback callback) {
         new Thread(() -> {
-            // 1. Groq (KRUX 3.3 70B)
             try {
                 String res = callOpenAIStyle("https://api.groq.com/openai/v1/chat/completions", getGroqKey(), "llama-3.3-70b-versatile", systemPrompt, userMessage);
                 callback.onSuccess(res, "KRUX 3.3 70B");
                 return;
             } catch (Exception e) {
-                Log.w(TAG, "Groq indisponible, basculement vers Cerebras...", e);
+                Log.w(TAG, "Groq indisponible", e);
             }
 
-            // 2. Cerebras (KRUX Speed 70B)
             try {
                 String res = callOpenAIStyle("https://api.cerebras.ai/v1/chat/completions", getCerebrasKey(), "llama-3.3-70b", systemPrompt, userMessage);
                 callback.onSuccess(res, "KRUX Speed 70B");
                 return;
             } catch (Exception e) {
-                Log.w(TAG, "Cerebras indisponible, basculement vers Gemini...", e);
+                Log.w(TAG, "Cerebras indisponible", e);
             }
 
-            // 3. Google Gemini (KRUX 1.5 Flash)
             try {
                 String res = callGemini(systemPrompt, userMessage);
                 callback.onSuccess(res, "KRUX 1.5 Flash");
                 return;
             } catch (Exception e) {
-                Log.w(TAG, "Gemini indisponible, basculement vers Mistral...", e);
+                Log.w(TAG, "Gemini indisponible", e);
             }
 
-            // 4. Mistral (KRUX Codeur Pro)
             try {
                 String res = callOpenAIStyle("https://api.mistral.ai/v1/chat/completions", getMistralKey(), "codestral-latest", systemPrompt, userMessage);
                 callback.onSuccess(res, "KRUX Codeur Pro");
                 return;
             } catch (Exception e) {
-                Log.w(TAG, "Mistral indisponible, basculement vers HuggingFace...", e);
+                Log.w(TAG, "Mistral indisponible", e);
             }
 
-            // 5. HuggingFace (KRUX Codeur 32B)
             try {
                 String res = callOpenAIStyle("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct/v1/chat/completions", getHfKey(), "Qwen/Qwen2.5-Coder-32B-Instruct", systemPrompt, userMessage);
                 callback.onSuccess(res, "KRUX Codeur 32B");
                 return;
             } catch (Exception e) {
-                Log.e(TAG, "Toutes les API ont échoué.", e);
-                callback.onError("Aucun modèle KRUX disponible. Vérifiez votre connexion.");
+                Log.e(TAG, "Toutes les API ont échoué", e);
             }
+
+            // Message d'erreur élégant et personnalisé
+            callback.onError("Les serveurs KRUX connaissent une forte affluence ou vos quotas temporaires sont atteints. Veuillez réessayer dans un instant.");
         }).start();
     }
 
@@ -110,9 +93,7 @@ public class ApiClient {
             os.write(json.toString().getBytes("utf-8"));
         }
 
-        if (conn.getResponseCode() != 200) {
-            throw new Exception("HTTP " + conn.getResponseCode());
-        }
+        if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
 
         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
         StringBuilder response = new StringBuilder();
@@ -143,7 +124,7 @@ public class ApiClient {
             os.write(json.toString().getBytes("utf-8"));
         }
 
-        if (conn.getResponseCode() != 200) throw new Exception("HTTP Gemini " + conn.getResponseCode());
+        if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
 
         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
         StringBuilder response = new StringBuilder();
