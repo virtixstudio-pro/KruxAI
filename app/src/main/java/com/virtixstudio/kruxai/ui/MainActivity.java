@@ -1,368 +1,144 @@
-import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 package com.virtixstudio.kruxai.ui;
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-import android.speech.tts.TextToSpeech;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentChange;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.virtixstudio.kruxai.R;
-import com.virtixstudio.kruxai.adapters.ChatAdapter;
-import com.virtixstudio.kruxai.api.GroqApiClient;
-import com.virtixstudio.kruxai.api.WebSearchEngine;
-import com.virtixstudio.kruxai.models.ChatMessage;
-import com.virtixstudio.kruxai.models.SearchResult;
+import com.virtixstudio.kruxai.api.ApiClient;
+import com.virtixstudio.kruxai.history.ChatHistoryManager;
+import com.virtixstudio.kruxai.web.WebScraper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpeechRequestedListener {
-    private KruxDatabaseHelper dbHelper;
-    private String currentSessionId = "default_session";
-
-
-    private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
-    private static final int PERMISSION_AUDIO_CODE = 101;
+public class MainActivity extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
-    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend, btnCloseSidebar;
-    private View navStudio, navLogout;
-    private Button btnNewChat;
-    private EditText etInput;
-    private RecyclerView rvChat;
+    private LinearLayout welcomeView;
+    private RecyclerView recyclerChat;
+    private EditText etMessage;
+    private EditText etSearchHistory;
+    private TextView tvCurrentModel;
 
-    private ChatAdapter chatAdapter;
-    private List<ChatMessage> messageList;
-    private GroqApiClient groqClient;
-    private WebSearchEngine webSearchEngine;
-
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-    private FirebaseUser currentUser;
-
-    private SpeechRecognizer speechRecognizer;
-    private TextToSpeech textToSpeech;
-    private boolean isListening = false;
-
-    private boolean isLearningMode = false;
-    private boolean isDeepSearchEnabled = true; // Recherche Web activée par défaut
-    private boolean isThinkingMode = true;
+    private String currentSessionId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        dbHelper = new KruxDatabaseHelper(this);
         setContentView(R.layout.activity_main);
 
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        currentUser = mAuth.getCurrentUser();
+        drawerLayout = findViewById(R.id.drawer_layout);
+        welcomeView = findViewById(R.id.welcome_view);
+        recyclerChat = findViewById(R.id.recycler_chat);
+        etMessage = findViewById(R.id.et_message);
+        etSearchHistory = findViewById(R.id.et_search_history);
+        tvCurrentModel = findViewById(R.id.tv_current_model);
 
-        groqClient = new GroqApiClient(GROQ_API_KEY);
-        webSearchEngine = new WebSearchEngine();
+        ImageButton btnOpenDrawer = findViewById(R.id.btn_open_drawer);
+        ImageButton btnNewChat = findViewById(R.id.btn_new_chat);
+        ImageButton btnSend = findViewById(R.id.btn_send);
+        Button chipCode = findViewById(R.id.chip_code);
+        Button chipMedia = findViewById(R.id.chip_media);
 
-        drawerLayout = findViewById(R.id.drawerLayout);
-        btnMenu = findViewById(R.id.btnMenu);
-        btnAccount = findViewById(R.id.btnAccount);
-        btnPlus = findViewById(R.id.btnPlus);
-        btnMic = findViewById(R.id.btnMic);
-        btnSend = findViewById(R.id.btnSend);
-        etInput = findViewById(R.id.etInput);
-        rvChat = findViewById(R.id.rvChat);
+        currentSessionId = UUID.randomUUID().toString();
 
-        btnCloseSidebar = findViewById(R.id.btnCloseSidebar);
-        btnNewChat = findViewById(R.id.btnNewChat);
-        navStudio = findViewById(R.id.navStudio);
-        navLogout = findViewById(R.id.navLogout);
+        // Ouverture du menu latéral Hamburger
+        btnOpenDrawer.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
-        messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList, this);
+        // Nouvelle discussion (Réinitialisation vers l'écran d'accueil style Gemini)
+        btnNewChat.setOnClickListener(v -> startNewChat());
 
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
-        rvChat.setLayoutManager(layoutManager);
-        rvChat.setAdapter(chatAdapter);
+        // Suggestions d'accueil rapide
+        chipCode.setOnClickListener(v -> {
+            etMessage.setText("Écris un script Python optimisé pour...");
+            sendMessage();
+        });
 
-        btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-        if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
-        btnAccount.setOnClickListener(v -> showAccountBottomSheet());
-        btnPlus.setOnClickListener(v -> showPlusBottomSheet());
+        chipMedia.setOnClickListener(v -> {
+            etMessage.setText("Trouve-moi des vidéos YouTube sur ");
+            etMessage.setSelection(etMessage.getText().length());
+        });
+
+        // Envoi d'un message
         btnSend.setOnClickListener(v -> sendMessage());
-        btnMic.setOnClickListener(v -> toggleVoiceRecognition());
 
-        setupSidebarEvents();
-        initSpeechRecognizer();
-        initTextToSpeech();
-        listenToFirebaseMessages();
-    }
-
-    private void initTextToSpeech() {
-        textToSpeech = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) textToSpeech.setLanguage(Locale.FRENCH);
+        // Recherche dynamique dans l'historique du Drawer
+        etSearchHistory.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Filtrage dynamique de l'historique
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
         });
     }
 
-    @Override
-    public void onSpeakRequested(String text) {
-        if (textToSpeech != null) {
-            if (textToSpeech.isSpeaking()) {
-                textToSpeech.stop();
-            } else {
-                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "KruxAI_TTS");
-            }
-        }
-    }
-
-    private void listenToFirebaseMessages() {
-        if (currentUser == null) return;
-
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("chats")
-                .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null || value == null) return;
-
-                    for (DocumentChange dc : value.getDocumentChanges()) {
-                        if (dc.getType() == DocumentChange.Type.ADDED) {
-                            ChatMessage msg = dc.getDocument().toObject(ChatMessage.class);
-                            messageList.add(msg);
-                            chatAdapter.notifyItemInserted(messageList.size() - 1);
-                            rvChat.smoothScrollToPosition(messageList.size() - 1);
-                        }
-                    }
-                });
-    }
-
-    private void saveMessageToFirebase(ChatMessage message) {
-        if (currentUser == null) return;
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("chats")
-                .add(message);
+    private void startNewChat() {
+        currentSessionId = UUID.randomUUID().toString();
+        welcomeView.setVisibility(View.VISIBLE);
+        recyclerChat.setVisibility(View.GONE);
+        etMessage.setText("");
+        Toast.makeText(this, "Nouvelle conversation démarrée", Toast.LENGTH_SHORT).show();
     }
 
     private void sendMessage() {
-        String prompt = etInput.getText().toString().trim();
-        if (prompt.isEmpty()) return;
+        String query = etMessage.getText().toString().trim();
+        if (query.isEmpty()) return;
 
-        ChatMessage userMessage = new ChatMessage(prompt, true);
-        saveMessageToFirebase(userMessage);
-        etInput.setText("");
+        // Bascule de l'interface : masquage de l'accueil, affichage du chat
+        welcomeView.setVisibility(View.GONE);
+        recyclerChat.setVisibility(View.VISIBLE);
 
-        if (isDeepSearchEnabled) {
-            // VRAIE RECHERCHE EN TEMPS RÉEL SUR LE WEB
-            webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
-                @Override
-                public void onSuccess(List<SearchResult> results, String formattedContext) {
-                    executeAiQuery(prompt, formattedContext, results);
-                }
+        etMessage.setText("");
 
-                @Override
-                public void onError(String error) {
-                    executeAiQuery(prompt, "", new ArrayList<>());
-                }
-            });
-        } else {
-            executeAiQuery(prompt, "", new ArrayList<>());
-        }
-    }
+        // Sauvegarde dans l'historique local
+        ChatHistoryManager.ChatItem item = new ChatHistoryManager.ChatItem(
+                currentSessionId,
+                query.length() > 30 ? query.substring(0, 30) + "..." : query,
+                false,
+                System.currentTimeMillis()
+        );
+        ChatHistoryManager.saveChat(this, item);
 
-    private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
-        StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert et ultra-précis.");
-        if (isThinkingMode) systemPrompt.append(" Réfléchis toujours ÉTAPE PAR ÉTAPE.");
-        if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique.");
-
-        String fullPrompt = userPrompt;
-        if (!webContext.isEmpty()) {
-            systemPrompt.append(" Tu as un accès direct aux données du Web en temps réel ci-dessous. Utilise ces informations fraîches pour répondre précisément et cite les numéros des sources si nécessaire.");
-            fullPrompt = webContext + "\nQuestion de l'utilisateur : " + userPrompt;
+        // Si la requête demande une recherche de vidéo
+        if (query.toLowerCase().contains("vidéo") || query.toLowerCase().contains("youtube")) {
+            new Thread(() -> {
+                String videoResults = WebScraper.searchVideos(query);
+                runOnUiThread(() -> {
+                    // Affichage des résultats vidéos
+                });
+            }).start();
         }
 
-        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), fullPrompt, new GroqApiClient.GroqCallback() {
+        // Appel vers le moteur Multi-IA Krux
+        ApiClient.sendRequest("Tu es KRUX AI, un assistant hautement qualifié.", query, new ApiClient.ApiCallback() {
             @Override
-            public void onSuccess(String responseText) {
-                ChatMessage aiMessage = new ChatMessage(responseText, false, sources);
-                saveMessageToFirebase(aiMessage);
+            public void onSuccess(String response, String modelBrand) {
+                runOnUiThread(() -> {
+                    tvCurrentModel.setText(modelBrand);
+                    // Mise à jour de la vue chat avec la réponse
+                });
             }
 
             @Override
-            public void onError(String errorMessage) {
-                ChatMessage errorMsg = new ChatMessage("Erreur : " + errorMessage, false);
-                saveMessageToFirebase(errorMsg);
+            public void onError(String error) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, error, Toast.LENGTH_LONG).show());
             }
         });
     }
-
-    private void showPlusBottomSheet() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_plus, null);
-        dialog.setContentView(view);
-
-        TextView optLearning = view.findViewById(R.id.optLearning);
-        TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
-        TextView optThinking = view.findViewById(R.id.optThinking);
-
-        if (isLearningMode) optLearning.setText("🎓 Mode Apprentissage [ACTIF]");
-        if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
-        if (isThinkingMode) optThinking.setText("🧠 Mode Réflexion [ACTIF]");
-
-        optLearning.setOnClickListener(v -> {
-            isLearningMode = !isLearningMode;
-            dialog.dismiss();
-        });
-
-        optDeepSearch.setOnClickListener(v -> {
-            isDeepSearchEnabled = !isDeepSearchEnabled;
-            Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Temps Réel Activée " : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        optThinking.setOnClickListener(v -> {
-            isThinkingMode = !isThinkingMode;
-            dialog.dismiss();
-        });
-
-        dialog.show();
-    }
-
-    private void initSpeechRecognizer() {
-        if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-            speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override public void onReadyForSpeech(Bundle params) {}
-                @Override public void onBeginningOfSpeech() {}
-                @Override public void onRmsChanged(float rmsdB) {}
-                @Override public void onBufferReceived(byte[] buffer) {}
-                @Override public void onEndOfSpeech() { isListening = false; }
-                @Override public void onError(int error) { isListening = false; }
-                @Override public void onResults(Bundle results) {
-                    isListening = false;
-                    ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    if (matches != null && !matches.isEmpty()) {
-                        etInput.setText(matches.get(0));
-                    }
-                }
-                @Override public void onPartialResults(Bundle partialResults) {}
-                @Override public void onEvent(int eventType, Bundle params) {}
-            });
-        }
-    }
-
-    private void toggleVoiceRecognition() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_AUDIO_CODE);
-            return;
-        }
-        if (speechRecognizer == null) return;
-
-        if (isListening) {
-            speechRecognizer.stopListening();
-            isListening = false;
-        } else {
-            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-            speechRecognizer.startListening(intent);
-            isListening = true;
-        }
-    }
-
-    private void showAccountBottomSheet() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_account, null);
-        dialog.setContentView(view);
-
-        TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
-        Button btnLogout = view.findViewById(R.id.btnLogout);
-
-        if (currentUser != null && currentUser.getEmail() != null) {
-            tvUserEmail.setText(currentUser.getEmail());
-        }
-
-        btnLogout.setOnClickListener(v -> {
-            dialog.dismiss();
-            mAuth.signOut();
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-            finish();
-        });
-
-        dialog.show();
-    }
-
-    private void setupSidebarEvents() {
-        if (navStudio != null) {
-            navStudio.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(GravityCompat.START);
-                startActivity(new Intent(MainActivity.this, StudioActivity.class));
-            });
-        }
-        if (navLogout != null) {
-            navLogout.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(GravityCompat.START);
-                mAuth.signOut();
-                startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                finish();
-            });
-        }
-        if (btnNewChat != null) {
-            btnNewChat.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(GravityCompat.START);
-                messageList.clear();
-                chatAdapter.notifyDataSetChanged();
-            });
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (speechRecognizer != null) speechRecognizer.destroy();
-        if (textToSpeech != null) {
-            textToSpeech.stop();
-            textToSpeech.shutdown();
-        }
-    }
-
-    private boolean isGenerating = false;
-    
-    private void setGeneratingState(boolean generating) {
-        isGenerating = generating;
-        ImageButton btnSend = findViewById(R.id.btnSend); // Assurez-vous que l id correspond
-        if (btnSend != null) {
-            if (generating) {
-                // Icône ou couleur Stop
-                btnSend.setBackgroundColor(0xFFD32F2F); // Rouge d arrêt
-            } else {
-                // Icône ou couleur Envoi normal
-                btnSend.setBackgroundColor(0xFF1E88E5); // Bleu brillant
-            }
-        }
-    }
-    
 }
