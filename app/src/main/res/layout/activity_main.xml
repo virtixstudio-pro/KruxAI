@@ -1,138 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/drawer_layout"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0E1A">
+    android:background="#0F172A">
 
-    <RelativeLayout
+    <!-- Écran principal -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <!-- Top Bar -->
-        <RelativeLayout
-            android:id="@+id/top_bar"
+        <!-- En-tête / Header -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="#10172A"
-            android:paddingHorizontal="12dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
 
             <ImageButton
-                android:id="@+id/btn_open_drawer"
+                android:id="@+id/btnMenu"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_arrow_down"
-                android:contentDescription="Menu" />
+                android:src="@drawable/ic_menu"
+                android:tint="#F8FAFC" />
 
             <TextView
-                android:id="@+id/tv_current_model"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:text="KRUX AI 3.3 70B"
-                android:textColor="#64B5F6"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/btn_new_chat"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_arrow_down"
-                android:contentDescription="Nouveau Chat" />
-        </RelativeLayout>
-
-        <!-- Dynamic Content Area -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_below="@id/top_bar"
-            android:layout_above="@id/bottom_input_area">
-
-            <!-- Welcome View -->
-            <LinearLayout
-                android:id="@+id/welcome_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="24dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="KRUX AI"
-                    android:textColor="#E0E0E0"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Comment puis-je vous aider aujourd'hui ?"
-                    android:textColor="#90CAF9"
-                    android:textSize="15sp" />
-            </LinearLayout>
-
-            <!-- RecyclerView Chat -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_chat"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone"
-                android:padding="8dp"
-                android:clipToPadding="false" />
-
-            <!-- Floating Scroll Down Button -->
-            <ImageButton
-                android:id="@+id/btn_scroll_bottom"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="16dp"
-                android:background="#1E88E5"
-                android:src="@drawable/ic_arrow_down"
-                android:visibility="gone"
-                android:contentDescription="Scroll Down" />
-        </FrameLayout>
-
-        <!-- Bottom Input Area -->
-        <LinearLayout
-            android:id="@+id/bottom_input_area"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:orientation="horizontal"
-            android:padding="12dp"
-            android:background="#10172A">
-
-            <EditText
-                android:id="@+id/et_message"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="#1E293B"
-                android:hint="Posez votre question..."
-                android:textColorHint="#64748B"
-                android:textColor="#FFFFFF"
-                android:padding="12dp"
-                android:maxLines="4" />
+                android:gravity="center"
+                android:text="KruxAI"
+                android:textColor="#F8FAFC"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
             <ImageButton
-                android:id="@+id/btn_send"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:background="#1E88E5"
-                android:src="@drawable/ic_arrow_down"
-                android:contentDescription="Envoyer" />
+                android:id="@+id/btnAccount"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_account"
+                android:tint="#F8FAFC" />
         </LinearLayout>
 
-    </RelativeLayout>
+        <!-- Liste des messages -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvChat"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp" />
+
+        <!-- Zone de saisie flottante moderne (Style ChatGPT/Gemini) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#0F172A"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_input_bar"
+                android:gravity="bottom"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="6dp">
+
+                <ImageButton
+                    android:id="@+id/btnPlus"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_plus"
+                    android:tint="#94A3B8" />
+
+                <EditText
+                    android:id="@+id/etInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Message KruxAI..."
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:maxLines="6"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="8dp"
+                    android:textColor="#F8FAFC"
+                    android:textColorHint="#64748B"
+                    android:textSize="15sp" />
+
+                <ImageButton
+                    android:id="@+id/btnMic"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_mic"
+                    android:tint="#94A3B8" />
+
+                <ImageButton
+                    android:id="@+id/btnSend"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_send_button"
+                    android:src="@drawable/ic_send"
+                    android:tint="#0F172A" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:text="KruxAI peut commettre des erreurs. Vérifiez les informations."
+                android:textColor="#475569"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Drawer Navigation (Sidebar) -->
+    <include
+        layout="@layout/layout_sidebar"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start" />
+
 </androidx.drawerlayout.widget.DrawerLayout>
