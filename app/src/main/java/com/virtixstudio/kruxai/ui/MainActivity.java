@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
-    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend, btnCloseSidebar;
+    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend, btnCloseSidebar, btnScrollBottom;
     private View navStudio, navLogout;
     private Button btnNewChat;
     private EditText etInput;
@@ -87,6 +87,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         btnPlus = findViewById(R.id.btnPlus);
         btnMic = findViewById(R.id.btnMic);
         btnSend = findViewById(R.id.btnSend);
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
 
@@ -102,6 +105,48 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         layoutManager.setStackFromEnd(true);
         rvChat.setLayoutManager(layoutManager);
         rvChat.setAdapter(chatAdapter);
+        if (btnScrollBottom != null) {
+            rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@androidx.annotation.NonNull RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    btnScrollBottom.setVisibility(rvChat.canScrollVertically(1) ? View.VISIBLE : View.GONE);
+                }
+            });
+            btnScrollBottom.setOnClickListener(v -> {
+                if (chatAdapter != null && chatAdapter.getItemCount() > 0) {
+                    rvChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+                }
+            });
+        }
+        if (btnScrollBottom != null) {
+            rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@androidx.annotation.NonNull RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    btnScrollBottom.setVisibility(rvChat.canScrollVertically(1) ? View.VISIBLE : View.GONE);
+                }
+            });
+            btnScrollBottom.setOnClickListener(v -> {
+                if (chatAdapter != null && chatAdapter.getItemCount() > 0) {
+                    rvChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+                }
+            });
+        }
+        if (btnScrollBottom != null) {
+            rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@androidx.annotation.NonNull RecyclerView recyclerView, int dx, int dy) {
+                    super.onScrolled(recyclerView, dx, dy);
+                    btnScrollBottom.setVisibility(rvChat.canScrollVertically(1) ? View.VISIBLE : View.GONE);
+                }
+            });
+            btnScrollBottom.setOnClickListener(v -> {
+                if (chatAdapter != null && chatAdapter.getItemCount() > 0) {
+                    rvChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+                }
+            });
+        }
 
         btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
@@ -349,6 +394,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private void setGeneratingState(boolean generating) {
         isGenerating = generating;
         ImageButton btnSend = findViewById(R.id.btnSend); // Assurez-vous que l id correspond
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        btnScrollBottom = findViewById(R.id.btnScrollBottom);
         if (btnSend != null) {
             if (generating) {
                 // Icône ou couleur Stop
