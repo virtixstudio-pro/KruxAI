@@ -1,4 +1,4 @@
-package com.virtixstudio.kruxai/history;
+package com.virtixstudio.kruxai.history;
 
 import android.content.Context;
 import android.content.SharedPreferences;
