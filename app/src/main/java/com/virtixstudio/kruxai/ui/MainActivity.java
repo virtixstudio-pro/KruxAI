@@ -242,8 +242,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         String fullPrompt = userPrompt;
         if (!webContext.isEmpty()) {
             systemPrompt.append(" Tu as un accès direct aux données du Web en temps réel ci-dessous. Utilise ces informations fraîches pour répondre précisément et cite les numéros des sources si nécessaire.");
-            fullPrompt = webContext + "
-Question de l'utilisateur : " + userPrompt;
+            fullPrompt = webContext + "\nQuestion de l'utilisateur : " + userPrompt;
         }
 
         ApiClient.sendRequest(systemPrompt.toString(), fullPrompt, new ApiClient.ApiCallback() {
