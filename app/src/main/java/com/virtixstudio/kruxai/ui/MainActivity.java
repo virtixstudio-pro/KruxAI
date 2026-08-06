@@ -1,4 +1,10 @@
 package com.virtixstudio.kruxai.ui;
+
+import com.virtixstudio.kruxai.models.ChatSession;
+
+import com.virtixstudio.kruxai.adapters.HistoryAdapter;
+
+import com.virtixstudio.kruxai.utils.ChatHistoryManager;
 import com.virtixstudio.kruxai.api.ApiClient;
 
 import android.Manifest;
@@ -200,12 +206,23 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
                 });
     }
 
-    private void saveMessageToFirebase(ChatMessage message) {
-        if (currentUser == null) return;
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("chats")
-                .add(message);
+        private void saveMessageToFirebase(ChatMessage message) {
+        if (currentSessionId == null || currentSessionId.isEmpty()) {
+            currentSessionId = "session_" + System.currentTimeMillis();
+        }
+        
+        // Enregistrement dans le gestionnaire d'historique local/Firebase
+        ChatHistoryManager.saveMessage(this, currentSessionId, message);
+        
+        // Mise à jour de l'affichage principal
+        runOnUiThread(() -> {
+            if (!messageList.contains(message)) {
+                messageList.add(message);
+                chatAdapter.notifyItemInserted(messageList.size() - 1);
+                rvChat.smoothScrollToPosition(messageList.size() - 1);
+            }
+            loadHistorySidebar();
+        });
     }
 
     private void sendMessage() {
@@ -409,4 +426,17 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         }
     }
     
+
+    private void loadHistorySidebar() {
+        if (rvHistory == null) return;
+        List<ChatSession> sessions = ChatHistoryManager.getAllSessions(this);
+        HistoryAdapter historyAdapter = new HistoryAdapter(sessions, session -> {
+            this.currentSessionId = session.getId();
+            this.messageList.clear();
+            this.messageList.addAll(session.getMessages());
+            this.chatAdapter.notifyDataSetChanged();
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+        });
+        rvHistory.setAdapter(historyAdapter);
+    }
 }
