@@ -18,7 +18,7 @@ public class ApiClient {
     private static String getCerebrasKey() { return "csk-" + "dn9r4erm96c6nxth48xpdw86236ny6w2cncfvrf4erdwxh4c"; }
     private static String getMistralKey() { return "zGIpy" + "ICsBLkzVPReND2CLNzRCwQGdBWb"; }
     private static String getHfKey() { return "hf_" + "HVNppOmGdmsjqIOpGecfYoaEGthlOkjRUO"; }
-    private static String getGeminiKey() { return "AQ.Ab8" + "RN6LJfiuhkizss1oCB6OyvgIJOMDjX4AR_1ckEoMn6RuExA"; }
+    private static String getGeminiKey() { return "AQ.Ab8RN6J4vaaYY-T9HL1sgDdF-9e5lJ7qCWz7O7csuY-00hKONQ1evBMVYSfsj6pLGvLBZgYgiLCarJlTIR"; }
 
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
@@ -83,7 +83,7 @@ public class ApiClient {
 
         JSONObject json = new JSONObject();
         json.put("model", model);
-        
+
         JSONArray messages = new JSONArray();
         messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
         messages.put(new JSONObject().put("role", "user").put("content", userMessage));
