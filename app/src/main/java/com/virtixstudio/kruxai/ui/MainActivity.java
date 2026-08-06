@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         }
     }
 
-    private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
+        private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
         StringBuilder systemPrompt = new StringBuilder("Tu es KruxAI, un assistant IA expert et ultra-précis.");
         if (isThinkingMode) systemPrompt.append(" Réfléchis toujours ÉTAPE PAR ÉTAPE.");
         if (isLearningMode) systemPrompt.append(" Adopte un mode Pédagogique.");
@@ -242,23 +242,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         String fullPrompt = userPrompt;
         if (!webContext.isEmpty()) {
             systemPrompt.append(" Tu as un accès direct aux données du Web en temps réel ci-dessous. Utilise ces informations fraîches pour répondre précisément et cite les numéros des sources si nécessaire.");
-            fullPrompt = webContext + "\nQuestion de l'utilisateur : " + userPrompt;
+            fullPrompt = webContext + "
+Question de l'utilisateur : " + userPrompt;
         }
-
-        ApiClient.sendRequest(systemPrompt.toString(), fullPrompt, new ApiClient.ApiCallback() {
-            @Override
-            public void onSuccess(String responseText, String modelBrand) {
-                ChatMessage aiMessage = new ChatMessage(responseText, false, sources);
-                saveMessageToFirebase(aiMessage);
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                ChatMessage errorMsg = new ChatMessage("Erreur : " + errorMessage, false);
-                saveMessageToFirebase(errorMsg);
-            }
-        });
-    }
 
         ApiClient.sendRequest(systemPrompt.toString(), fullPrompt, new ApiClient.ApiCallback() {
             @Override
