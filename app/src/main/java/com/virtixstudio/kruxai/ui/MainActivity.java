@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             fullPrompt = webContext + "\nQuestion de l'utilisateur : " + userPrompt;
         }
 
-        groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt.toString(), fullPrompt, new GroqApiClient.GroqCallback() {
+        ApiClient.sendRequest(systemPrompt.toString(), fullPrompt, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String responseText) {
                 ChatMessage aiMessage = new ChatMessage(responseText, false, sources);
