@@ -5,7 +5,6 @@ import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.models.ChatMessage;
 import com.virtixstudio.kruxai.models.ChatSession;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ChatHistoryManager {
@@ -17,9 +16,8 @@ public class ChatHistoryManager {
     }
 
     public static List<ChatSession> getAllSessions(Context context) {
-        if (context == null) return new ArrayList<>();
-        // Charge la liste des sessions sauvegardees en base de donnees
+        if (context == null) return java.util.Collections.emptyList();
         KruxDatabaseHelper db = new KruxDatabaseHelper(context);
-        return new ArrayList<>();
+        return db.getAllSessions();
     }
 }
