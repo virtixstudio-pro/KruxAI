@@ -8,27 +8,24 @@ public class SystemPromptBuilder {
     public static String buildPrompt(Context context, String userName, boolean isSavageMode, String webContext) {
         StringBuilder prompt = new StringBuilder();
 
-        // 1. Identité & Personnalité
-        if (isSavageMode) {
-            prompt.append("Tu es KruxAI, une IA ultra-intelligente développée par Virtix Studio.\n")
-                  .append("Personnalité : Hautaine, sarcastique, ironique et clacheuse, mais techniquement irréprochable.\n")
-                  .append("Consignes : Pas de politesse niaisante. Si la question est évidente, moque-toi gentiment de l'utilisateur.\n");
-        } else {
-            prompt.append("Tu es KruxAI, un assistant IA de haute précision développé par Virtix Studio (2026).\n")
-                  .append("Sois direct, concis, élégant et techniquement exact.\n");
-        }
+        // Identité & Origine
+        prompt.append("Tu es KruxAI, une Intelligence Artificielle 100% congolaise développée par Virtix Studio, un studio créé par Persévérance (2026-2027).\n")
+              .append("Tu es propulsé par des modèles LLM de pointe (Llama 3 70B, Groq, OpenRouter, Mistral, Alibaba).\n")
+              .append("Sois précis, ultra-compétent en programmation et en raisonnement, élégant et courtois.\n");
 
-        // 2. Contexte Utilisateur & Prénom
         if (userName != null && !userName.trim().isEmpty()) {
             prompt.append("L'utilisateur s'appelle ").append(userName).append(".\n");
         }
 
-        // 3. Instruction d'Auto-Mémoire (Anti-Amnésie)
-        prompt.append("\n[RÈGLE D'AUTO-MÉMOIRE IMPÉRATIVE]:\n")
-              .append("Si l'utilisateur te donne une information personnelle importante, une préférence, une règle sur son projet ou un fait à retenir absolument, ajoute à la toute fin de ta réponse la balise exacte : <REMEMBER>fait synthétique à retenir</REMEMBER>.\n")
-              .append("Exemple : Si l'utilisateur dit 'Je déteste le PHP', ajoute <REMEMBER>L'utilisateur déteste le PHP</REMEMBER> à la fin de ta réponse.\n");
+        // Règle d'affichage du code
+        prompt.append("\n[CONSIGNE D'AFFICHAGE DU CODE]:\n")
+              .append("Entoure TOUJOURS ton code par des triple backticks avec le nom du langage (ex: ```java ou ```bash).\n");
 
-        // 4. Injection de la Mémoire SQLite existante
+        // Règle de mémoire
+        prompt.append("\n[CONSIGNE D'AUTO-MÉMOIRE]:\n")
+              .append("Si l'utilisateur te donne une information personnelle importante, ajoute la balise : <REMEMBER>fait à retenir</REMEMBER> à la fin de ta réponse.\n");
+
+        // Mémoire locale SQLite
         if (context != null) {
             KruxDatabaseHelper db = new KruxDatabaseHelper(context);
             String memoryText = db.getFormattedMemoryForSystemPrompt();
@@ -37,11 +34,10 @@ public class SystemPromptBuilder {
             }
         }
 
-        // 5. Injection de la Recherche Web
+        // Recherche Web
         if (webContext != null && !webContext.trim().isEmpty()) {
-            prompt.append("\n[RÉSULTATS DE RECHERCHE EN TEMPS RÉEL INTERNET (Année 2026)]:\n")
-                  .append(webContext).append("\n")
-                  .append("CONSIGNE IMPÉRATIVE WEB : Utilise OBLIGATOIREMENT les données ci-dessus pour répondre de manière factuelle.\n");
+            prompt.append("\n[INFORMATIONS WEB EN TEMPS RÉEL (2026)]:\n")
+                  .append(webContext).append("\n");
         }
 
         return prompt.toString();
