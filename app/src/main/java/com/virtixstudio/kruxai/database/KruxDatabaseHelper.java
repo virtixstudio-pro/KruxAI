@@ -91,6 +91,10 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         db.insert("memory", null, values);
     }
 
+    public void addMemoryFact(String fact) {
+        saveMemoryFact(fact);
+    }
+
     public String getFormattedMemoryForSystemPrompt() {
         StringBuilder memoryText = new StringBuilder();
         SQLiteDatabase db = this.getReadableDatabase();

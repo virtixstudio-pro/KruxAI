@@ -26,7 +26,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     @Override
-    int getItemViewType(int position) {
+    public int getItemViewType(int position) {
         return messageList.get(position).isUser() ? VIEW_TYPE_USER : VIEW_TYPE_AI;
     }
 
@@ -48,7 +48,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (holder instanceof UserViewHolder) {
             ((UserViewHolder) holder).tvMessage.setText(message.getText());
         } else if (holder instanceof AiViewHolder) {
-            // Formatage du code Markdown
             ((AiViewHolder) holder).tvMessage.setText(MarkdownCodeFormatter.format(message.getText()));
         }
     }
