@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.virtixstudio.kruxai.models.ChatMessage;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,6 +65,26 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_SENDER, sender);
         values.put(COL_MESSAGE, message);
         db.insert(TABLE_CHATS, null, values);
+    }
+
+    public List<ChatMessage> getMessagesForSession(String sessionId) {
+        List<ChatMessage> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+            "SELECT " + COL_SENDER + ", " + COL_MESSAGE + " FROM " + TABLE_CHATS +
+            " WHERE " + COL_SESSION_ID + " = ? ORDER BY " + COL_CHAT_ID + " ASC",
+            new String[]{sessionId}
+        );
+        if (cursor.moveToFirst()) {
+            do {
+                String sender = cursor.getString(0);
+                String messageText = cursor.getString(1);
+                boolean isUser = "user".equalsIgnoreCase(sender);
+                list.add(new ChatMessage(messageText, isUser));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return list;
     }
 
     // --- GESTION MÉMOIRE IA ---
