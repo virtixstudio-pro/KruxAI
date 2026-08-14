@@ -219,22 +219,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     }
 
     private void listenToFirebaseMessages() {
-        if (currentUser == null) return;
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("chats")
-                .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null || value == null) return;
-                    for (DocumentChange dc : value.getDocumentChanges()) {
-                        if (dc.getType() == DocumentChange.Type.ADDED) {
-                            ChatMessage msg = dc.getDocument().toObject(ChatMessage.class);
-                            messageList.add(msg);
-                            chatAdapter.notifyItemInserted(messageList.size() - 1);
-                            rvChat.smoothScrollToPosition(messageList.size() - 1);
-                        }
-                    }
-                });
+        // Désactivé pour éviter la duplication des messages à l'écran.
+        // L'interface locale gère l'affichage immédiat, Firestore gère la sauvegarde.
     }
 
     private void saveMessageToDatabase(ChatMessage message) {
@@ -244,21 +230,33 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
         ChatHistoryManager.saveMessage(this, currentSessionId, message);
 
+        // Mise à jour de l'UI en local
+        runOnUiThread(() -> {
+            messageList.add(message);
+            chatAdapter.notifyItemInserted(messageList.size() - 1);
+            rvChat.smoothScrollToPosition(messageList.size() - 1);
+            loadHistorySidebar();
+        });
+
+        // Sauvegarde distante dans Firestore
         if (currentUser != null) {
             db.collection("users")
                     .document(currentUser.getUid())
                     .collection("chats")
                     .add(message);
+        } else {
+            // Auto-connexion anonyme pour débloquer l'écriture Firestore si non connecté
+            com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnSuccessListener(authResult -> {
+                        currentUser = authResult.getUser();
+                        if (currentUser != null) {
+                            db.collection("users")
+                                    .document(currentUser.getUid())
+                                    .collection("chats")
+                                    .add(message);
+                        }
+                    });
         }
-
-        runOnUiThread(() -> {
-            if (!messageList.contains(message)) {
-                messageList.add(message);
-                chatAdapter.notifyItemInserted(messageList.size() - 1);
-                rvChat.smoothScrollToPosition(messageList.size() - 1);
-            }
-            loadHistorySidebar();
-        });
     }
 
     private void sendMessage() {
