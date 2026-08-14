@@ -43,11 +43,11 @@ import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.api.GroqApiClient;
 import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
-import com.virtixstudio.kruxai.engine.SystemPromptBuilder;
 import com.virtixstudio.kruxai.models.ChatMessage;
 import com.virtixstudio.kruxai.models.ChatSession;
 import com.virtixstudio.kruxai.models.SearchResult;
 import com.virtixstudio.kruxai.utils.ChatHistoryManager;
+import com.virtixstudio.kruxai.utils.SystemPromptBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -146,7 +146,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
 
-                // Masquer le bouton TTS si on défile vers le haut
                 if (dy < -10 && isTtsSpeaking && btnTtsControl != null) {
                     btnTtsControl.setVisibility(View.GONE);
                 } else if (dy > 10 && isTtsSpeaking && btnTtsControl != null) {
@@ -245,6 +244,13 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
         ChatHistoryManager.saveMessage(this, currentSessionId, message);
 
+        if (currentUser != null) {
+            db.collection("users")
+                    .document(currentUser.getUid())
+                    .collection("chats")
+                    .add(message);
+        }
+
         runOnUiThread(() -> {
             if (!messageList.contains(message)) {
                 messageList.add(message);
@@ -281,17 +287,32 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     }
 
     private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
-        String userName = (currentUser != null && currentUser.getDisplayName() != null) ? currentUser.getDisplayName() : "";
-        String systemPrompt = SystemPromptBuilder.buildPrompt(this, userName, false, webContext);
-
-        StringBuilder promptWithContext = new StringBuilder();
+        StringBuilder historyBuilder = new StringBuilder();
         int startIndex = Math.max(0, messageList.size() - 10);
         for (int i = startIndex; i < messageList.size() - 1; i++) {
             ChatMessage msg = messageList.get(i);
-            promptWithContext.append(msg.isUser() ? "Utilisateur: " : "KruxAI: ")
+            historyBuilder.append(msg.isUser() ? "Utilisateur: " : "Krux AI: ")
                     .append(msg.getText())
                     .append("\n");
         }
+
+        if (webContext != null && !webContext.isEmpty()) {
+            historyBuilder.append("\nContexte Recherche Web:\n").append(webContext);
+        }
+
+        List<String> memoryFacts = dbHelper.getAllMemoryFacts();
+        if (memoryFacts != null && !memoryFacts.isEmpty()) {
+            historyBuilder.append("\nFaits mémorisés sur l'utilisateur:\n");
+            for (String fact : memoryFacts) {
+                historyBuilder.append("- ").append(fact).append("\n");
+            }
+        }
+
+        String systemPrompt = new SystemPromptBuilder()
+                .withHistory(historyBuilder.toString())
+                .build();
+
+        StringBuilder promptWithContext = new StringBuilder();
         promptWithContext.append("Utilisateur: ").append(userPrompt);
 
         setGeneratingState(true);
