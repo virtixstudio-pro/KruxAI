@@ -549,15 +549,109 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
     private void loadHistorySidebar() {
         if (rvHistory == null) return;
-        List<ChatSession> sessions = ChatHistoryManager.getAllSessions(this);
-        HistoryAdapter historyAdapter = new HistoryAdapter(sessions, session -> {
-            this.currentSessionId = session.getId();
-            this.messageList.clear();
-            this.messageList.addAll(session.getMessages());
-            this.chatAdapter.notifyDataSetChanged();
-            if (drawerLayout != null) drawerLayout.closeDrawers();
+        List<ChatSession> sessions = dbHelper.getAllSessions();
+
+        HistoryAdapter historyAdapter = new HistoryAdapter(this, sessions, new HistoryAdapter.OnSessionActionListener() {
+            @Override
+            public void onSessionClick(ChatSession session) {
+                currentSessionId = session.getId();
+                messageList.clear();
+                messageList.addAll(session.getMessages());
+                chatAdapter.notifyDataSetChanged();
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            }
+
+            @Override
+            public void onSessionPinToggle(ChatSession session) {
+                dbHelper.togglePinSession(session.getId());
+                loadHistorySidebar();
+            }
+
+            @Override
+            public void onSessionRename(ChatSession session) {
+                showRenameDialog(session);
+            }
+
+            @Override
+            public void onSessionDelete(ChatSession session) {
+                dbHelper.deleteSession(session.getId());
+                if (session.getId().equals(currentSessionId)) {
+                    messageList.clear();
+                    chatAdapter.notifyDataSetChanged();
+                }
+                loadHistorySidebar();
+            }
         });
+
         rvHistory.setAdapter(historyAdapter);
+
+        View searchView = findViewById(R.id.etSearchHistory);
+        if (searchView == null) searchView = findViewById(R.id.searchViewHistory);
+
+        if (searchView instanceof EditText) {
+            EditText etSearch = (EditText) searchView;
+            etSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    filterSessions(s.toString(), sessions, historyAdapter);
+                }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            });
+        } else if (searchView instanceof androidx.appcompat.widget.SearchView) {
+            androidx.appcompat.widget.SearchView sv = (androidx.appcompat.widget.SearchView) searchView;
+            sv.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {
+                @Override public boolean onQueryTextSubmit(String query) { return false; }
+                @Override public boolean onQueryTextChange(String newText) {
+                    filterSessions(newText, sessions, historyAdapter);
+                    return true;
+                }
+            });
+        }
+    }
+
+    private void filterSessions(String query, List<ChatSession> allSessions, HistoryAdapter adapter) {
+        if (query == null || query.trim().isEmpty()) {
+            adapter.updateList(allSessions);
+            return;
+        }
+        String lowerQuery = query.toLowerCase().trim();
+        List<ChatSession> filtered = new ArrayList<>();
+        for (ChatSession session : allSessions) {
+            String title = dbHelper.getSessionTitle(session.getId());
+            if (title != null && title.toLowerCase().contains(lowerQuery)) {
+                filtered.add(session);
+                continue;
+            }
+            if (session.getMessages() != null) {
+                for (ChatMessage msg : session.getMessages()) {
+                    if (msg.getText() != null && msg.getText().toLowerCase().contains(lowerQuery)) {
+                        filtered.add(session);
+                        break;
+                    }
+                }
+            }
+        }
+        adapter.updateList(filtered);
+    }
+
+    private void showRenameDialog(ChatSession session) {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Renommer la discussion");
+
+        final EditText input = new EditText(this);
+        String currentTitle = dbHelper.getSessionTitle(session.getId());
+        input.setText(currentTitle != null ? currentTitle : "");
+        builder.setView(input);
+
+        builder.setPositiveButton("Enregistrer", (dialog, which) -> {
+            String newTitle = input.getText().toString().trim();
+            if (!newTitle.isEmpty()) {
+                dbHelper.renameSession(session.getId(), newTitle);
+                loadHistorySidebar();
+            }
+        });
+        builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
+        builder.show();
     }
 
     @Override
