@@ -95,6 +95,20 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         saveMemoryFact(fact);
     }
 
+    public List<String> getAllMemoryFacts() {
+        List<String> facts = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT fact FROM memory", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                facts.add(cursor.getString(0));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return facts;
+    }
+
     public String getFormattedMemoryForSystemPrompt() {
         StringBuilder memoryText = new StringBuilder();
         SQLiteDatabase db = this.getReadableDatabase();
