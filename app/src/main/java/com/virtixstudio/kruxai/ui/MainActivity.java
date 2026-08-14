@@ -1,4 +1,4 @@
-package com.virtixstudio/kruxai.ui;
+package com.virtixstudio.kruxai.ui;
 
 import android.Manifest;
 import android.animation.ValueAnimator;
