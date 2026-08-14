@@ -1,7 +1,9 @@
-package com.virtixstudio.kruxai.ui;
+package com.virtixstudio/kruxai.ui;
 
 import android.Manifest;
+import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
@@ -12,9 +14,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -29,6 +35,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.adapters.ChatAdapter;
 import com.virtixstudio.kruxai.adapters.HistoryAdapter;
@@ -52,11 +59,13 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
-    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnSend, btnCloseSidebar, btnScrollBottom;
+    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
     private View navStudio, navLogout;
     private Button btnNewChat;
     private EditText etInput;
     private RecyclerView rvChat, rvHistory;
+    private LinearLayout llVoiceVisualizer;
+    private View waveBar1, waveBar2, waveBar3, waveBar4;
 
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
@@ -71,11 +80,12 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
     private boolean isListening = false;
+    private boolean isTtsSpeaking = false;
+    private List<ValueAnimator> activeAnimators = new ArrayList<>();
 
     private boolean isLearningMode = false;
     private boolean isDeepSearchEnabled = true;
     private boolean isThinkingMode = true;
-
     private String currentSessionId;
     private boolean isGenerating = false;
 
@@ -99,11 +109,20 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         btnAccount = findViewById(R.id.btnAccount);
         btnPlus = findViewById(R.id.btnPlus);
         btnMic = findViewById(R.id.btnMic);
+        btnStopMic = findViewById(R.id.btnStopMic);
         btnSend = findViewById(R.id.btnSend);
         btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        btnTtsControl = findViewById(R.id.btnTtsControl);
+
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
         rvHistory = findViewById(R.id.rvHistory);
+
+        llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
+        waveBar1 = findViewById(R.id.waveBar1);
+        waveBar2 = findViewById(R.id.waveBar2);
+        waveBar3 = findViewById(R.id.waveBar3);
+        waveBar4 = findViewById(R.id.waveBar4);
 
         btnCloseSidebar = findViewById(R.id.btnCloseSidebar);
         btnNewChat = findViewById(R.id.btnNewChat);
@@ -122,14 +141,25 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             rvHistory.setLayoutManager(new LinearLayoutManager(this));
         }
 
-        if (btnScrollBottom != null) {
-            rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                    super.onScrolled(recyclerView, dx, dy);
+        rvChat.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                // Masquer le bouton TTS si on défile vers le haut
+                if (dy < -10 && isTtsSpeaking && btnTtsControl != null) {
+                    btnTtsControl.setVisibility(View.GONE);
+                } else if (dy > 10 && isTtsSpeaking && btnTtsControl != null) {
+                    btnTtsControl.setVisibility(View.VISIBLE);
+                }
+
+                if (btnScrollBottom != null) {
                     btnScrollBottom.setVisibility(rvChat.canScrollVertically(1) ? View.VISIBLE : View.GONE);
                 }
-            });
+            }
+        });
+
+        if (btnScrollBottom != null) {
             btnScrollBottom.setOnClickListener(v -> {
                 if (chatAdapter != null && chatAdapter.getItemCount() > 0) {
                     rvChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
@@ -143,6 +173,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
         btnSend.setOnClickListener(v -> sendMessage());
         btnMic.setOnClickListener(v -> toggleVoiceRecognition());
+        if (btnStopMic != null) btnStopMic.setOnClickListener(v -> toggleVoiceRecognition());
+        if (btnTtsControl != null) btnTtsControl.setOnClickListener(v -> toggleTtsPlayback());
 
         setupSidebarEvents();
         initSpeechRecognizer();
@@ -162,22 +194,39 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         if (textToSpeech != null) {
             if (textToSpeech.isSpeaking()) {
                 textToSpeech.stop();
+                isTtsSpeaking = false;
+                if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
             } else {
                 textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "KruxAI_TTS");
+                isTtsSpeaking = true;
+                if (btnTtsControl != null) {
+                    btnTtsControl.setImageResource(R.drawable.ic_pause);
+                    btnTtsControl.setVisibility(View.VISIBLE);
+                }
             }
+        }
+    }
+
+    private void toggleTtsPlayback() {
+        if (textToSpeech == null) return;
+        if (textToSpeech.isSpeaking()) {
+            textToSpeech.stop();
+            isTtsSpeaking = false;
+            if (btnTtsControl != null) btnTtsControl.setImageResource(R.drawable.ic_play);
+        } else {
+            isTtsSpeaking = false;
+            if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
         }
     }
 
     private void listenToFirebaseMessages() {
         if (currentUser == null) return;
-
         db.collection("users")
                 .document(currentUser.getUid())
                 .collection("chats")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((value, error) -> {
                     if (error != null || value == null) return;
-
                     for (DocumentChange dc : value.getDocumentChanges()) {
                         if (dc.getType() == DocumentChange.Type.ADDED) {
                             ChatMessage msg = dc.getDocument().toObject(ChatMessage.class);
@@ -193,7 +242,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
         }
-
         dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
         ChatHistoryManager.saveMessage(this, currentSessionId, message);
 
@@ -234,7 +282,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
     private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
         String userName = (currentUser != null && currentUser.getDisplayName() != null) ? currentUser.getDisplayName() : "";
-
         String systemPrompt = SystemPromptBuilder.buildPrompt(this, userName, false, webContext);
 
         StringBuilder promptWithContext = new StringBuilder();
@@ -242,8 +289,8 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         for (int i = startIndex; i < messageList.size() - 1; i++) {
             ChatMessage msg = messageList.get(i);
             promptWithContext.append(msg.isUser() ? "Utilisateur: " : "KruxAI: ")
-                             .append(msg.getText())
-                             .append("\n");
+                    .append(msg.getText())
+                    .append("\n");
         }
         promptWithContext.append("Utilisateur: ").append(userPrompt);
 
@@ -255,8 +302,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
                 runOnUiThread(() -> setGeneratingState(false));
 
                 String cleanResponse = rawResponse;
-
-                // Extraction automatique du fait mémorisé
                 if (cleanResponse.contains("<REMEMBER>") && cleanResponse.contains("</REMEMBER>")) {
                     try {
                         int start = cleanResponse.indexOf("<REMEMBER>") + 10;
@@ -293,9 +338,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
 
-        if (isLearningMode) optLearning.setText(" 🎓 Mode Apprentissage [ACTIF]");
+        if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
-        if (isThinkingMode) optThinking.setText(" 🧠 Mode Réflexion [ACTIF]");
+        if (isThinkingMode) optThinking.setText(" Mode Réflexion [ACTIF]");
 
         optLearning.setOnClickListener(v -> {
             isLearningMode = !isLearningMode;
@@ -324,10 +369,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
                 @Override public void onBeginningOfSpeech() {}
                 @Override public void onRmsChanged(float rmsdB) {}
                 @Override public void onBufferReceived(byte[] buffer) {}
-                @Override public void onEndOfSpeech() { isListening = false; }
-                @Override public void onError(int error) { isListening = false; }
+                @Override public void onEndOfSpeech() { stopVoiceUI(); }
+                @Override public void onError(int error) { stopVoiceUI(); }
                 @Override public void onResults(Bundle results) {
-                    isListening = false;
+                    stopVoiceUI();
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (matches != null && !matches.isEmpty()) {
                         etInput.setText(matches.get(0));
@@ -344,18 +389,72 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_AUDIO_CODE);
             return;
         }
+
         if (speechRecognizer == null) return;
 
         if (isListening) {
             speechRecognizer.stopListening();
-            isListening = false;
+            stopVoiceUI();
         } else {
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
             speechRecognizer.startListening(intent);
+
             isListening = true;
+            btnMic.setVisibility(View.GONE);
+            if (btnStopMic != null) btnStopMic.setVisibility(View.VISIBLE);
+            etInput.setVisibility(View.GONE);
+            if (llVoiceVisualizer != null) llVoiceVisualizer.setVisibility(View.VISIBLE);
+
+            startWaveAnimation();
         }
+    }
+
+    private void stopVoiceUI() {
+        isListening = false;
+        stopWaveAnimation();
+
+        btnMic.setVisibility(View.VISIBLE);
+        if (btnStopMic != null) btnStopMic.setVisibility(View.GONE);
+        if (llVoiceVisualizer != null) llVoiceVisualizer.setVisibility(View.GONE);
+        etInput.setVisibility(View.VISIBLE);
+    }
+
+    private void startWaveAnimation() {
+        animateBar(waveBar1, 12, 32, 280);
+        animateBar(waveBar2, 20, 36, 220);
+        animateBar(waveBar3, 10, 26, 320);
+        animateBar(waveBar4, 16, 34, 250);
+    }
+
+    private void animateBar(View bar, int minDp, int maxDp, long duration) {
+        if (bar == null) return;
+        int minPx = (int) (minDp * getResources().getDisplayMetrics().density);
+        int maxPx = (int) (maxDp * getResources().getDisplayMetrics().density);
+
+        ValueAnimator animator = ValueAnimator.ofInt(minPx, maxPx);
+        animator.setDuration(duration);
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setRepeatMode(ValueAnimator.REVERSE);
+        animator.addUpdateListener(animation -> {
+            if (!isListening) {
+                animator.cancel();
+                return;
+            }
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) bar.getLayoutParams();
+            params.height = (int) animation.getAnimatedValue();
+            bar.setLayoutParams(params);
+        });
+        animator.start();
+        activeAnimators.add(animator);
+    }
+
+    private void stopWaveAnimation() {
+        for (ValueAnimator animator : activeAnimators) {
+            animator.cancel();
+        }
+        activeAnimators.clear();
     }
 
     private void showAccountBottomSheet() {
@@ -365,17 +464,34 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
         Button btnLogout = view.findViewById(R.id.btnLogout);
+        RadioGroup rgTtsEngine = view.findViewById(R.id.rgTtsEngine);
+        RadioButton rbTtsLocal = view.findViewById(R.id.rbTtsLocal);
+        RadioButton rbTtsCloud = view.findViewById(R.id.rbTtsCloud);
 
-        if (currentUser != null && currentUser.getEmail() != null) {
+        if (currentUser != null && currentUser.getEmail() != null && tvUserEmail != null) {
             tvUserEmail.setText(currentUser.getEmail());
         }
 
-        btnLogout.setOnClickListener(v -> {
-            dialog.dismiss();
-            mAuth.signOut();
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-            finish();
-        });
+        if (rgTtsEngine != null) {
+            SharedPreferences prefs = getSharedPreferences("krux_settings", MODE_PRIVATE);
+            boolean isCloud = prefs.getBoolean("tts_cloud", false);
+            if (isCloud && rbTtsCloud != null) rbTtsCloud.setChecked(true);
+            else if (rbTtsLocal != null) rbTtsLocal.setChecked(true);
+
+            rgTtsEngine.setOnCheckedChangeListener((group, checkedId) -> {
+                boolean useCloud = (checkedId == R.id.rbTtsCloud);
+                prefs.edit().putBoolean("tts_cloud", useCloud).apply();
+            });
+        }
+
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v -> {
+                dialog.dismiss();
+                mAuth.signOut();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                finish();
+            });
+        }
 
         dialog.show();
     }
@@ -428,6 +544,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopWaveAnimation();
         if (speechRecognizer != null) speechRecognizer.destroy();
         if (textToSpeech != null) {
             textToSpeech.stop();
