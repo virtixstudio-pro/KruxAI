@@ -28,6 +28,10 @@ jobs:
     - name: Build Debug APK
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        HF_API_KEY: ${{ secrets.HF_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: gradle assembleDebug --no-daemon
 
     - name: Upload APK Artifact

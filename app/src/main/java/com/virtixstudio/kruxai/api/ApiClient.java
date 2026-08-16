@@ -1,6 +1,10 @@
 package com.virtixstudio.kruxai.api;
 
 import android.util.Log;
+
+import com.virtixstudio.kruxai.BuildConfig;
+import com.virtixstudio.kruxai.models.KruxModel;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -14,124 +18,374 @@ public class ApiClient {
 
     private static final String TAG = "KruxApiClient";
 
-    private static String getGroqKey() { return "gsk_" + "Es1aGhAXfAp13fc2Xp43WGdyb3FYTzzb7RWscMDr5TreMLc29AFR"; }
-    private static String getCerebrasKey() { return "csk-" + "dn9r4erm96c6nxth48xpdw86236ny6w2cncfvrf4erdwxh4c"; }
-    private static String getMistralKey() { return "zGIpy" + "ICsBLkzVPReND2CLNzRCwQGdBWb"; }
-    private static String getHfKey() { return "hf_" + "HVNppOmGdmsjqIOpGecfYoaEGthlOkjRUO"; }
-    private static String getGeminiKey() { return "AQ.Ab8RN6J4vaaYY-T9HL1sgDdF-9e5lJ7qCWz7O7csuY-00hKONQ1evBMVYSfsj6pLGvLBZgYgiLCarJlTIR"; }
-
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
         void onError(String friendlyMessage);
     }
 
-    public static void sendRequest(String systemPrompt, String userMessage, ApiCallback callback) {
+    /*
+     * Compatibilité avec MainActivity actuelle.
+     *
+     * Ordre de secours :
+     * 1. Krux 3.3 70B
+     * 2. Krux Speed 70B
+     * 3. Krux 3.5 Flash
+     * 4. Krux Codeur Pro
+     * 5. Krux Codeur 32B
+     */
+    public static void sendRequest(
+            String systemPrompt,
+            String userMessage,
+            ApiCallback callback
+    ) {
         new Thread(() -> {
-            try {
-                String res = callOpenAIStyle("https://api.groq.com/openai/v1/chat/completions", getGroqKey(), "llama-3.3-70b-versatile", systemPrompt, userMessage);
-                callback.onSuccess(res, "KRUX 3.3 70B");
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "Groq indisponible", e);
+
+            KruxModel[] fallbackModels = {
+                    KruxModel.KRUX_33_70B,
+                    KruxModel.KRUX_SPEED_70B,
+                    KruxModel.KRUX_35_FLASH,
+                    KruxModel.KRUX_CODEUR_PRO,
+                    KruxModel.KRUX_CODEUR_32B
+            };
+
+            for (KruxModel model : fallbackModels) {
+                try {
+                    String response = sendWithModel(
+                            model,
+                            systemPrompt,
+                            userMessage
+                    );
+
+                    callback.onSuccess(
+                            response,
+                            model.getDisplayName()
+                    );
+
+                    return;
+
+                } catch (Exception e) {
+                    Log.w(
+                            TAG,
+                            model.getDisplayName() + " indisponible",
+                            e
+                    );
+                }
             }
 
-            try {
-                String res = callOpenAIStyle("https://api.cerebras.ai/v1/chat/completions", getCerebrasKey(), "llama-3.3-70b", systemPrompt, userMessage);
-                callback.onSuccess(res, "KRUX Speed 70B");
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "Cerebras indisponible", e);
-            }
+            callback.onError(
+                    "Les serveurs KRUX sont temporairement indisponibles. " +
+                    "Veuillez réessayer dans un instant."
+            );
 
-            try {
-                String res = callGemini(systemPrompt, userMessage);
-                callback.onSuccess(res, "KRUX 1.5 Flash");
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "Gemini indisponible", e);
-            }
-
-            try {
-                String res = callOpenAIStyle("https://api.mistral.ai/v1/chat/completions", getMistralKey(), "codestral-latest", systemPrompt, userMessage);
-                callback.onSuccess(res, "KRUX Codeur Pro");
-                return;
-            } catch (Exception e) {
-                Log.w(TAG, "Mistral indisponible", e);
-            }
-
-            try {
-                String res = callOpenAIStyle("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-Coder-32B-Instruct/v1/chat/completions", getHfKey(), "Qwen/Qwen2.5-Coder-32B-Instruct", systemPrompt, userMessage);
-                callback.onSuccess(res, "KRUX Codeur 32B");
-                return;
-            } catch (Exception e) {
-                Log.e(TAG, "Toutes les API ont échoué", e);
-            }
-
-            // Message d'erreur élégant et personnalisé
-            callback.onError("Les serveurs KRUX connaissent une forte affluence ou vos quotas temporaires sont atteints. Veuillez réessayer dans un instant.");
         }).start();
     }
 
-    private static String callOpenAIStyle(String endpoint, String apiKey, String model, String systemPrompt, String userMessage) throws Exception {
+    /*
+     * Méthode pour utiliser un modèle précis.
+     *
+     * Exemple :
+     *
+     * ApiClient.sendRequest(
+     *     KruxModel.KRUX_35_FLASH,
+     *     systemPrompt,
+     *     userMessage,
+     *     callback
+     * );
+     */
+    public static void sendRequest(
+            KruxModel model,
+            String systemPrompt,
+            String userMessage,
+            ApiCallback callback
+    ) {
+        new Thread(() -> {
+
+            try {
+                String response = sendWithModel(
+                        model,
+                        systemPrompt,
+                        userMessage
+                );
+
+                callback.onSuccess(
+                        response,
+                        model.getDisplayName()
+                );
+
+            } catch (Exception e) {
+
+                Log.e(
+                        TAG,
+                        "Erreur avec " + model.getDisplayName(),
+                        e
+                );
+
+                callback.onError(
+                        "Impossible d'utiliser " +
+                        model.getDisplayName() +
+                        " pour le moment."
+                );
+            }
+
+        }).start();
+    }
+
+    private static String sendWithModel(
+            KruxModel model,
+            String systemPrompt,
+            String userMessage
+    ) throws Exception {
+
+        switch (model.getProvider()) {
+
+            case "GROQ":
+                return callOpenAIStyle(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        BuildConfig.GROQ_API_KEY,
+                        model.getModelId(),
+                        systemPrompt,
+                        userMessage
+                );
+
+            case "CEREBRAS":
+                return callOpenAIStyle(
+                        "https://api.cerebras.ai/v1/chat/completions",
+                        BuildConfig.CEREBRAS_API_KEY,
+                        model.getModelId(),
+                        systemPrompt,
+                        userMessage
+                );
+
+            case "MISTRAL":
+                return callOpenAIStyle(
+                        "https://api.mistral.ai/v1/chat/completions",
+                        BuildConfig.MISTRAL_API_KEY,
+                        model.getModelId(),
+                        systemPrompt,
+                        userMessage
+                );
+
+            case "HUGGINGFACE":
+                return callOpenAIStyle(
+                        "https://api-inference.huggingface.co/models/"
+                                + model.getModelId()
+                                + "/v1/chat/completions",
+                        BuildConfig.HF_API_KEY,
+                        model.getModelId(),
+                        systemPrompt,
+                        userMessage
+                );
+
+            case "GEMINI":
+                return callGemini(
+                        BuildConfig.GEMINI_API_KEY,
+                        model.getModelId(),
+                        systemPrompt,
+                        userMessage
+                );
+
+            default:
+                throw new Exception(
+                        "Provider inconnu : " + model.getProvider()
+                );
+        }
+    }
+
+    private static String callOpenAIStyle(
+            String endpoint,
+            String apiKey,
+            String model,
+            String systemPrompt,
+            String userMessage
+    ) throws Exception {
+
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new Exception("Clé API absente");
+        }
+
         URL url = new URL(endpoint);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        HttpURLConnection conn =
+                (HttpURLConnection) url.openConnection();
+
         conn.setRequestMethod("POST");
-        conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty(
+                "Authorization",
+                "Bearer " + apiKey
+        );
+        conn.setRequestProperty(
+                "Content-Type",
+                "application/json"
+        );
+
         conn.setDoOutput(true);
-        conn.setConnectTimeout(8000);
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(30000);
 
         JSONObject json = new JSONObject();
+
         json.put("model", model);
 
         JSONArray messages = new JSONArray();
-        messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
-        messages.put(new JSONObject().put("role", "user").put("content", userMessage));
+
+        messages.put(
+                new JSONObject()
+                        .put("role", "system")
+                        .put("content", systemPrompt)
+        );
+
+        messages.put(
+                new JSONObject()
+                        .put("role", "user")
+                        .put("content", userMessage)
+        );
+
         json.put("messages", messages);
 
         try (OutputStream os = conn.getOutputStream()) {
-            os.write(json.toString().getBytes("utf-8"));
+            os.write(
+                    json.toString().getBytes("UTF-8")
+            );
         }
 
-        if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
+        int responseCode = conn.getResponseCode();
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
-        StringBuilder response = new StringBuilder();
+        if (responseCode < 200 || responseCode >= 300) {
+            throw new Exception(
+                    "HTTP " + responseCode
+            );
+        }
+
+        BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(
+                                conn.getInputStream(),
+                                "UTF-8"
+                        )
+                );
+
+        StringBuilder response =
+                new StringBuilder();
+
         String line;
-        while ((line = br.readLine()) != null) response.append(line);
 
-        JSONObject resJson = new JSONObject(response.toString());
-        return resJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+
+        reader.close();
+        conn.disconnect();
+
+        JSONObject result =
+                new JSONObject(response.toString());
+
+        return result
+                .getJSONArray("choices")
+                .getJSONObject(0)
+                .getJSONObject("message")
+                .getString("content");
     }
 
-    private static String callGemini(String systemPrompt, String userMessage) throws Exception {
-        String key = getGeminiKey();
-        URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + key);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    private static String callGemini(
+            String apiKey,
+            String model,
+            String systemPrompt,
+            String userMessage
+    ) throws Exception {
+
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new Exception("Clé Gemini absente");
+        }
+
+        URL url = new URL(
+                "https://generativelanguage.googleapis.com/"
+                        + "v1beta/models/"
+                        + model
+                        + ":generateContent?key="
+                        + apiKey
+        );
+
+        HttpURLConnection conn =
+                (HttpURLConnection) url.openConnection();
+
         conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
+
+        conn.setRequestProperty(
+                "Content-Type",
+                "application/json"
+        );
+
         conn.setDoOutput(true);
-        conn.setConnectTimeout(8000);
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(30000);
 
         JSONObject json = new JSONObject();
+
         JSONArray contents = new JSONArray();
-        JSONObject parts = new JSONObject();
-        parts.put("text", systemPrompt + "\n\n" + userMessage);
-        contents.put(new JSONObject().put("parts", new JSONArray().put(parts)));
+
+        JSONObject content = new JSONObject();
+
+        JSONArray parts = new JSONArray();
+
+        parts.put(
+                new JSONObject()
+                        .put(
+                                "text",
+                                systemPrompt
+                                        + "\n\n"
+                                        + userMessage
+                        )
+        );
+
+        content.put("parts", parts);
+
+        contents.put(content);
+
         json.put("contents", contents);
 
         try (OutputStream os = conn.getOutputStream()) {
-            os.write(json.toString().getBytes("utf-8"));
+            os.write(
+                    json.toString().getBytes("UTF-8")
+            );
         }
 
-        if (conn.getResponseCode() != 200) throw new Exception("HTTP " + conn.getResponseCode());
+        int responseCode = conn.getResponseCode();
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
-        StringBuilder response = new StringBuilder();
+        if (responseCode < 200 || responseCode >= 300) {
+            throw new Exception(
+                    "HTTP " + responseCode
+            );
+        }
+
+        BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(
+                                conn.getInputStream(),
+                                "UTF-8"
+                        )
+                );
+
+        StringBuilder response =
+                new StringBuilder();
+
         String line;
-        while ((line = br.readLine()) != null) response.append(line);
 
-        JSONObject resJson = new JSONObject(response.toString());
-        return resJson.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+
+        reader.close();
+        conn.disconnect();
+
+        JSONObject result =
+                new JSONObject(response.toString());
+
+        return result
+                .getJSONArray("candidates")
+                .getJSONObject(0)
+                .getJSONObject("content")
+                .getJSONArray("parts")
+                .getJSONObject(0)
+                .getString("text");
     }
 }

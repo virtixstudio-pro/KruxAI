@@ -9,29 +9,27 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.virtixstudio.kruxai.R;
-import com.virtixstudio.kruxai.api.GroqApiClient;
+import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.models.StudioAgent;
+import com.virtixstudio.kruxai.models.KruxModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StudioActivity extends AppCompatActivity {
 
-    private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
 
     private EditText etAgentName, etAgentRole, etStudioTask;
     private Button btnAddAgent, btnRunStudio;
     private TextView tvAgentsList, tvStudioOutput;
 
     private List<StudioAgent> agents = new ArrayList<>();
-    private GroqApiClient groqClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_studio);
 
-        groqClient = new GroqApiClient(GROQ_API_KEY);
 
         etAgentName = findViewById(R.id.etAgentName);
         etAgentRole = findViewById(R.id.etAgentRole);
@@ -81,17 +79,33 @@ public class StudioActivity extends AppCompatActivity {
             String systemPrompt = "Tu es " + agent.getName() + ", membre de l'équipe Virtix Studio. Ton rôle est : "
                     + agent.getRole() + ". Sois concis et ultra-spécialisé.";
 
-            groqClient.sendMessage("llama-3.3-70b-versatile", systemPrompt, task, new GroqApiClient.GroqCallback() {
-                @Override
-                public void onSuccess(String responseText) {
-                    tvStudioOutput.append("[" + agent.getName() + " - " + agent.getRole() + "] :\n" + responseText + "\n\n");
-                }
+            ApiClient.sendRequest(
+                    KruxModel.KRUX_33_70B,
+                    systemPrompt,
+                    task,
+                    new ApiClient.ApiCallback() {
+                        @Override
+                        public void onSuccess(String responseText, String modelBrand) {
+                            runOnUiThread(() ->
+                                    tvStudioOutput.append(
+                                            "[" + agent.getName() + " - " + agent.getRole() + "] "
+                                                    + "(" + modelBrand + ") :\n"
+                                                    + responseText + "\n\n"
+                                    )
+                            );
+                        }
 
-                @Override
-                public void onError(String errorMessage) {
-                    tvStudioOutput.append("[" + agent.getName() + "] Erreur : " + errorMessage + "\n\n");
-                }
-            });
+                        @Override
+                        public void onError(String errorMessage) {
+                            runOnUiThread(() ->
+                                    tvStudioOutput.append(
+                                            "[" + agent.getName() + "] Erreur : "
+                                                    + errorMessage + "\n\n"
+                                    )
+                            );
+                        }
+                    }
+            );
         }
     }
 }

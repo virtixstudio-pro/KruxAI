@@ -40,7 +40,6 @@ import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.adapters.ChatAdapter;
 import com.virtixstudio.kruxai.adapters.HistoryAdapter;
 import com.virtixstudio.kruxai.api.ApiClient;
-import com.virtixstudio.kruxai.api.GroqApiClient;
 import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.models.ChatMessage;
@@ -55,7 +54,6 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpeechRequestedListener {
 
-    private static final String GROQ_API_KEY = com.virtixstudio.kruxai.BuildConfig.GROQ_API_KEY;
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
@@ -69,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
-    private GroqApiClient groqClient;
     private WebSearchEngine webSearchEngine;
     private KruxDatabaseHelper dbHelper;
 
@@ -98,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
 
-        groqClient = new GroqApiClient(GROQ_API_KEY);
         webSearchEngine = new WebSearchEngine();
         dbHelper = new KruxDatabaseHelper(this);
 

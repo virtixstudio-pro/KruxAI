@@ -16,9 +16,18 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // Injection de la clé via la variable d'environnement
+        // Injection des clés API via les variables d'environnement
         String groqKey = System.getenv("GROQ_API_KEY") ?: ""
+        String cerebrasKey = System.getenv("CEREBRAS_API_KEY") ?: ""
+        String mistralKey = System.getenv("MISTRAL_API_KEY") ?: ""
+        String hfKey = System.getenv("HF_API_KEY") ?: ""
+        String geminiKey = System.getenv("GEMINI_API_KEY") ?: ""
+
         buildConfigField "String", "GROQ_API_KEY", "\"${groqKey}\""
+        buildConfigField "String", "CEREBRAS_API_KEY", "\"${cerebrasKey}\""
+        buildConfigField "String", "MISTRAL_API_KEY", "\"${mistralKey}\""
+        buildConfigField "String", "HF_API_KEY", "\"${hfKey}\""
+        buildConfigField "String", "GEMINI_API_KEY", "\"${geminiKey}\""
     }
 
     buildFeatures {
