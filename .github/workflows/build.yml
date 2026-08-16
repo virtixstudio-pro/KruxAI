@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, agent/api-unification ]
   pull_request:
     branches: [ main ]
 
