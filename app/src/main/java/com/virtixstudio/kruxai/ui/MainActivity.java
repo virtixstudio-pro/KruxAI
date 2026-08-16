@@ -581,8 +581,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
         rvHistory.setAdapter(historyAdapter);
 
-        View searchView = findViewById(R.id.etSearchHistory);
-        if (searchView == null) searchView = findViewById(R.id.searchViewHistory);
+        View searchView = null;
 
         if (searchView instanceof EditText) {
             EditText etSearch = (EditText) searchView;
