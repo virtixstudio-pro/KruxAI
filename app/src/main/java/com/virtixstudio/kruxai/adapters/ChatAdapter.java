@@ -254,11 +254,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             AiViewHolder holder,
             ChatMessage message
     ) {
-        String messageId = message.getId();
+        String rawMessageId = message.getId();
 
-        if (messageId == null || messageId.isEmpty()) {
-            messageId = String.valueOf(message.getTimestamp());
-        }
+        final String messageId =
+                (rawMessageId == null || rawMessageId.isEmpty())
+                        ? String.valueOf(message.getTimestamp())
+                        : rawMessageId;
 
         String state = feedbackStates.get(messageId);
 
