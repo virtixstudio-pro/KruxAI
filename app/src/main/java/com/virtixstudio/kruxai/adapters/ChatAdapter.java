@@ -296,7 +296,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
 
             notifyItemChanged(
-                    holder.getBindingAdapterPosition()
+                    holder.getAdapterPosition()
             );
         });
 
@@ -316,7 +316,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
 
             notifyItemChanged(
-                    holder.getBindingAdapterPosition()
+                    holder.getAdapterPosition()
             );
         });
     }

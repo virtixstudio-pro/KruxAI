@@ -132,7 +132,19 @@
                 android:textSize="14sp"
                 android:padding="8dp" />
 
-            <Button
+                    <EditText
+            android:id="@+id/etStudioTask"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Décris la tâche du Studio..."
+            android:inputType="textMultiLine"
+            android:minLines="3"
+            android:gravity="top|start"
+            android:textColor="#F8FAFC"
+            android:textColorHint="#94A3B8" />
+
+<Button
                 android:id="@+id/btnRunStudio"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
