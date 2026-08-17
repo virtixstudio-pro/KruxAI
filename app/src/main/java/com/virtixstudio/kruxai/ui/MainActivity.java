@@ -43,6 +43,7 @@ import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.models.ChatMessage;
+import com.virtixstudio.kruxai.models.Feedback;
 import com.virtixstudio.kruxai.models.ChatSession;
 import com.virtixstudio.kruxai.models.SearchResult;
 import com.virtixstudio.kruxai.utils.ChatHistoryManager;
@@ -126,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         navLogout = findViewById(R.id.navLogout);
 
         messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList, this);
+        chatAdapter = new ChatAdapter(messageList, this, new ChatAdapter.OnFeedbackRequestedListener() { @Override public void onFeedbackRequested(ChatMessage message, String type) { handleFeedback(message, type); } });
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
@@ -331,7 +332,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
                     cleanResponse = cleanResponse.replaceAll("<REMEMBER>.*?</REMEMBER>", "").trim();
                 }
 
-                ChatMessage aiMessage = new ChatMessage(cleanResponse, false, sources);
+                ChatMessage aiMessage = new ChatMessage(cleanResponse, false, sources); aiMessage.setModel(modelBrand);
                 saveMessageToDatabase(aiMessage);
             }
 
@@ -647,6 +648,129 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         });
         builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
         builder.show();
+    }
+
+
+    private void handleFeedback(ChatMessage message, String type) {
+        if (message == null) return;
+
+        if ("positive".equals(type)) {
+            saveFeedback(message, "positive", "");
+
+            Toast.makeText(
+                    this,
+                    "Merci pour ton retour 👍",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+        } else if ("negative".equals(type)) {
+            showFeedbackDialog(message);
+        }
+    }
+
+    private void saveFeedback(
+            ChatMessage message,
+            String type,
+            String comment
+    ) {
+        if (message == null || db == null) return;
+
+        String userId = currentUser != null
+                ? currentUser.getUid()
+                : "anonymous";
+
+        Feedback feedback = new Feedback(
+                message.getId(),
+                currentSessionId,
+                userId,
+                message.getModel(),
+                type,
+                comment
+        );
+
+        db.collection("feedbacks")
+                .add(feedback)
+                .addOnFailureListener(e ->
+                        Toast.makeText(
+                                this,
+                                "Erreur lors de l'enregistrement du feedback",
+                                Toast.LENGTH_SHORT
+                        ).show()
+                );
+    }
+
+    private void showFeedbackDialog(ChatMessage message) {
+        View view = getLayoutInflater().inflate(
+                R.layout.dialog_feedback,
+                null
+        );
+
+        androidx.appcompat.app.AlertDialog dialog =
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setView(view)
+                        .create();
+
+        View incorrect =
+                view.findViewById(R.id.feedbackReasonIncorrect);
+
+        View incomplete =
+                view.findViewById(R.id.feedbackReasonIncomplete);
+
+        View irrelevant =
+                view.findViewById(R.id.feedbackReasonIrrelevant);
+
+        View style =
+                view.findViewById(R.id.feedbackReasonStyle);
+
+        View other =
+                view.findViewById(R.id.feedbackReasonOther);
+
+        incorrect.setOnClickListener(v -> {
+            saveFeedback(
+                    message,
+                    "negative",
+                    "Informations incorrectes"
+            );
+            dialog.dismiss();
+        });
+
+        incomplete.setOnClickListener(v -> {
+            saveFeedback(
+                    message,
+                    "negative",
+                    "Réponse incomplète"
+            );
+            dialog.dismiss();
+        });
+
+        irrelevant.setOnClickListener(v -> {
+            saveFeedback(
+                    message,
+                    "negative",
+                    "Réponse hors sujet"
+            );
+            dialog.dismiss();
+        });
+
+        style.setOnClickListener(v -> {
+            saveFeedback(
+                    message,
+                    "negative",
+                    "Style ou explication à améliorer"
+            );
+            dialog.dismiss();
+        });
+
+        other.setOnClickListener(v -> {
+            saveFeedback(
+                    message,
+                    "negative",
+                    "Autre"
+            );
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
 
     @Override

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#0F172A">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pourquoi cette réponse doit-elle être améliorée ?"
+        android:textColor="#F8FAFC"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/feedbackReasonIncorrect"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:text="Informations incorrectes"
+        android:textColor="#CBD5E1"
+        android:textSize="15sp"
+        android:paddingStart="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/feedbackReasonIncomplete"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:text="Réponse incomplète"
+        android:textColor="#CBD5E1"
+        android:textSize="15sp"
+        android:paddingStart="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/feedbackReasonIrrelevant"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:text="Réponse hors sujet"
+        android:textColor="#CBD5E1"
+        android:textSize="15sp"
+        android:paddingStart="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/feedbackReasonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:text="Style ou explication à améliorer"
+        android:textColor="#CBD5E1"
+        android:textSize="15sp"
+        android:paddingStart="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/feedbackReasonOther"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:text="Autre"
+        android:textColor="#CBD5E1"
+        android:textSize="15sp"
+        android:paddingStart="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+</LinearLayout>
