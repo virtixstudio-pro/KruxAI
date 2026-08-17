@@ -52,7 +52,7 @@ public class StudioActivity extends AppCompatActivity {
             return;
         }
 
-        agents.add(new StudioAgent(name, role, taskOrObjective, KruxModel.KRUX_33_70B));
+        agents.add(new StudioAgent(name, role, "", KruxModel.KRUX_33_70B));
         etAgentName.setText("");
         etAgentRole.setText("");
 
