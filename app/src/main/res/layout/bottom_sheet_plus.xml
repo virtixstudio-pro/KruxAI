@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#1E293B"
+    android:background="#0F172A"
     android:orientation="vertical"
     android:padding="20dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Actions &amp; Modes Avancés"
-        android:textColor="#38BDF8"
+        android:text="Actions et modes avancés"
+        android:textColor="#F8FAFC"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -19,42 +20,114 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#334155"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="8dp" />
 
-    <TextView
+    <LinearLayout
         android:id="@+id/optFiles"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
-        android:text="📎 Envoyer un fichier / Image"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
-    <TextView
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_attach"
+            android:contentDescription="Fichier ou image" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Envoyer un fichier ou une image"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/optLearning"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
-        android:text="🎓 Mode Apprentissage (Pédagogique)"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
-    <TextView
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_learning"
+            android:contentDescription="Mode apprentissage" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Mode apprentissage"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/optDeepSearch"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
-        android:text=""
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
-    <TextView
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_search_web"
+            android:contentDescription="Recherche web" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Recherche web en temps réel"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/optThinking"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
-        android:text="🧠 Mode Réflexion (Étape par étape)"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp" />
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_thinking"
+            android:contentDescription="Mode réflexion" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Mode réflexion"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -1,76 +1,166 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient"
     android:orientation="vertical"
-    android:padding="16dp">
-
-    <EditText
-        android:id="@+id/etAgentName"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
-        android:hint="Nom de l'agent"
-        android:textColorHint="#94A3B8"
-        android:textColor="#FFFFFF"
-        android:paddingHorizontal="12dp"
-        android:layout_marginBottom="8dp" />
-
-    <EditText
-        android:id="@+id/etAgentRole"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
-        android:hint="Rôle de l'agent"
-        android:textColorHint="#94A3B8"
-        android:textColor="#FFFFFF"
-        android:paddingHorizontal="12dp"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnAddAgent"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
-        android:text="Ajouter l'Agent"
-        android:textColor="#38BDF8"
-        android:layout_marginBottom="8dp" />
+    android:background="@drawable/bg_main_gradient"
+    android:padding="12dp">
 
     <TextView
-        android:id="@+id/tvAgentsList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#94A3B8"
-        android:textSize="14sp"
-        android:layout_marginBottom="12dp" />
-
-    <EditText
-        android:id="@+id/etStudioTask"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
-        android:hint="Objectif du Studio"
-        android:textColorHint="#94A3B8"
+        android:text="🤝 KRUX STUDIO"
         android:textColor="#FFFFFF"
-        android:paddingHorizontal="12dp"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/btnRunStudio"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@drawable/bg_rounded_input"
-        android:text="Démarrer le Studio"
-        android:textColor="#38BDF8"
-        android:layout_marginBottom="12dp" />
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:padding="8dp" />
 
     <TextView
-        android:id="@+id/tvStudioOutput"
+        android:id="@+id/tvStudioStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Configure ton équipe"
+        android:textColor="#38BDF8"
+        android:textSize="13sp"
+        android:padding="8dp" />
+
+    <ScrollView
+        android:id="@+id/configScroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:scrollbars="vertical" />
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/etStudioName"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_rounded_input"
+                android:hint="Nom du Studio"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#94A3B8"
+                android:padding="12dp" />
+
+            <EditText
+                android:id="@+id/etStudioObjective"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:gravity="top"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_rounded_input"
+                android:hint="Objectif global du Studio"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#94A3B8"
+                android:padding="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ajouter un agent"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:padding="8dp" />
+
+            <EditText
+                android:id="@+id/etAgentName"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_rounded_input"
+                android:hint="Nom de l'agent"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#94A3B8"
+                android:padding="12dp" />
+
+            <EditText
+                android:id="@+id/etAgentRole"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_rounded_input"
+                android:hint="Rôle de l'agent"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#94A3B8"
+                android:padding="12dp" />
+
+            <EditText
+                android:id="@+id/etAgentObjective"
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:gravity="top"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_rounded_input"
+                android:hint="Objectif personnel de l'agent"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#94A3B8"
+                android:padding="12dp" />
+
+            <TextView
+                android:id="@+id/tvSelectedModel"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_rounded_input"
+                android:text="Modèle : Krux 3.3 70B"
+                android:textColor="#FFFFFF"
+                android:padding="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <Button
+                android:id="@+id/btnAddAgent"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:text="＋ Ajouter l'agent"
+                android:textColor="#38BDF8"
+                android:background="@drawable/bg_rounded_button" />
+
+            <TextView
+                android:id="@+id/tvAgentsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#CBD5E1"
+                android:textSize="14sp"
+                android:padding="8dp" />
+
+            <Button
+                android:id="@+id/btnRunStudio"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="12dp"
+                android:text="🚀 Démarrer le Studio"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_rounded_button" />
+
+            <Button
+                android:id="@+id/btnOpenStudioChat"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:text="💬 Ouvrir le chat Studio"
+                android:textColor="#38BDF8"
+                android:background="@drawable/bg_rounded_button"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvStudioOutput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textColor="#F8FAFC"
+                android:textSize="14sp"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
 </LinearLayout>
