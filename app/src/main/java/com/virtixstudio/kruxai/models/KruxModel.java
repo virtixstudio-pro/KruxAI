@@ -10,13 +10,13 @@ public enum KruxModel {
 
     KRUX_33_70B(
             "Krux 3.3 70B",
-            "llama-3.3-70b-versatile",
+            "qwen-2.5-32b",
             "GROQ"
     ),
 
     KRUX_SPEED_70B(
             "Krux Speed 70B",
-            "llama-3.3-70b",
+            "qwen-2.5-32b",
             "CEREBRAS"
     ),
 
