@@ -10,13 +10,13 @@ public enum KruxModel {
 
     KRUX_33_70B(
             "Krux 3.3 70B",
-            "llama-3.1-8b-instant",
+            "openai/gpt-oss-120b",
             "GROQ"
     ),
 
     KRUX_SPEED_70B(
             "Krux Speed 70B",
-            "llama-3.1-8b-instant",
+            "gpt-oss-120b",
             "CEREBRAS"
     ),
 
