@@ -1,6 +1,7 @@
 package com.virtixstudio.kruxai.ui;
 
 import android.Manifest;
+import android.net.Uri;
 import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,6 +21,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -86,6 +89,17 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private boolean isThinkingMode = true;
     private String currentSessionId;
     private boolean isGenerating = false;
+
+private final ActivityResultLauncher<String[]> filePicker =
+        registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    if (uri != null) {
+                        handleSelectedFile(uri);
+                    }
+                }
+        );
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -353,6 +367,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         TextView optLearning = view.findViewById(R.id.optLearning);
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
+        TextView optFiles = view.findViewById(R.id.optFiles);
 
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
@@ -372,6 +387,11 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
         optThinking.setOnClickListener(v -> {
             isThinkingMode = !isThinkingMode;
             dialog.dismiss();
+        });
+
+        optFiles.setOnClickListener(v -> {
+            dialog.dismiss();
+            filePicker.launch(new String[]{"*/*"});
         });
 
         dialog.show();
@@ -783,4 +803,35 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
             textToSpeech.shutdown();
         }
     }
+
+    private void handleSelectedFile(Uri uri) {
+        try {
+            String fileName = uri.getLastPathSegment();
+
+            if (fileName == null || fileName.trim().isEmpty()) {
+                fileName = "Fichier sélectionné";
+            }
+
+            String message =
+                    "📎 Fichier sélectionné : " + fileName +
+                    "\n\nKrux peut maintenant utiliser ce fichier comme pièce jointe.";
+
+            Toast.makeText(
+                    MainActivity.this,
+                    "Fichier sélectionné",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            etInput.setText(message);
+
+        } catch (Exception e) {
+            Toast.makeText(
+                    MainActivity.this,
+                    "Impossible de lire le fichier",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+
 }
