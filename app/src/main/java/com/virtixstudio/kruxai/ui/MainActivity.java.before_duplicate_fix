@@ -239,6 +239,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             currentSessionId = "session_" + System.currentTimeMillis();
         }
         dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
+        ChatHistoryManager.saveMessage(this, currentSessionId, message);
 
         // Mise à jour de l'UI en local
         runOnUiThread(() -> {

@@ -50,6 +50,38 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    public void debugDuplicateMessages() {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT session_id, sender, message, COUNT(*) AS total " +
+                "FROM messages " +
+                "GROUP BY session_id, sender, message " +
+                "HAVING COUNT(*) > 1 " +
+                "ORDER BY total DESC",
+                null
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                String sessionId = cursor.getString(0);
+                String sender = cursor.getString(1);
+                String message = cursor.getString(2);
+                int total = cursor.getInt(3);
+
+                android.util.Log.d(
+                        "KRUX_DUPLICATES",
+                        "session=" + sessionId +
+                        " | sender=" + sender +
+                        " | count=" + total +
+                        " | message=" + message
+                );
+            }
+        } finally {
+            cursor.close();
+        }
+    }
+
     public void saveMessage(String sessionId, String sender, String text) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
