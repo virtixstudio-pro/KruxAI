@@ -116,14 +116,21 @@ public class ApiClient {
 
                 Log.e(
                         TAG,
-                        "Erreur avec " + model.getDisplayName(),
+                        "ERREUR API avec " + model.getDisplayName(),
                         e
                 );
 
+                String detail = e.getMessage();
+
+                if (detail == null || detail.trim().isEmpty()) {
+                    detail = e.getClass().getSimpleName();
+                }
+
                 callback.onError(
-                        "Impossible d'utiliser " +
+                        "Erreur avec " +
                         model.getDisplayName() +
-                        " pour le moment."
+                        " : " +
+                        detail
                 );
             }
 
