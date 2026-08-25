@@ -10,82 +10,38 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- HEADER KRUX -->
-        <RelativeLayout
+        <!-- En-tête -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
 
-            <!-- Bulle hamburger -->
             <ImageButton
                 android:id="@+id/btnMenu"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_centerVertical="true"
-                android:background="@drawable/bg_header_bubble"
-                android:padding="11dp"
-                android:src="@drawable/ic_menu"
-                android:contentDescription="Menu" />
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_menu" />
 
-            <!-- Capsule Krux -->
-            <LinearLayout
-                android:id="@+id/kruxModelCapsule"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:layout_centerVertical="true"
-                android:layout_marginStart="8dp"
-                android:layout_toEndOf="@id/btnMenu"
-                android:background="@drawable/bg_krux_capsule"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="KruxAI"
+                android:textColor="#F8FAFC"
+                android:textSize="20sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvKruxName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Krux"
-                    android:textColor="#F8FAFC"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvSelectedModel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="7dp"
-                    android:maxWidth="130dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="3.5 Flash"
-                    android:textColor="#94A3B8"
-                    android:textSize="12sp" />
-
-                <ImageView
-                    android:id="@+id/ivModelArrow"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginStart="4dp"
-                    android:src="@drawable/ic_arrow_down"
-                    android:tint="#94A3B8" />
-
-            </LinearLayout>
-
-            <!-- Compte -->
             <ImageButton
                 android:id="@+id/btnAccount"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="@drawable/bg_header_bubble"
-                android:padding="10dp"
-                android:src="@drawable/ic_account"
-                android:contentDescription="Compte" />
-
-        </RelativeLayout>
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_account" />
+        </LinearLayout>
 
         <!-- Zone Chat + Boutons Flottants -->
         <RelativeLayout
