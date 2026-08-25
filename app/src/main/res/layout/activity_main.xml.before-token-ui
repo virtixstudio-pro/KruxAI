@@ -63,16 +63,6 @@
                     android:textColor="#94A3B8"
                     android:textSize="12sp" />
 
-                <TextView
-                    android:id="@+id/tvTokenRemaining"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:text="1M"
-                    android:textColor="#64748B"
-                    android:textSize="10sp"
-                    android:maxLines="1" />
-
                 <ImageView
                     android:id="@+id/ivModelArrow"
                     android:layout_width="18dp"

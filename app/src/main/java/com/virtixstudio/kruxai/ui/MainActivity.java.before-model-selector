@@ -70,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private LinearLayout kruxModelCapsule;
     private TextView tvKruxName;
     private TextView tvSelectedModel;
-    private TextView tvTokenRemaining;
     private KruxModel selectedKruxModel = KruxModel.KRUX_35_FLASH;
     private EditText etInput;
     private RecyclerView rvChat, rvHistory;
@@ -137,9 +136,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         kruxModelCapsule = findViewById(R.id.kruxModelCapsule);
         tvKruxName = findViewById(R.id.tvKruxName);
         tvSelectedModel = findViewById(R.id.tvSelectedModel);
-        tvTokenRemaining = findViewById(R.id.tvTokenRemaining);
-
-        updateKruxModelUI();
 
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
@@ -194,11 +190,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-
-        if (kruxModelCapsule != null) {
-            kruxModelCapsule.setOnClickListener(v -> showKruxModelSelector());
-        }
-
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
         btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
@@ -212,113 +203,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         initTextToSpeech();
         listenToFirebaseMessages();
         loadHistorySidebar();
-    }
-
-    private void showKruxModelSelector() {
-
-        final android.app.Dialog dialog = new android.app.Dialog(this);
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(16, 16, 16, 16);
-        container.setBackgroundResource(R.drawable.bg_model_popup);
-
-        TextView title = new TextView(this);
-        title.setText("Modèle Krux");
-        title.setTextColor(android.graphics.Color.WHITE);
-        title.setTextSize(17);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        title.setPadding(8, 4, 8, 12);
-
-        container.addView(title);
-
-        for (KruxModel model : KruxModel.values()) {
-
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            row.setPadding(12, 10, 12, 10);
-            row.setClickable(true);
-            row.setFocusable(true);
-
-            TextView name = new TextView(this);
-            name.setText(model.getDisplayName());
-            name.setTextColor(android.graphics.Color.WHITE);
-            name.setTextSize(15);
-
-            TextView info = new TextView(this);
-
-            String tokenInfo;
-
-            if (model.getContextTokens() >= 1000000) {
-                tokenInfo = (model.getContextTokens() / 1000000) + "M tokens";
-            } else {
-                tokenInfo = (model.getContextTokens() / 1000) + "K tokens";
-            }
-
-            info.setText(tokenInfo);
-            info.setTextColor(android.graphics.Color.rgb(148, 163, 184));
-            info.setTextSize(12);
-
-            row.addView(name);
-            row.addView(info);
-
-            if (model == selectedKruxModel) {
-                name.setTypeface(null, android.graphics.Typeface.BOLD);
-            }
-
-            row.setOnClickListener(v -> {
-
-                selectedKruxModel = model;
-
-                updateKruxModelUI();
-
-                dialog.dismiss();
-            });
-
-            container.addView(row);
-        }
-
-        dialog.setContentView(container);
-
-        android.view.Window window = dialog.getWindow();
-
-        if (window != null) {
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-
-            android.view.WindowManager.LayoutParams params =
-                    new android.view.WindowManager.LayoutParams();
-
-            params.copyFrom(window.getAttributes());
-            params.width =
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.82);
-            params.height =
-                    android.view.WindowManager.LayoutParams.WRAP_CONTENT;
-
-            window.setAttributes(params);
-        }
-
-        dialog.show();
-    }
-
-    private void updateKruxModelUI() {
-        if (selectedKruxModel == null) return;
-
-        if (tvSelectedModel != null) {
-            tvSelectedModel.setText(selectedKruxModel.getShortName());
-        }
-
-        if (tvTokenRemaining != null) {
-            int tokens = selectedKruxModel.getContextTokens();
-
-            if (tokens >= 1000000) {
-                tvTokenRemaining.setText((tokens / 1000000) + "M");
-            } else if (tokens >= 1000) {
-                tvTokenRemaining.setText((tokens / 1000) + "K");
-            } else {
-                tvTokenRemaining.setText(String.valueOf(tokens));
-            }
-        }
     }
 
     private void initTextToSpeech() {
@@ -453,11 +337,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         setGeneratingState(true);
 
-        ApiClient.sendRequest(
-                selectedKruxModel,
-                systemPrompt,
-                promptWithContext.toString(),
-                new ApiClient.ApiCallback() {
+        ApiClient.sendRequest(systemPrompt, promptWithContext.toString(), new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String rawResponse, String modelBrand) {
                 runOnUiThread(() -> setGeneratingState(false));

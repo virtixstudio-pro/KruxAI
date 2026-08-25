@@ -70,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private LinearLayout kruxModelCapsule;
     private TextView tvKruxName;
     private TextView tvSelectedModel;
-    private TextView tvTokenRemaining;
     private KruxModel selectedKruxModel = KruxModel.KRUX_35_FLASH;
     private EditText etInput;
     private RecyclerView rvChat, rvHistory;
@@ -137,9 +136,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         kruxModelCapsule = findViewById(R.id.kruxModelCapsule);
         tvKruxName = findViewById(R.id.tvKruxName);
         tvSelectedModel = findViewById(R.id.tvSelectedModel);
-        tvTokenRemaining = findViewById(R.id.tvTokenRemaining);
-
-        updateKruxModelUI();
 
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
@@ -271,7 +267,9 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 selectedKruxModel = model;
 
-                updateKruxModelUI();
+                if (tvSelectedModel != null) {
+                    tvSelectedModel.setText(model.getShortName());
+                }
 
                 dialog.dismiss();
             });
@@ -299,26 +297,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         dialog.show();
-    }
-
-    private void updateKruxModelUI() {
-        if (selectedKruxModel == null) return;
-
-        if (tvSelectedModel != null) {
-            tvSelectedModel.setText(selectedKruxModel.getShortName());
-        }
-
-        if (tvTokenRemaining != null) {
-            int tokens = selectedKruxModel.getContextTokens();
-
-            if (tokens >= 1000000) {
-                tvTokenRemaining.setText((tokens / 1000000) + "M");
-            } else if (tokens >= 1000) {
-                tvTokenRemaining.setText((tokens / 1000) + "K");
-            } else {
-                tvTokenRemaining.setText(String.valueOf(tokens));
-            }
-        }
     }
 
     private void initTextToSpeech() {

@@ -4,70 +4,46 @@ public enum KruxModel {
 
     KRUX_35_FLASH(
             "Krux 3.5 Flash",
-            "3.5 Flash",
             "gemini-2.5-flash",
-            "GEMINI",
-            1000000
+            "GEMINI"
     ),
 
     KRUX_33_70B(
             "Krux 3.3 70B",
-            "3.3 70B",
             "openai/gpt-oss-120b",
-            "GROQ",
-            131072
+            "GROQ"
     ),
 
     KRUX_SPEED_70B(
             "Krux Speed 70B",
-            "Speed 70B",
             "gpt-oss-120b",
-            "CEREBRAS",
-            131072
+            "CEREBRAS"
     ),
 
     KRUX_CODEUR_PRO(
             "Krux Codeur Pro",
-            "Codeur Pro",
             "codestral-latest",
-            "MISTRAL",
-            256000
+            "MISTRAL"
     ),
 
     KRUX_CODEUR_32B(
             "Krux Codeur 32B",
-            "Codeur 32B",
             "Qwen/Qwen2.5-Coder-32B-Instruct",
-            "HUGGINGFACE",
-            131072
+            "HUGGINGFACE"
     );
 
     private final String displayName;
-    private final String shortName;
     private final String modelId;
     private final String provider;
-    private final int contextTokens;
 
-    KruxModel(
-            String displayName,
-            String shortName,
-            String modelId,
-            String provider,
-            int contextTokens
-    ) {
+    KruxModel(String displayName, String modelId, String provider) {
         this.displayName = displayName;
-        this.shortName = shortName;
         this.modelId = modelId;
         this.provider = provider;
-        this.contextTokens = contextTokens;
     }
 
     public String getDisplayName() {
         return displayName;
-    }
-
-    public String getShortName() {
-        return shortName;
     }
 
     public String getModelId() {
@@ -76,10 +52,6 @@ public enum KruxModel {
 
     public String getProvider() {
         return provider;
-    }
-
-    public int getContextTokens() {
-        return contextTokens;
     }
 
     @Override
