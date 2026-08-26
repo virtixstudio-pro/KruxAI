@@ -24,14 +24,11 @@ public class ApiClient {
     }
 
     /*
-     * Compatibilité avec MainActivity actuelle.
+     * Moteur de secours KRUX.
      *
-     * Ordre de secours :
-     * 1. Krux 3.3 70B
-     * 2. Krux Speed 70B
-     * 3. Krux 3.5 Flash
-     * 4. Krux Codeur Pro
-     * 5. Krux Codeur 32B
+     * Krux essaie automatiquement plusieurs moteurs.
+     * Les erreurs internes restent dans Logcat.
+     * L'utilisateur ne reçoit qu'un message propre.
      */
     public static void sendRequest(
             String systemPrompt,
@@ -49,11 +46,23 @@ public class ApiClient {
             };
 
             for (KruxModel model : fallbackModels) {
+
                 try {
+
+                    Log.d(
+                            TAG,
+                            "Tentative avec " + model.getDisplayName()
+                    );
+
                     String response = sendWithModel(
                             model,
                             systemPrompt,
                             userMessage
+                    );
+
+                    Log.d(
+                            TAG,
+                            "Réponse obtenue avec " + model.getDisplayName()
                     );
 
                     callback.onSuccess(
@@ -64,33 +73,34 @@ public class ApiClient {
                     return;
 
                 } catch (Exception e) {
+
+                    /*
+                     * Détail réservé au développeur.
+                     * Rien de technique n'est envoyé à l'utilisateur.
+                     */
                     Log.w(
                             TAG,
-                            model.getDisplayName() + " indisponible",
+                            model.getDisplayName()
+                                    + " indisponible : "
+                                    + e.getMessage(),
                             e
                     );
                 }
             }
 
+            /*
+             * Tous les moteurs ont échoué.
+             */
             callback.onError(
-                    "Les serveurs KRUX sont temporairement indisponibles. " +
-                    "Veuillez réessayer dans un instant."
+                    "Krux ne peut pas répondre pour le moment. "
+                    + "Vérifie ta connexion Internet et réessaie dans quelques instants."
             );
 
         }).start();
     }
 
     /*
-     * Méthode pour utiliser un modèle précis.
-     *
-     * Exemple :
-     *
-     * ApiClient.sendRequest(
-     *     KruxModel.KRUX_35_FLASH,
-     *     systemPrompt,
-     *     userMessage,
-     *     callback
-     * );
+     * Appel direct d'un modèle précis.
      */
     public static void sendRequest(
             KruxModel model,
@@ -101,6 +111,7 @@ public class ApiClient {
         new Thread(() -> {
 
             try {
+
                 String response = sendWithModel(
                         model,
                         systemPrompt,
@@ -114,27 +125,105 @@ public class ApiClient {
 
             } catch (Exception e) {
 
+                /*
+                 * Détails techniques uniquement dans Logcat.
+                 */
                 Log.e(
                         TAG,
-                        "ERREUR API avec " + model.getDisplayName(),
+                        "Erreur API avec "
+                                + model.getDisplayName()
+                                + " : "
+                                + e.getMessage(),
                         e
                 );
 
-                String detail = e.getMessage();
-
-                if (detail == null || detail.trim().isEmpty()) {
-                    detail = e.getClass().getSimpleName();
-                }
-
                 callback.onError(
-                        "Erreur avec " +
-                        model.getDisplayName() +
-                        " : " +
-                        detail
+                        buildFriendlyError(e)
                 );
             }
 
         }).start();
+    }
+
+    /*
+     * Transforme les erreurs techniques en messages
+     * compréhensibles pour l'utilisateur.
+     */
+    private static String buildFriendlyError(Exception e) {
+
+        if (e == null) {
+            return "Krux a rencontré un problème inattendu. "
+                    + "Réessaie dans quelques instants.";
+        }
+
+        String message = e.getMessage();
+
+        if (message == null) {
+            message = "";
+        }
+
+        String lower = message.toLowerCase();
+
+        if (lower.contains("absente")
+                || lower.contains("api key")
+                || lower.contains("apikey")) {
+
+            return "Ce moteur n'est pas encore disponible. "
+                    + "Krux peut essayer une autre configuration.";
+        }
+
+        if (lower.contains("401")
+                || lower.contains("403")) {
+
+            return "L'accès à ce moteur n'est pas disponible actuellement. "
+                    + "Krux peut essayer une autre option.";
+        }
+
+        if (lower.contains("404")) {
+
+            return "Le service demandé n'est pas disponible actuellement.";
+        }
+
+        if (lower.contains("429")) {
+
+            return "Ce moteur reçoit actuellement trop de demandes. "
+                    + "Réessaie dans quelques instants.";
+        }
+
+        if (lower.contains("500")
+                || lower.contains("502")
+                || lower.contains("503")
+                || lower.contains("504")) {
+
+            return "Le service rencontre actuellement un problème. "
+                    + "Réessaie dans quelques instants.";
+        }
+
+        if (lower.contains("timeout")
+                || lower.contains("timed out")) {
+
+            return "La réponse prend plus de temps que prévu. "
+                    + "Vérifie ta connexion et réessaie.";
+        }
+
+        if (lower.contains("connect")
+                || lower.contains("network")
+                || lower.contains("unable to resolve")
+                || lower.contains("connection")) {
+
+            return "Krux ne parvient pas à joindre le service. "
+                    + "Vérifie ta connexion Internet.";
+        }
+
+        if (lower.contains("json")
+                || lower.contains("parse")) {
+
+            return "Le service a renvoyé une réponse inattendue. "
+                    + "Réessaie dans quelques instants.";
+        }
+
+        return "Krux a rencontré un problème inattendu. "
+                + "Réessaie dans quelques instants.";
     }
 
     private static String sendWithModel(
@@ -216,10 +305,12 @@ public class ApiClient {
                 (HttpURLConnection) url.openConnection();
 
         conn.setRequestMethod("POST");
+
         conn.setRequestProperty(
                 "Authorization",
                 "Bearer " + apiKey
         );
+
         conn.setRequestProperty(
                 "Content-Type",
                 "application/json"
