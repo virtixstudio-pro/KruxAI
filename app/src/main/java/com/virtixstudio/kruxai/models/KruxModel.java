@@ -108,6 +108,17 @@ public enum KruxModel {
     // TYPE DE MODÈLE
     // ============================================================
 
+    // ============================================================
+    // COMPATIBILITE AVEC L'ANCIEN CODE
+    // ============================================================
+
+    public static final KruxModel KRUX_35_FLASH = GEMINI_36_FLASH;
+    public static final KruxModel KRUX_33_70B = GROQ_GPT_OSS_120B;
+    public static final KruxModel KRUX_SPEED_70B = CEREBRAS_GPT_OSS_120B;
+    public static final KruxModel KRUX_CODEUR_PRO = MISTRAL_CODESTRAL;
+    public static final KruxModel KRUX_CODEUR_32B = HF_QWEN_CODER_32B;
+
+
     public enum ModelSize {
         PETIT,
         GRAND
