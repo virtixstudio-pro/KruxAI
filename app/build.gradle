@@ -16,12 +16,59 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        // Injection des clés API via les variables d'environnement
-        String groqKey = System.getenv("GROQ_API_KEY") ?: ""
-        String cerebrasKey = System.getenv("CEREBRAS_API_KEY") ?: ""
-        String mistralKey = System.getenv("MISTRAL_API_KEY") ?: ""
-        String hfKey = System.getenv("HF_API_KEY") ?: ""
-        String geminiKey = System.getenv("GEMINI_API_KEY") ?: ""
+        // Chargement des clés depuis .env
+        def envFile = rootProject.file(".env")
+        def env = [:]
+
+        if (envFile.exists()) {
+            envFile.eachLine { line ->
+                line = line.trim()
+
+                if (!line || line.startsWith("#") || !line.contains("=")) {
+                    return
+                }
+
+                def parts = line.split("=", 2)
+
+                if (parts.length == 2) {
+                    def key = parts[0].trim()
+                    def value = parts[1].trim()
+
+                    if ((value.startsWith('"') && value.endsWith('"')) ||
+                        (value.startsWith("'") && value.endsWith("'"))) {
+                        value = value.substring(1, value.length() - 1)
+                    }
+
+                    env[key] = value
+                }
+            }
+        }
+
+        // Fallback vers les variables d'environnement système
+        String groqKey = env.get(
+                "GROQ_API_KEY",
+                System.getenv("GROQ_API_KEY") ?: ""
+        )
+
+        String cerebrasKey = env.get(
+                "CEREBRAS_API_KEY",
+                System.getenv("CEREBRAS_API_KEY") ?: ""
+        )
+
+        String mistralKey = env.get(
+                "MISTRAL_API_KEY",
+                System.getenv("MISTRAL_API_KEY") ?: ""
+        )
+
+        String hfKey = env.get(
+                "HF_API_KEY",
+                System.getenv("HF_API_KEY") ?: ""
+        )
+
+        String geminiKey = env.get(
+                "GEMINI_API_KEY",
+                System.getenv("GEMINI_API_KEY") ?: ""
+        )
 
         buildConfigField "String", "GROQ_API_KEY", "\"${groqKey}\""
         buildConfigField "String", "CEREBRAS_API_KEY", "\"${cerebrasKey}\""
@@ -37,9 +84,12 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile(
+                    'proguard-android-optimize.txt'
+            ), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -62,7 +112,7 @@ dependencies {
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
 
-    // HTTP Client (Groq)
+    // HTTP Client
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.google.code.gson:gson:2.10.1'
 }
