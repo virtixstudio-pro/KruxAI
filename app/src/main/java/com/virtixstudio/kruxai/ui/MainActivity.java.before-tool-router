@@ -45,7 +45,6 @@ import com.virtixstudio.kruxai.adapters.HistoryAdapter;
 import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
-import com.virtixstudio.kruxai.core.ToolRouter;
 import com.virtixstudio.kruxai.models.ChatMessage;
 import com.virtixstudio.kruxai.models.Feedback;
 import com.virtixstudio.kruxai.models.KruxModel;
@@ -406,9 +405,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         saveMessageToDatabase(userMessage);
         etInput.setText("");
 
-        ToolRouter.Tool tool = ToolRouter.decide(prompt, isDeepSearchEnabled);
-
-        if (tool == ToolRouter.Tool.WEB_SEARCH) {
+        if (isDeepSearchEnabled) {
             webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
                 public void onSuccess(List<SearchResult> results, String formattedContext) {
