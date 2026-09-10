@@ -28,7 +28,7 @@ import java.util.Map;
 import io.noties.markwon.Markwon;
 import io.noties.markwon.ext.tables.TablePlugin;
 import io.noties.markwon.AbstractMarkwonPlugin;
-import io.noties.markwon.MarkwonTheme;
+import io.noties.markwon.core.MarkwonTheme;
 import android.graphics.Color;
 
 public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
