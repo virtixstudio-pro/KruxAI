@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_rounded_input"
-        android:textColor="#FFFFFF"
+        android:textColor="#FAF7FF"
         android:textSize="15sp"
         android:padding="12dp"
         android:maxWidth="280dp" />

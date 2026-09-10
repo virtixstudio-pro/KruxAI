@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark_top">#020408</color>
-    <color name="bg_dark_bottom">#050B14</color>
-    <color name="card_bg">#121A29</color>
-    <color name="input_bg">#1A2436</color>
-    <color name="input_stroke">#2A3C58</color>
-    <color name="accent_blue">#0088FF</color>
-    <color name="text_white">#FFFFFF</color>
-    <color name="text_gray">#8A99AD</color>
+
+    <!-- KruxAI : palette noire / mauve / violette -->
+    <color name="bg_dark_top">#05030D</color>
+    <color name="bg_dark_bottom">#0B0618</color>
+
+    <color name="card_bg">#120B24</color>
+    <color name="input_bg">#10091F</color>
+    <color name="input_stroke">#3A2166</color>
+
+    <color name="accent_blue">#9B5CFF</color>
+    <color name="accent_purple">#9B5CFF</color>
+    <color name="accent_mauve">#C084FC</color>
+    <color name="accent_pink">#F0A6FF</color>
+
+    <color name="text_white">#FAF7FF</color>
+    <color name="text_gray">#B9AFCB</color>
+    <color name="text_muted">#766A8A</color>
+
+    <color name="surface_dark">#090612</color>
+    <color name="surface_mauve">#160D29</color>
+    <color name="border_purple">#3B2370</color>
+
 </resources>

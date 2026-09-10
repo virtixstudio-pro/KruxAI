@@ -3,7 +3,7 @@
     android:layout_width="280dp"
     android:layout_height="match_parent"
     android:layout_gravity="start"
-    android:background="#090D16"
+    android:background="#07050F"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="KruxAI Studio"
-            android:textColor="#38BDF8"
+            android:textColor="#A855F7"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -30,7 +30,7 @@
             android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_menu"
-            android:tint="#94A3B8"
+            android:tint="#B9AFCB"
             android:padding="8dp" />
     </LinearLayout>
 
@@ -39,9 +39,9 @@
         android:id="@+id/btnNewChat"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:backgroundTint="#1E293B"
+        android:backgroundTint="#120B24"
         android:text="+ Nouvelle discussion"
-        android:textColor="#F8FAFC"
+        android:textColor="#FAF7FF"
         android:textSize="14sp"
         android:textAllCaps="false"
         android:layout_marginBottom="16dp"
@@ -53,7 +53,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Historique récent"
-        android:textColor="#64748B"
+        android:textColor="#766A8A"
         android:textSize="12sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
@@ -70,7 +70,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#1E293B"
+        android:background="#120B24"
         android:layout_marginBottom="12dp" />
 
     <!-- Options Avancées (Mode Studio) -->
@@ -89,14 +89,14 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_palette"
-            android:tint="#38BDF8"
+            android:tint="#A855F7"
             android:layout_marginEnd="12dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Mode Studio &amp; Agents"
-            android:textColor="#F8FAFC"
+            android:textColor="#FAF7FF"
             android:textSize="14sp" />
     </LinearLayout>
 

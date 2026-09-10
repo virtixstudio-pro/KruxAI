@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="160dp"
-    android:background="#0F172A"
+    android:background="#07050F"
     android:gravity="bottom"
     android:orientation="vertical"
     android:padding="16dp">
@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="KRUX AI"
-        android:textColor="#38BDF8"
+        android:textColor="#A855F7"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -19,6 +19,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Virtix Studio 2026"
-        android:textColor="#94A3B8"
+        android:textColor="#B9AFCB"
         android:textSize="14sp" />
 </LinearLayout>

@@ -18,7 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Sources Web consultées en direct"
-            android:textColor="#38BDF8"
+            android:textColor="#A855F7"
             android:textSize="12sp"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
@@ -35,7 +35,7 @@
         android:id="@+id/layoutReasoning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1E293B"
+        android:background="#120B24"
         android:orientation="vertical"
         android:padding="8dp"
         android:visibility="gone"
@@ -53,14 +53,14 @@
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:src="@drawable/ic_plus"
-                android:tint="#38BDF8" />
+                android:tint="#A855F7" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Processus de réflexion"
-                android:textColor="#38BDF8"
+                android:textColor="#A855F7"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -71,7 +71,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textColor="#94A3B8"
+            android:textColor="#B9AFCB"
             android:textSize="13sp"
             android:visibility="gone" />
 
@@ -81,7 +81,7 @@
         android:id="@+id/tvMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#F8FAFC"
+        android:textColor="#FAF7FF"
         android:textSize="15sp"
         android:lineSpacingExtra="3dp"
         android:padding="4dp" />
@@ -100,7 +100,7 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_copy"
-            android:tint="#64748B"
+            android:tint="#766A8A"
             android:contentDescription="Copier" />
 
         <ImageButton
@@ -110,7 +110,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_share"
-            android:tint="#64748B"
+            android:tint="#766A8A"
             android:contentDescription="Partager" />
 
         <ImageButton
@@ -120,7 +120,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_download"
-            android:tint="#64748B"
+            android:tint="#766A8A"
             android:contentDescription="Télécharger" />
 
         <ImageButton
@@ -130,7 +130,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_speaker"
-            android:tint="#64748B"
+            android:tint="#766A8A"
             android:contentDescription="Lire à haute voix" />
 
         <ImageButton
@@ -140,7 +140,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_thumb_up"
-            android:tint="#94A3B8"
+            android:tint="#B9AFCB"
             android:contentDescription="Réponse utile" />
 
         <ImageButton
@@ -150,7 +150,7 @@
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_thumb_down"
-            android:tint="#94A3B8"
+            android:tint="#B9AFCB"
             android:contentDescription="Réponse à améliorer" />
 
     </LinearLayout>
