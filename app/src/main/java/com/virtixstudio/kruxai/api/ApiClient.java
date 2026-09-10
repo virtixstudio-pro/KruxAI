@@ -37,16 +37,26 @@ public class ApiClient {
     ) {
         new Thread(() -> {
 
+            /*
+             * Fallback global utilisé lorsqu'aucun modèle précis
+             * n'est imposé par l'appelant.
+             */
             KruxModel[] fallbackModels = {
-                    KruxModel.KRUX_33_70B,
-                    KruxModel.KRUX_SPEED_70B,
-                    KruxModel.KRUX_35_FLASH,
-                    KruxModel.KRUX_CODEUR_PRO,
-                    KruxModel.KRUX_CODEUR_32B
+                    KruxModel.GEMINI_FLASH_LITE,
+                    KruxModel.GROQ_GPT_OSS_20B,
+                    KruxModel.MISTRAL_MINISTRAL_3B,
+                    KruxModel.MISTRAL_MINISTRAL_8B,
+                    KruxModel.HF_QWEN_CODER_7B,
+                    KruxModel.GEMINI_36_FLASH,
+                    KruxModel.GROQ_GPT_OSS_120B,
+                    KruxModel.CEREBRAS_GPT_OSS_120B,
+                    KruxModel.MISTRAL_CODESTRAL,
+                    KruxModel.HF_QWEN_CODER_32B
             };
 
-            for (KruxModel model : fallbackModels) {
+            Exception lastError = null;
 
+            for (KruxModel model : fallbackModels) {
                 try {
 
                     Log.d(
@@ -60,24 +70,29 @@ public class ApiClient {
                             userMessage
                     );
 
-                    Log.d(
-                            TAG,
-                            "Réponse obtenue avec " + model.getDisplayName()
-                    );
+                    if (response != null
+                            && !response.trim().isEmpty()) {
 
-                    callback.onSuccess(
-                            response,
-                            model.getDisplayName()
-                    );
+                        Log.d(
+                                TAG,
+                                "Réponse obtenue avec "
+                                        + model.getDisplayName()
+                        );
 
-                    return;
+                        callback.onSuccess(
+                                response,
+                                model.getDisplayName()
+                        );
+
+                        return;
+                    }
+
+                    lastError = new Exception("Réponse vide.");
 
                 } catch (Exception e) {
 
-                    /*
-                     * Détail réservé au développeur.
-                     * Rien de technique n'est envoyé à l'utilisateur.
-                     */
+                    lastError = e;
+
                     Log.w(
                             TAG,
                             model.getDisplayName()
@@ -88,143 +103,214 @@ public class ApiClient {
                 }
             }
 
-            /*
-             * Tous les moteurs ont échoué.
-             */
             callback.onError(
-                    "Krux ne peut pas répondre pour le moment. "
-                    + "Vérifie ta connexion Internet et réessaie dans quelques instants."
+                    buildFriendlyError(lastError)
             );
 
         }).start();
     }
 
     /*
-     * Appel direct d'un modèle précis.
+     * Appel avec un modèle sélectionné par l'utilisateur.
+     *
+     * Ordre :
+     * 1. modèle sélectionné
+     * 2. autre modèle du même fournisseur
+     * 3. modèles des autres fournisseurs
+     *
+     * Les noms affichés restent exclusivement KRUX.
+     * Les vrais IDs API restent dans KruxModel.
      */
     public static void sendRequest(
-            KruxModel model,
+            KruxModel selectedModel,
             String systemPrompt,
             String userMessage,
             ApiCallback callback
     ) {
         new Thread(() -> {
 
-            try {
+            KruxModel[] fallbackModels =
+                    buildFallbackModels(selectedModel);
 
-                String response = sendWithModel(
-                        model,
-                        systemPrompt,
-                        userMessage
-                );
+            Exception lastError = null;
 
-                callback.onSuccess(
-                        response,
-                        model.getDisplayName()
-                );
+            for (KruxModel model : fallbackModels) {
+                try {
 
-            } catch (Exception e) {
+                    Log.d(
+                            TAG,
+                            "Tentative avec "
+                                    + model.getDisplayName()
+                    );
 
-                /*
-                 * Détails techniques uniquement dans Logcat.
-                 */
-                Log.e(
-                        TAG,
-                        "Erreur API avec "
-                                + model.getDisplayName()
-                                + " : "
-                                + e.getMessage(),
-                        e
-                );
+                    String response = sendWithModel(
+                            model,
+                            systemPrompt,
+                            userMessage
+                    );
 
-                callback.onError(
-                        buildFriendlyError(e)
-                );
+                    if (response != null
+                            && !response.trim().isEmpty()) {
+
+                        Log.d(
+                                TAG,
+                                "Réponse obtenue avec "
+                                        + model.getDisplayName()
+                        );
+
+                        callback.onSuccess(
+                                response,
+                                model.getDisplayName()
+                        );
+
+                        return;
+                    }
+
+                    lastError = new Exception("Réponse vide.");
+
+                } catch (Exception e) {
+
+                    lastError = e;
+
+                    Log.w(
+                            TAG,
+                            model.getDisplayName()
+                                    + " indisponible : "
+                                    + e.getMessage(),
+                            e
+                    );
+                }
             }
+
+            callback.onError(
+                    buildFriendlyError(lastError)
+            );
 
         }).start();
     }
 
+    private static KruxModel[] buildFallbackModels(
+            KruxModel selectedModel
+    ) {
+
+        java.util.ArrayList<KruxModel> ordered =
+                new java.util.ArrayList<>();
+
+        if (selectedModel != null) {
+
+            ordered.add(selectedModel);
+
+            /*
+             * Même fournisseur + taille opposée en priorité.
+             */
+            for (KruxModel candidate : KruxModel.values()) {
+
+                if (candidate == selectedModel) {
+                    continue;
+                }
+
+                if (candidate.getProvider().equals(
+                        selectedModel.getProvider()
+                )
+                        && candidate.getSize()
+                        != selectedModel.getSize()) {
+
+                    ordered.add(candidate);
+                }
+            }
+
+            /*
+             * Puis les autres modèles du même fournisseur.
+             */
+            for (KruxModel candidate : KruxModel.values()) {
+
+                if (ordered.contains(candidate)) {
+                    continue;
+                }
+
+                if (candidate.getProvider().equals(
+                        selectedModel.getProvider()
+                )) {
+
+                    ordered.add(candidate);
+                }
+            }
+        }
+
+        /*
+         * Enfin, autres fournisseurs.
+         */
+        for (KruxModel candidate : KruxModel.values()) {
+
+            if (!ordered.contains(candidate)) {
+                ordered.add(candidate);
+            }
+        }
+
+        return ordered.toArray(
+                new KruxModel[0]
+        );
+    }
+
     /*
-     * Transforme les erreurs techniques en messages
-     * compréhensibles pour l'utilisateur.
+     * Transforme les erreurs techniques en messages compréhensibles
+     * pour l utilisateur.
      */
     private static String buildFriendlyError(Exception e) {
-
         if (e == null) {
-            return "Krux a rencontré un problème inattendu. "
-                    + "Réessaie dans quelques instants.";
+            return "Krux a rencontré un problème inattendu. Réessaie dans quelques instants.";
         }
 
         String message = e.getMessage();
-
         if (message == null) {
             message = "";
         }
 
         String lower = message.toLowerCase();
 
-        if (lower.contains("absente")
+        if (lower.contains("clé api")
                 || lower.contains("api key")
                 || lower.contains("apikey")) {
-
-            return "Ce moteur n'est pas encore disponible. "
-                    + "Krux peut essayer une autre configuration.";
+            return "Ce moteur n est pas encore disponible. Krux peut essayer une autre configuration.";
         }
 
-        if (lower.contains("401")
-                || lower.contains("403")) {
-
-            return "L'accès à ce moteur n'est pas disponible actuellement. "
-                    + "Krux peut essayer une autre option.";
+        if (lower.contains("401") || lower.contains("403")) {
+            return "L accès à ce moteur n est pas disponible actuellement. Krux peut essayer une autre option.";
         }
 
         if (lower.contains("404")) {
-
-            return "Le service demandé n'est pas disponible actuellement.";
+            return "Le service demandé n est pas disponible actuellement.";
         }
 
         if (lower.contains("429")) {
-
-            return "Ce moteur reçoit actuellement trop de demandes. "
-                    + "Réessaie dans quelques instants.";
+            return "Ce moteur reçoit actuellement trop de demandes. Réessaie dans quelques instants.";
         }
 
         if (lower.contains("500")
                 || lower.contains("502")
                 || lower.contains("503")
                 || lower.contains("504")) {
-
-            return "Le service rencontre actuellement un problème. "
-                    + "Réessaie dans quelques instants.";
+            return "Le service rencontre actuellement un problème. Réessaie dans quelques instants.";
         }
 
-        if (lower.contains("timeout")
-                || lower.contains("timed out")) {
-
-            return "La réponse prend plus de temps que prévu. "
-                    + "Vérifie ta connexion et réessaie.";
+        if (lower.contains("timeout") || lower.contains("timed out")) {
+            return "La réponse prend plus de temps que prévu. Vérifie ta connexion et réessaie.";
         }
 
         if (lower.contains("connect")
                 || lower.contains("network")
                 || lower.contains("unable to resolve")
                 || lower.contains("connection")) {
-
-            return "Krux ne parvient pas à joindre le service. "
-                    + "Vérifie ta connexion Internet.";
+            return "Krux ne parvient pas à joindre le service. Vérifie ta connexion Internet.";
         }
 
-        if (lower.contains("json")
-                || lower.contains("parse")) {
-
-            return "Le service a renvoyé une réponse inattendue. "
-                    + "Réessaie dans quelques instants.";
+        if (lower.contains("json") || lower.contains("parse")) {
+            return "Le service a renvoyé une réponse inattendue. Réessaie dans quelques instants.";
         }
 
-        return "Krux a rencontré un problème inattendu. "
-                + "Réessaie dans quelques instants.";
+        return "Krux a rencontré un problème inattendu. Réessaie dans quelques instants.";
     }
+
 
     private static String sendWithModel(
             KruxModel model,

@@ -8,8 +8,8 @@ public enum KruxModel {
     // ============================================================
 
     GEMINI_FLASH_LITE(
-            "Gemini Flash Lite",
-            "Flash Lite",
+            "KRUX Lite",
+            "KRUX Lite",
             "gemini-3.5-flash-lite",
             "GEMINI",
             1000000,
@@ -17,8 +17,8 @@ public enum KruxModel {
     ),
 
     GROQ_GPT_OSS_20B(
-            "Groq GPT-OSS 20B",
-            "GPT-OSS 20B",
+            "KRUX Swift",
+            "KRUX Swift",
             "openai/gpt-oss-20b",
             "GROQ",
             131072,
@@ -26,8 +26,8 @@ public enum KruxModel {
     ),
 
     MISTRAL_MINISTRAL_3B(
-            "Mistral Ministral 3B",
-            "Ministral 3B",
+            "KRUX Core",
+            "KRUX Core",
             "ministral-3b-latest",
             "MISTRAL",
             131072,
@@ -35,8 +35,8 @@ public enum KruxModel {
     ),
 
     MISTRAL_MINISTRAL_8B(
-            "Mistral Ministral 8B",
-            "Ministral 8B",
+            "KRUX Flow",
+            "KRUX Flow",
             "ministral-8b-latest",
             "MISTRAL",
             131072,
@@ -44,8 +44,8 @@ public enum KruxModel {
     ),
 
     HF_QWEN_CODER_7B(
-            "Qwen Coder 7B",
-            "Qwen Coder 7B",
+            "KRUX Code",
+            "KRUX Code",
             "Qwen/Qwen2.5-Coder-7B-Instruct",
             "HUGGINGFACE",
             131072,
@@ -59,8 +59,8 @@ public enum KruxModel {
     // ============================================================
 
     GEMINI_36_FLASH(
-            "Gemini 3.6 Flash",
-            "3.6 Flash",
+            "KRUX Prime",
+            "KRUX Prime",
             "gemini-3.6-flash",
             "GEMINI",
             1000000,
@@ -68,8 +68,8 @@ public enum KruxModel {
     ),
 
     GROQ_GPT_OSS_120B(
-            "Groq GPT-OSS 120B",
-            "GPT-OSS 120B",
+            "KRUX Ultra",
+            "KRUX Ultra",
             "openai/gpt-oss-120b",
             "GROQ",
             131072,
@@ -77,8 +77,8 @@ public enum KruxModel {
     ),
 
     CEREBRAS_GPT_OSS_120B(
-            "Cerebras GPT-OSS 120B",
-            "Cerebras 120B",
+            "KRUX Velocity",
+            "KRUX Velocity",
             "gpt-oss-120b",
             "CEREBRAS",
             131072,
@@ -86,8 +86,8 @@ public enum KruxModel {
     ),
 
     MISTRAL_CODESTRAL(
-            "Mistral Codestral",
-            "Codestral",
+            "KRUX Dev",
+            "KRUX Dev",
             "codestral-latest",
             "MISTRAL",
             256000,
@@ -95,8 +95,8 @@ public enum KruxModel {
     ),
 
     HF_QWEN_CODER_32B(
-            "Qwen Coder 32B",
-            "Qwen Coder 32B",
+            "KRUX Code Pro",
+            "KRUX Code Pro",
             "Qwen/Qwen2.5-Coder-32B-Instruct",
             "HUGGINGFACE",
             131072,
