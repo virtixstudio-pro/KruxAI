@@ -26,6 +26,10 @@ import java.util.List;
 import java.util.Map;
 
 import io.noties.markwon.Markwon;
+import io.noties.markwon.ext.tables.TablePlugin;
+import io.noties.markwon.AbstractMarkwonPlugin;
+import io.noties.markwon.MarkwonTheme;
+import android.graphics.Color;
 
 public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -74,7 +78,20 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Context context = parent.getContext();
 
         if (markwon == null) {
-            markwon = Markwon.create(context);
+            markwon = Markwon.builder(context)
+                .usePlugin(TablePlugin.create(context))
+                .usePlugin(new AbstractMarkwonPlugin() {
+                    @Override
+                    public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
+                        builder.codeBlockBackgroundColor(Color.parseColor("#1E1E2E"))
+                               .codeBlockTextColor(Color.parseColor("#E0DEF4"))
+                               .codeBackgroundColor(Color.parseColor("#2A2A3E"))
+                               .codeTextColor(Color.parseColor("#E0DEF4"))
+                               .blockQuoteColor(Color.parseColor("#9B59B6"))
+                               .linkColor(Color.parseColor("#BB86FC"));
+                    }
+                })
+                .build();
         }
 
         if (viewType == VIEW_TYPE_USER) {
