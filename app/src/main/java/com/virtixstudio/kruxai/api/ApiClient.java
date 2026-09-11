@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.virtixstudio.kruxai.BuildConfig;
 import com.virtixstudio.kruxai.models.KruxModel;
+import com.virtixstudio.kruxai.models.SearchResult;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -13,6 +14,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
 
@@ -21,6 +25,8 @@ public class ApiClient {
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
         void onError(String friendlyMessage);
+        default void onWebSearchStarted(String query) {}
+        default void onWebSearchFinished(List<SearchResult> results) {}
     }
 
     /*
@@ -64,10 +70,11 @@ public class ApiClient {
                             "Tentative avec " + model.getDisplayName()
                     );
 
-                    String response = sendWithModel(
+                    String response = sendWithWebLoop(
                             model,
                             systemPrompt,
-                            userMessage
+                            userMessage,
+                            callback
                     );
 
                     if (response != null
@@ -143,10 +150,11 @@ public class ApiClient {
                                     + model.getDisplayName()
                     );
 
-                    String response = sendWithModel(
+                    String response = sendWithWebLoop(
                             model,
                             systemPrompt,
-                            userMessage
+                            userMessage,
+                            callback
                     );
 
                     if (response != null
@@ -311,6 +319,129 @@ public class ApiClient {
         return "Krux a rencontré un problème inattendu. Réessaie dans quelques instants.";
     }
 
+
+    private static String sendWithWebLoop(
+            KruxModel model,
+            String systemPrompt,
+            String userMessage,
+            ApiCallback callback
+    ) throws Exception {
+
+        String currentPrompt = userMessage;
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+
+            String response = sendWithModel(
+                    model,
+                    systemPrompt,
+                    currentPrompt
+            );
+
+            if (response == null || response.trim().isEmpty()) {
+                return response;
+            }
+
+            String query = extractWebQuery(response);
+
+            if (query == null || query.trim().isEmpty()) {
+                return response;
+            }
+
+            Log.d(TAG, "Demande Web du modèle : " + query);
+
+            if (callback != null) {
+                callback.onWebSearchStarted(query);
+            }
+
+            WebSearchEngine engine = new WebSearchEngine();
+
+            CountDownLatch latch = new CountDownLatch(1);
+            final String[] webContext = {""};
+            final List<SearchResult>[] webResults = new List[]{null};
+            final String[] webError = {null};
+
+            engine.search(query, new WebSearchEngine.SearchCallback() {
+                @Override
+                public void onSuccess(
+                        List<SearchResult> results,
+                        String formattedContext
+                ) {
+                    webResults[0] = results;
+                    webContext[0] = formattedContext;
+                    latch.countDown();
+                }
+
+                @Override
+                public void onError(String error) {
+                    webError[0] = error;
+                    latch.countDown();
+                }
+            });
+
+            if (!latch.await(15, TimeUnit.SECONDS)) {
+                Log.w(TAG, "Recherche Web expirée.");
+                return response;
+            }
+
+            if (webError[0] != null
+                    || webContext[0] == null
+                    || webContext[0].trim().isEmpty()) {
+                Log.w(TAG, "Recherche Web échouée.");
+                return response;
+            }
+
+            if (callback != null && webResults[0] != null) {
+                callback.onWebSearchFinished(webResults[0]);
+            }
+
+            currentPrompt =
+                    userMessage
+                    + "\n\n"
+                    + "Résultats de la recherche Web effectuée par Krux :\n"
+                    + webContext[0]
+                    + "\n\n"
+                    + "Utilise ces résultats pour répondre à la demande initiale. "
+                    + "Ne demande pas une nouvelle recherche pour cette même demande. "
+                    + "Réponds directement à l'utilisateur.";
+        }
+
+        return sendWithModel(model, systemPrompt, currentPrompt);
+    }
+
+    private static String extractWebQuery(String response) {
+        if (response == null) {
+            return null;
+        }
+
+        String startTag = "<KRUX_TOOL>";
+        String endTag = "</KRUX_TOOL>";
+
+        int start = response.indexOf(startTag);
+        int end = response.indexOf(endTag);
+
+        if (start < 0 || end <= start) {
+            return null;
+        }
+
+        String block = response.substring(
+                start + startTag.length(),
+                end
+        ).trim();
+
+        String[] lines = block.split("\\r?\\n", 3);
+
+        if (lines.length < 2) {
+            return null;
+        }
+
+        if (!"web_search".equalsIgnoreCase(lines[0].trim())) {
+            return null;
+        }
+
+        String query = lines[1].trim();
+
+        return query.isEmpty() ? null : query;
+    }
 
     private static String sendWithModel(
             KruxModel model,

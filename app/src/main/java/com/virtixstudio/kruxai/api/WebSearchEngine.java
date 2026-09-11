@@ -2,6 +2,7 @@ package com.virtixstudio.kruxai.api;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.virtixstudio.kruxai.models.SearchResult;
 
@@ -86,6 +87,15 @@ public class WebSearchEngine {
                     contextBuilder.append("    Extrait : ").append(sr.getSnippet()).append("\n\n");
                 }
 
+                if (finalSources.isEmpty()) {
+                    mainHandler.post(() ->
+                            callback.onError(
+                                    "Recherche Web indisponible : aucune source n'a pu être récupérée."
+                            )
+                    );
+                    return;
+                }
+
                 String formattedContext = contextBuilder.toString();
                 mainHandler.post(() -> callback.onSuccess(finalSources, formattedContext));
 
@@ -138,8 +148,11 @@ public class WebSearchEngine {
                     }
                 }
             }
-        } catch (Exception ignored) {
-            // Ignorer les échecs isolés des sous-requêtes
+        } catch (Exception e) {
+            Log.e("KRUX_WEB_SEARCH",
+                    "Échec sous-requête: " + query +
+                    " | " + e.getClass().getName() +
+                    " | " + e.getMessage(), e);
         }
     }
 }
