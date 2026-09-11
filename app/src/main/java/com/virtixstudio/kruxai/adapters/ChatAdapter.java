@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Space;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,8 +22,10 @@ import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.models.ChatMessage;
 import com.virtixstudio.kruxai.utils.FileUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import io.noties.markwon.Markwon;
@@ -30,6 +33,12 @@ import io.noties.markwon.ext.tables.TablePlugin;
 import io.noties.markwon.AbstractMarkwonPlugin;
 import io.noties.markwon.core.MarkwonTheme;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.widget.HorizontalScrollView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -126,8 +135,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         AiViewHolder aiHolder = (AiViewHolder) holder;
         Context context = aiHolder.itemView.getContext();
 
-        markwon.setMarkdown(
-                aiHolder.tvMessage,
+        renderMessage(
+                aiHolder,
                 message.getText() == null ? "" : message.getText()
         );
 
@@ -135,6 +144,591 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         setupReasoning(aiHolder, message);
         setupActions(aiHolder, context, message);
         setupFeedback(aiHolder, message);
+    }
+
+    private void renderMessage(
+            AiViewHolder holder,
+            String markdown
+    ) {
+        holder.messageContainer.removeAllViews();
+
+        List<String> lines = splitLines(markdown);
+        StringBuilder normal = new StringBuilder();
+        int i = 0;
+
+        while (i < lines.size()) {
+            String line = lines.get(i);
+
+            if (line.trim().startsWith("```")) {
+                flushMarkdown(holder.messageContainer, normal.toString());
+                normal.setLength(0);
+
+                String info = line.trim().substring(3).trim();
+                String language = extractLanguage(info);
+                String fileName = extractFileName(info, "");
+
+                List<String> codeLines = new ArrayList<>();
+                i++;
+
+                while (i < lines.size()
+                        && !lines.get(i).trim().equals("```")) {
+                    codeLines.add(lines.get(i));
+                    i++;
+                }
+
+                String code = joinLines(codeLines);
+
+                if (fileName.isEmpty()) {
+                    fileName = extractFileNameFromCode(code);
+                }
+
+                addCodeBlock(
+                        holder.messageContainer,
+                        language,
+                        fileName,
+                        code
+                );
+
+                if (i < lines.size()) {
+                    i++;
+                }
+                continue;
+            }
+
+            if (isTableStart(lines, i)) {
+                flushMarkdown(holder.messageContainer, normal.toString());
+                normal.setLength(0);
+
+                int end = i;
+                while (end < lines.size()
+                        && isTableRow(lines.get(end))) {
+                    end++;
+                }
+
+                addTable(
+                        holder.messageContainer,
+                        lines.subList(i, end)
+                );
+
+                i = end;
+                continue;
+            }
+
+            normal.append(line);
+            if (i < lines.size() - 1) {
+                normal.append('\n');
+            }
+            i++;
+        }
+
+        flushMarkdown(holder.messageContainer, normal.toString());
+    }
+
+    private void flushMarkdown(
+            LinearLayout container,
+            String text
+    ) {
+        if (text == null || text.trim().isEmpty()) return;
+
+        TextView tv = new TextView(container.getContext());
+        tv.setLayoutParams(
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+        tv.setTextColor(Color.parseColor("#FAF7FF"));
+        tv.setTextSize(15);
+        tv.setLineSpacing(0, 1.12f);
+        tv.setPadding(4, 4, 4, 8);
+
+        markwon.setMarkdown(tv, text);
+        container.addView(tv);
+    }
+
+    private void addCodeBlock(
+            LinearLayout container,
+            String language,
+            String fileName,
+            String code
+    ) {
+        Context context = container.getContext();
+
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(0, 0, 0, 0);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(Color.parseColor("#171126"));
+        background.setCornerRadius(22);
+        background.setStroke(1, Color.parseColor("#43245E"));
+        card.setBackground(background);
+
+        LinearLayout header = new LinearLayout(context);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(14, 10, 8, 10);
+
+        TextView languageView = new TextView(context);
+        languageView.setText(
+                language.isEmpty()
+                        ? "CODE"
+                        : language.toUpperCase(Locale.ROOT)
+        );
+        languageView.setTextColor(Color.parseColor("#C084FC"));
+        languageView.setTextSize(11);
+        languageView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+
+        header.addView(
+                languageView,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        if (!fileName.isEmpty()) {
+            TextView fileView = new TextView(context);
+            fileView.setText(fileName);
+            fileView.setTextColor(Color.parseColor("#8E829F"));
+            fileView.setTextSize(11);
+            fileView.setSingleLine(true);
+            fileView.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+
+            LinearLayout.LayoutParams fp =
+                    new LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1f
+                    );
+            fp.setMargins(10, 0, 8, 0);
+            header.addView(fileView, fp);
+        } else {
+            Space spacer = new Space(context);
+            header.addView(
+                    spacer,
+                    new LinearLayout.LayoutParams(
+                            0,
+                            1,
+                            1f
+                    )
+            );
+        }
+
+        ImageButton share = createCodeAction(
+                context,
+                R.drawable.ic_share,
+                "Partager le code"
+        );
+        ImageButton copy = createCodeAction(
+                context,
+                R.drawable.ic_copy,
+                "Copier le code"
+        );
+        ImageButton download = createCodeAction(
+                context,
+                R.drawable.ic_download,
+                "Télécharger le code"
+        );
+
+        header.addView(share);
+        header.addView(copy);
+        header.addView(download);
+
+        HorizontalScrollView scroll = new HorizontalScrollView(context);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setFillViewport(false);
+
+        TextView codeView = new TextView(context);
+        codeView.setText(code);
+        codeView.setTextColor(Color.parseColor("#E9E1F5"));
+        codeView.setTextSize(13);
+        codeView.setTypeface(Typeface.MONOSPACE);
+        codeView.setGravity(Gravity.TOP | Gravity.START);
+        codeView.setPadding(14, 12, 14, 14);
+        codeView.setHorizontallyScrolling(true);
+        codeView.setTextIsSelectable(true);
+
+        scroll.addView(
+                codeView,
+                new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        card.addView(header);
+        card.addView(scroll);
+
+        LinearLayout.LayoutParams cp =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        cp.setMargins(4, 5, 4, 10);
+        container.addView(card, cp);
+
+        copy.setOnClickListener(v -> copyText(context, code, "Code copié"));
+
+        share.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TEXT, code);
+            context.startActivity(
+                    Intent.createChooser(intent, "Partager le code")
+            );
+        });
+
+        String extension = extensionForLanguage(language);
+        String prefix = sanitizeFileName(
+                fileName.isEmpty() ? "KruxAI_Code" : fileName
+        );
+
+        if (prefix.endsWith(extension)) {
+            prefix = prefix.substring(
+                    0,
+                    prefix.length() - extension.length()
+            );
+        }
+
+        String finalPrefix = prefix;
+
+        download.setOnClickListener(v ->
+                FileUtils.saveTextFile(
+                        context,
+                        code,
+                        finalPrefix,
+                        extension,
+                        mimeForExtension(extension)
+                )
+        );
+    }
+
+    private ImageButton createCodeAction(
+            Context context,
+            int icon,
+            String description
+    ) {
+        ImageButton button = new ImageButton(context);
+        button.setImageResource(icon);
+        button.setColorFilter(Color.parseColor("#B79BCB"));
+        button.setBackgroundColor(Color.TRANSPARENT);
+        button.setContentDescription(description);
+        button.setPadding(7, 7, 7, 7);
+
+        button.setLayoutParams(
+                new LinearLayout.LayoutParams(38, 38)
+        );
+
+        return button;
+    }
+
+    private void addTable(
+            LinearLayout container,
+            List<String> lines
+    ) {
+        if (lines.size() < 2) return;
+
+        Context context = container.getContext();
+
+        TableLayout table = new TableLayout(context);
+        table.setStretchAllColumns(false);
+        table.setShrinkAllColumns(false);
+        table.setPadding(8, 4, 8, 4);
+
+        int rowIndex = 0;
+
+        for (String line : lines) {
+            if (isSeparatorRow(line)) continue;
+
+            List<String> cells = splitTableCells(line);
+            TableRow row = new TableRow(context);
+
+            for (String cell : cells) {
+                TextView tv = new TextView(context);
+                tv.setText(cell.trim());
+                tv.setTextColor(
+                        rowIndex == 0
+                                ? Color.parseColor("#E8DDF3")
+                                : Color.parseColor("#D2C5DE")
+                );
+                tv.setTextSize(13);
+                tv.setPadding(14, 10, 14, 10);
+
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(
+                        rowIndex == 0
+                                ? Color.parseColor("#29163B")
+                                : Color.parseColor("#171126")
+                );
+                bg.setStroke(1, Color.parseColor("#3B2748"));
+                tv.setBackground(bg);
+
+                row.addView(
+                        tv,
+                        new TableRow.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                );
+            }
+
+            table.addView(row);
+            rowIndex++;
+        }
+
+        HorizontalScrollView scroll = new HorizontalScrollView(context);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setFillViewport(false);
+        scroll.addView(table);
+
+        LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+        p.setMargins(4, 4, 4, 10);
+
+        container.addView(scroll, p);
+    }
+
+    private boolean isTableStart(List<String> lines, int index) {
+        if (index + 1 >= lines.size()) return false;
+
+        String first = lines.get(index);
+        String second = lines.get(index + 1);
+
+        return isTableRow(first) && isSeparatorRow(second);
+    }
+
+    private boolean isTableRow(String line) {
+        if (line == null) return false;
+        String s = line.trim();
+        return s.contains("|") && !s.startsWith("```");
+    }
+
+    private boolean isSeparatorRow(String line) {
+        if (!isTableRow(line)) return false;
+
+        String s = line.trim()
+                .replace("|", "")
+                .replace(":", "")
+                .replace("-", "")
+                .replace(" ", "");
+
+        return s.isEmpty();
+    }
+
+    private List<String> splitTableCells(String line) {
+        String s = line.trim();
+
+        if (s.startsWith("|")) {
+            s = s.substring(1);
+        }
+
+        if (s.endsWith("|")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        List<String> result = new ArrayList<>();
+
+        for (String part : s.split("\\|", -1)) {
+            result.add(
+                    part.trim()
+                            .replace("\\|", "|")
+            );
+        }
+
+        return result;
+    }
+
+    private List<String> splitLines(String text) {
+        List<String> result = new ArrayList<>();
+
+        String[] parts = text.replace("\r", "").split("\n", -1);
+
+        for (String part : parts) {
+            result.add(part);
+        }
+
+        return result;
+    }
+
+    private String joinLines(List<String> lines) {
+        StringBuilder b = new StringBuilder();
+
+        for (int i = 0; i < lines.size(); i++) {
+            b.append(lines.get(i));
+
+            if (i < lines.size() - 1) {
+                b.append('\n');
+            }
+        }
+
+        return b.toString();
+    }
+
+    private String extractLanguage(String info) {
+        if (info == null || info.isEmpty()) return "";
+
+        String[] parts = info.split("\\s+");
+
+        for (String part : parts) {
+            if (part.contains("=")
+                    || part.toLowerCase(Locale.ROOT).startsWith("filename")) {
+                continue;
+            }
+
+            return part.replaceAll("[^A-Za-z0-9+#.-]", "");
+        }
+
+        return "";
+    }
+
+    private String extractFileName(
+            String info,
+            String fallback
+    ) {
+        if (info == null) return fallback;
+
+        String lower = info.toLowerCase(Locale.ROOT);
+
+        String[] keys = {
+                "filename=",
+                "file=",
+                "name="
+        };
+
+        for (String key : keys) {
+            int pos = lower.indexOf(key);
+
+            if (pos >= 0) {
+                String value = info.substring(pos + key.length())
+                        .trim()
+                        .split("\\s+")[0];
+
+                return sanitizeFileName(value);
+            }
+        }
+
+        return fallback;
+    }
+
+    private String extractFileNameFromCode(String code) {
+        if (code == null) return "";
+
+        String[] lines = code.split("\n");
+
+        for (String line : lines) {
+            String s = line.trim();
+
+            String lower = s.toLowerCase(Locale.ROOT);
+
+            String[] markers = {
+                    "filename:",
+                    "file:",
+                    "name:"
+            };
+
+            for (String marker : markers) {
+                int pos = lower.indexOf(marker);
+
+                if (pos >= 0) {
+                    String value = s.substring(
+                            pos + marker.length()
+                    ).trim();
+
+                    value = value.replaceAll(
+                            "^[#/*<>\\s]+|[#/*<>\\s]+$",
+                            ""
+                    );
+
+                    if (!value.isEmpty()
+                            && value.length() < 120) {
+                        return sanitizeFileName(value);
+                    }
+                }
+            }
+        }
+
+        return "";
+    }
+
+    private String sanitizeFileName(String name) {
+        if (name == null) return "";
+
+        String clean = name.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        return clean.isEmpty() ? "" : clean;
+    }
+
+    private String extensionForLanguage(String language) {
+        String l = language == null
+                ? ""
+                : language.toLowerCase(Locale.ROOT);
+
+        if (l.equals("java")) return ".java";
+        if (l.equals("kotlin") || l.equals("kt")) return ".kt";
+        if (l.equals("javascript") || l.equals("js")) return ".js";
+        if (l.equals("typescript") || l.equals("ts")) return ".ts";
+        if (l.equals("python") || l.equals("py")) return ".py";
+        if (l.equals("html")) return ".html";
+        if (l.equals("css")) return ".css";
+        if (l.equals("scss")) return ".scss";
+        if (l.equals("xml")) return ".xml";
+        if (l.equals("json")) return ".json";
+        if (l.equals("yaml") || l.equals("yml")) return ".yml";
+        if (l.equals("sql")) return ".sql";
+        if (l.equals("php")) return ".php";
+        if (l.equals("c")) return ".c";
+        if (l.equals("cpp") || l.equals("c++")) return ".cpp";
+        if (l.equals("csharp") || l.equals("cs")) return ".cs";
+        if (l.equals("go") || l.equals("golang")) return ".go";
+        if (l.equals("rust") || l.equals("rs")) return ".rs";
+        if (l.equals("swift")) return ".swift";
+        if (l.equals("dart")) return ".dart";
+        if (l.equals("bash") || l.equals("sh") || l.equals("shell")) return ".sh";
+        if (l.equals("markdown") || l.equals("md")) return ".md";
+
+        return ".txt";
+    }
+
+    private String mimeForExtension(String extension) {
+        if (extension == null) return "text/plain";
+
+        if (extension.equals(".html")) return "text/html";
+        if (extension.equals(".css")) return "text/css";
+        if (extension.equals(".json")) return "application/json";
+        if (extension.equals(".xml")) return "application/xml";
+        if (extension.equals(".js")) return "text/javascript";
+        if (extension.equals(".ts")) return "text/typescript";
+        if (extension.equals(".svg")) return "image/svg+xml";
+
+        return "text/plain";
+    }
+
+    private void copyText(
+            Context context,
+            String text,
+            String message
+    ) {
+        ClipboardManager clipboard =
+                (ClipboardManager)
+                        context.getSystemService(
+                                Context.CLIPBOARD_SERVICE
+                        );
+
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(
+                    ClipData.newPlainText("KruxAI", text)
+            );
+
+            Toast.makeText(
+                    context,
+                    message,
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
     }
 
     private void setupSources(
@@ -390,7 +984,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static class AiViewHolder
             extends RecyclerView.ViewHolder {
 
-        TextView tvMessage;
+        LinearLayout messageContainer;
         TextView tvReasoningContent;
 
         LinearLayout layoutReasoning;
@@ -412,9 +1006,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         AiViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            tvMessage =
+            messageContainer =
                     itemView.findViewById(
-                            R.id.tvMessage
+                            R.id.messageContainer
                     );
 
             tvReasoningContent =

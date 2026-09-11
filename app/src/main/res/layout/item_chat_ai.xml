@@ -77,14 +77,11 @@
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvMessage"
+    <LinearLayout
+        android:id="@+id/messageContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#FAF7FF"
-        android:textSize="15sp"
-        android:lineSpacingExtra="3dp"
-        android:padding="4dp" />
+        android:orientation="vertical" />
 
     <LinearLayout
         android:id="@+id/layoutActions"
