@@ -245,7 +245,7 @@
                     android:id="@+id/btnSend"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
-                    android:background="@drawable/bg_send_button"
+                    android:background="@drawable/bg_send_button_round"
                     android:src="@drawable/ic_send"
                     android:tint="#07050F" />
             </LinearLayout>

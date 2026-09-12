@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
     private boolean isListening = false;
+    private String voiceBaseText = "";
     private boolean isTtsSpeaking = false;
     private List<ValueAnimator> activeAnimators = new ArrayList<>();
 
@@ -122,7 +123,16 @@ private final ActivityResultLauncher<String[]> filePicker =
         webSearchEngine = new WebSearchEngine();
         dbHelper = new KruxDatabaseHelper(this);
 
-        currentSessionId = "session_" + System.currentTimeMillis();
+        currentSessionId = getSharedPreferences("krux_chat", MODE_PRIVATE)
+                .getString("current_session_id", null);
+
+        if (currentSessionId == null || currentSessionId.isEmpty()) {
+            currentSessionId = "session_" + System.currentTimeMillis();
+            getSharedPreferences("krux_chat", MODE_PRIVATE)
+                    .edit()
+                    .putString("current_session_id", currentSessionId)
+                    .apply();
+        }
 
         drawerLayout = findViewById(R.id.drawerLayout);
         btnMenu = findViewById(R.id.btnMenu);
@@ -366,6 +376,10 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void saveMessageToDatabase(ChatMessage message) {
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
+            getSharedPreferences("krux_chat", MODE_PRIVATE)
+                    .edit()
+                    .putString("current_session_id", currentSessionId)
+                    .apply();
         }
         dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
 
@@ -396,6 +410,25 @@ private final ActivityResultLauncher<String[]> filePicker =
                         }
                     });
         }
+    }
+
+    private void saveMemoryToCloud(String fact) {
+        if (fact == null || fact.trim().isEmpty()) {
+            return;
+        }
+
+        if (currentUser == null) {
+            return;
+        }
+
+        java.util.Map<String, Object> memory = new java.util.HashMap<>();
+        memory.put("fact", fact.trim());
+        memory.put("createdAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        db.collection("users")
+                .document(currentUser.getUid())
+                .collection("memory")
+                .add(memory);
     }
 
     private void sendMessage() {
@@ -472,7 +505,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                         int end = cleanResponse.indexOf("</REMEMBER>");
                         if (end > start) {
                             String fact = cleanResponse.substring(start, end).trim();
-                            dbHelper.addMemoryFact(fact);
+                            dbHelper.addMemoryFact(fact); saveMemoryToCloud(fact);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -566,6 +599,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             speechRecognizer.stopListening();
             stopVoiceUI();
         } else {
+            voiceBaseText = etInput.getText().toString();
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
@@ -685,6 +719,10 @@ private final ActivityResultLauncher<String[]> filePicker =
             btnNewChat.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);
                 currentSessionId = "session_" + System.currentTimeMillis();
+                getSharedPreferences("krux_chat", MODE_PRIVATE)
+                        .edit()
+                        .putString("current_session_id", currentSessionId)
+                        .apply();
                 messageList.clear();
                 chatAdapter.notifyDataSetChanged();
             });
@@ -693,8 +731,13 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void setGeneratingState(boolean generating) {
         isGenerating = generating;
+
         if (btnSend != null) {
-            btnSend.setBackgroundColor(generating ? 0xFFD32F2F : 0xFF1E88E5);
+            btnSend.setBackgroundResource(
+                    generating
+                            ? R.drawable.bg_send_button_active
+                            : R.drawable.bg_send_button_round
+            );
         }
     }
 
@@ -706,6 +749,10 @@ private final ActivityResultLauncher<String[]> filePicker =
             @Override
             public void onSessionClick(ChatSession session) {
                 currentSessionId = session.getId();
+                getSharedPreferences("krux_chat", MODE_PRIVATE)
+                        .edit()
+                        .putString("current_session_id", currentSessionId)
+                        .apply();
                 messageList.clear();
                 messageList.addAll(session.getMessages());
                 chatAdapter.notifyDataSetChanged();
