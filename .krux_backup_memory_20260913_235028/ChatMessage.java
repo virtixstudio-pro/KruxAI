@@ -6,22 +6,6 @@ import java.util.UUID;
 
 public class ChatMessage {
 
-    private static android.content.Context appContext;
-
-    public static void initializeContext(android.content.Context context) {
-        if (context != null) {
-            appContext = context.getApplicationContext();
-        }
-    }
-
-    private static String resolveSessionId() {
-        if (appContext == null) return null;
-
-        return appContext
-                .getSharedPreferences("krux_chat", android.content.Context.MODE_PRIVATE)
-                .getString("current_session_id", null);
-    }
-
     private String id;
     private String text;
     private boolean isUser;
@@ -29,13 +13,11 @@ public class ChatMessage {
     private long timestamp;
     private List<SearchResult> sources;
     private String model;
-    private String sessionId;
 
     public ChatMessage() {
         this.id = UUID.randomUUID().toString();
         this.reasoning = "";
         this.sources = new ArrayList<>();
-        this.sessionId = resolveSessionId();
     }
 
     public ChatMessage(String text, boolean isUser) {
@@ -45,7 +27,6 @@ public class ChatMessage {
         this.reasoning = "";
         this.timestamp = System.currentTimeMillis();
         this.sources = new ArrayList<>();
-        this.sessionId = resolveSessionId();
     }
 
     public ChatMessage(String text, boolean isUser, List<SearchResult> sources) {
@@ -55,7 +36,6 @@ public class ChatMessage {
         this.reasoning = "";
         this.timestamp = System.currentTimeMillis();
         this.sources = sources != null ? sources : new ArrayList<>();
-        this.sessionId = resolveSessionId();
     }
 
     public String getId() {
@@ -114,13 +94,5 @@ public class ChatMessage {
         this.sources = sources != null
                 ? sources
                 : new ArrayList<>();
-    }
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
     }
 }

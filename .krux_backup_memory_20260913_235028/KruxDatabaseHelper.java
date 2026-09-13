@@ -15,7 +15,7 @@ import java.util.List;
 public class KruxDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "krux_ai.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 2;
 
     public KruxDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -47,11 +47,6 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
                     "session_id TEXT PRIMARY KEY, " +
                     "title TEXT, " +
                     "is_pinned INTEGER DEFAULT 0)");
-        }
-
-        if (oldVersion < 3) {
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)");
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_fact ON memory(fact)");
         }
     }
 
@@ -85,34 +80,6 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         } finally {
             cursor.close();
         }
-    }
-
-    public boolean hasMessage(String sessionId, String sender, String text) {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.rawQuery(
-                "SELECT 1 FROM messages WHERE session_id = ? AND sender = ? AND message = ? LIMIT 1",
-                new String[]{sessionId, sender, text}
-        );
-
-        boolean exists = cursor.moveToFirst();
-        cursor.close();
-
-        return exists;
-    }
-
-    public boolean hasMemoryFact(String fact) {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.rawQuery(
-                "SELECT 1 FROM memory WHERE fact = ? LIMIT 1",
-                new String[]{fact}
-        );
-
-        boolean exists = cursor.moveToFirst();
-        cursor.close();
-
-        return exists;
     }
 
     public void saveMessage(String sessionId, String sender, String text) {

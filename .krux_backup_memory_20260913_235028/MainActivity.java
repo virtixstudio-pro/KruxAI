@@ -117,8 +117,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ChatMessage.initializeContext(this);
-
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
@@ -226,8 +224,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         initTextToSpeech();
         listenToFirebaseMessages();
         loadHistorySidebar();
-        loadCurrentSession();
-        syncCloudData();
     }
 
     private void showKruxModelSelector() {
@@ -381,68 +377,40 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void saveMessageToDatabase(ChatMessage message) {
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
-
             getSharedPreferences("krux_chat", MODE_PRIVATE)
                     .edit()
                     .putString("current_session_id", currentSessionId)
                     .apply();
         }
+        dbHelper.saveMessage(currentSessionId, message.isUser() ? "user" : "ai", message.getText());
 
-        message.setSessionId(currentSessionId);
-
-        String sender = message.isUser() ? "user" : "ai";
-        dbHelper.saveMessage(
-                currentSessionId,
-                sender,
-                message.getText()
-        );
-
+        // Mise à jour de l'UI en local
         runOnUiThread(() -> {
-            if (!messageList.contains(message)) {
-                messageList.add(message);
-                chatAdapter.notifyItemInserted(messageList.size() - 1);
-            }
-
+            messageList.add(message);
+            chatAdapter.notifyItemInserted(messageList.size() - 1);
             rvChat.smoothScrollToPosition(messageList.size() - 1);
             loadHistorySidebar();
         });
 
-        saveMessageToCloud(message, sender);
-    }
-
-    private void saveMessageToCloud(ChatMessage message, String sender) {
-        if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
+        // Sauvegarde distante dans Firestore
+        if (currentUser != null) {
+            db.collection("users")
+                    .document(currentUser.getUid())
+                    .collection("chats")
+                    .add(message);
+        } else {
+            // Auto-connexion anonyme pour débloquer l'écriture Firestore si non connecté
+            com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
                     .addOnSuccessListener(authResult -> {
                         currentUser = authResult.getUser();
-
                         if (currentUser != null) {
-                            saveMessageToCloud(message, sender);
+                            db.collection("users")
+                                    .document(currentUser.getUid())
+                                    .collection("chats")
+                                    .add(message);
                         }
                     });
-
-            return;
         }
-
-        java.util.Map<String, Object> cloudMessage =
-                new java.util.HashMap<>();
-
-        cloudMessage.put("id", message.getId());
-        cloudMessage.put("sessionId", currentSessionId);
-        cloudMessage.put("sender", sender);
-        cloudMessage.put("message", message.getText());
-        cloudMessage.put("timestamp", message.getTimestamp());
-
-        if (message.getModel() != null) {
-            cloudMessage.put("model", message.getModel());
-        }
-
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("chats")
-                .document(message.getId())
-                .set(cloudMessage);
     }
 
     private void saveMemoryToCloud(String fact) {
@@ -451,160 +419,17 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
-                    .addOnSuccessListener(authResult -> {
-                        currentUser = authResult.getUser();
-
-                        if (currentUser != null) {
-                            saveMemoryToCloud(fact);
-                        }
-                    });
-
             return;
         }
 
-        String cleanFact = fact.trim();
-
-        java.util.Map<String, Object> memory =
-                new java.util.HashMap<>();
-
-        memory.put("fact", cleanFact);
-        memory.put(
-                "createdAt",
-                com.google.firebase.firestore.FieldValue.serverTimestamp()
-        );
+        java.util.Map<String, Object> memory = new java.util.HashMap<>();
+        memory.put("fact", fact.trim());
+        memory.put("createdAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
 
         db.collection("users")
                 .document(currentUser.getUid())
                 .collection("memory")
-                .document(java.util.UUID.randomUUID().toString())
-                .set(memory);
-    }
-
-    private void loadCurrentSession() {
-        if (currentSessionId == null || currentSessionId.isEmpty()) {
-            return;
-        }
-
-        List<ChatMessage> restored =
-                dbHelper.getMessagesForSession(currentSessionId);
-
-        messageList.clear();
-
-        if (restored != null) {
-            messageList.addAll(restored);
-        }
-
-        if (chatAdapter != null) {
-            chatAdapter.notifyDataSetChanged();
-        }
-
-        if (rvChat != null && !messageList.isEmpty()) {
-            rvChat.post(() ->
-                    rvChat.scrollToPosition(messageList.size() - 1)
-            );
-        }
-    }
-
-    private void syncCloudData() {
-        if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
-                    .addOnSuccessListener(authResult -> {
-                        currentUser = authResult.getUser();
-
-                        if (currentUser != null) {
-                            syncCloudData();
-                        }
-                    });
-
-            return;
-        }
-
-        String uid = currentUser.getUid();
-
-        db.collection("users")
-                .document(uid)
-                .collection("chats")
-                .get()
-                .addOnSuccessListener(snapshot -> {
-
-                    for (com.google.firebase.firestore.DocumentSnapshot doc
-                            : snapshot.getDocuments()) {
-
-                        String sessionId = doc.getString("sessionId");
-
-                        /*
-                         * Les anciens messages n'avaient pas de sessionId.
-                         * On les rattache à la session actuelle afin de
-                         * récupérer l'historique existant sans le perdre.
-                         */
-                        if (sessionId == null || sessionId.trim().isEmpty()) {
-                            sessionId = currentSessionId;
-                        }
-
-                        String sender = doc.getString("sender");
-                        String text = doc.getString("message");
-
-                        if (sender == null || text == null) {
-                            continue;
-                        }
-
-                        if (!dbHelper.hasMessage(sessionId, sender, text)) {
-                            dbHelper.saveMessage(
-                                    sessionId,
-                                    sender,
-                                    text
-                            );
-                        }
-                    }
-
-                    loadCurrentSession();
-                    loadHistorySidebar();
-                })
-                .addOnFailureListener(error ->
-                        android.util.Log.e(
-                                "KRUX_SYNC",
-                                "Erreur synchronisation chats",
-                                error
-                        )
-                );
-
-        db.collection("users")
-                .document(uid)
-                .collection("memory")
-                .get()
-                .addOnSuccessListener(snapshot -> {
-
-                    for (com.google.firebase.firestore.DocumentSnapshot doc
-                            : snapshot.getDocuments()) {
-
-                        String fact = doc.getString("fact");
-
-                        if (fact == null || fact.trim().isEmpty()) {
-                            continue;
-                        }
-
-                        fact = fact.trim();
-
-                        if (!dbHelper.hasMemoryFact(fact)) {
-                            dbHelper.addMemoryFact(fact);
-                        }
-                    }
-
-                    android.util.Log.d(
-                            "KRUX_SYNC",
-                            "Mémoire cloud synchronisée."
-                    );
-                })
-                .addOnFailureListener(error ->
-                        android.util.Log.e(
-                                "KRUX_SYNC",
-                                "Erreur synchronisation mémoire",
-                                error
-                        )
-                );
+                .add(memory);
     }
 
     private void sendMessage() {
