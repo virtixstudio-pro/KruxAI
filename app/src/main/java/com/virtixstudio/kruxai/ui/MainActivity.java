@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private boolean isListening = false;
     private String voiceBaseText = "";
     private boolean isTtsSpeaking = false;
-    private List<ValueAnimator> activeAnimators = new ArrayList<>();
+    private float voiceRmsLevel = 0.0f;
 
     private boolean isLearningMode = false;
     private boolean isDeepSearchEnabled = true;
@@ -567,29 +567,107 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void initSpeechRecognizer() {
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override public void onReadyForSpeech(Bundle params) {}
-                @Override public void onBeginningOfSpeech() {}
-                @Override public void onRmsChanged(float rmsdB) {}
-                @Override public void onBufferReceived(byte[] buffer) {}
-                @Override public void onEndOfSpeech() { stopVoiceUI(); }
-                @Override public void onError(int error) { stopVoiceUI(); }
-                @Override public void onResults(Bundle results) {
+
+                @Override
+                public void onReadyForSpeech(Bundle params) {
+                    resetVoiceBars();
+                }
+
+                @Override
+                public void onBeginningOfSpeech() {
+                }
+
+                @Override
+                public void onRmsChanged(float rmsdB) {
+                    if (!isListening) return;
+                    updateVoiceBars(rmsdB);
+                }
+
+                @Override
+                public void onBufferReceived(byte[] buffer) {
+                }
+
+                @Override
+                public void onEndOfSpeech() {
+                    // Ne pas arrêter l'interface ici.
+                    // Une pause peut déclencher cet événement.
+                }
+
+                @Override
+                public void onError(int error) {
                     stopVoiceUI();
-                    ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                }
+
+                @Override
+                public void onResults(Bundle results) {
+                    ArrayList<String> matches =
+                            results.getStringArrayList(
+                                    SpeechRecognizer.RESULTS_RECOGNITION
+                            );
+
                     if (matches != null && !matches.isEmpty()) {
-                        etInput.setText(matches.get(0));
+                        String spoken = matches.get(0).trim();
+                        String base = voiceBaseText == null
+                                ? ""
+                                : voiceBaseText.trim();
+
+                        String finalText = base.isEmpty()
+                                ? spoken
+                                : spoken.isEmpty()
+                                ? base
+                                : base + " " + spoken;
+
+                        etInput.setText(finalText);
+                        etInput.setSelection(etInput.length());
+                    }
+
+                    stopVoiceUI();
+                }
+
+                @Override
+                public void onPartialResults(Bundle partialResults) {
+                    ArrayList<String> matches =
+                            partialResults.getStringArrayList(
+                                    SpeechRecognizer.RESULTS_RECOGNITION
+                            );
+
+                    if (matches != null && !matches.isEmpty()) {
+                        String spoken = matches.get(0).trim();
+                        String base = voiceBaseText == null
+                                ? ""
+                                : voiceBaseText.trim();
+
+                        String partialText = base.isEmpty()
+                                ? spoken
+                                : spoken.isEmpty()
+                                ? base
+                                : base + " " + spoken;
+
+                        etInput.setText(partialText);
+                        etInput.setSelection(etInput.length());
                     }
                 }
-                @Override public void onPartialResults(Bundle partialResults) {}
-                @Override public void onEvent(int eventType, Bundle params) {}
+
+                @Override
+                public void onEvent(int eventType, Bundle params) {
+                }
             });
         }
     }
 
     private void toggleVoiceRecognition() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_AUDIO_CODE);
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+        ) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    PERMISSION_AUDIO_CODE
+            );
             return;
         }
 
@@ -598,67 +676,143 @@ private final ActivityResultLauncher<String[]> filePicker =
         if (isListening) {
             speechRecognizer.stopListening();
             stopVoiceUI();
-        } else {
-            voiceBaseText = etInput.getText().toString();
-            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-            speechRecognizer.startListening(intent);
-
-            isListening = true;
-            btnMic.setVisibility(View.GONE);
-            if (btnStopMic != null) btnStopMic.setVisibility(View.VISIBLE);
-            etInput.setVisibility(View.GONE);
-            if (llVoiceVisualizer != null) llVoiceVisualizer.setVisibility(View.VISIBLE);
-
-            startWaveAnimation();
+            return;
         }
+
+        voiceBaseText = etInput.getText().toString();
+
+        Intent intent = new Intent(
+                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+        );
+
+        intent.putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+        );
+
+        intent.putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                Locale.getDefault()
+        );
+
+        intent.putExtra(
+                RecognizerIntent.EXTRA_PARTIAL_RESULTS,
+                true
+        );
+
+        isListening = true;
+
+        btnMic.setVisibility(View.GONE);
+
+        if (btnStopMic != null) {
+            btnStopMic.setVisibility(View.VISIBLE);
+        }
+
+        etInput.setVisibility(View.VISIBLE);
+
+        if (llVoiceVisualizer != null) {
+            llVoiceVisualizer.setVisibility(View.VISIBLE);
+        }
+
+        resetVoiceBars();
+
+        speechRecognizer.startListening(intent);
     }
 
     private void stopVoiceUI() {
         isListening = false;
-        stopWaveAnimation();
 
         btnMic.setVisibility(View.VISIBLE);
-        if (btnStopMic != null) btnStopMic.setVisibility(View.GONE);
-        if (llVoiceVisualizer != null) llVoiceVisualizer.setVisibility(View.GONE);
-        etInput.setVisibility(View.VISIBLE);
-    }
 
-    private void startWaveAnimation() {
-        animateBar(waveBar1, 12, 32, 280);
-        animateBar(waveBar2, 20, 36, 220);
-        animateBar(waveBar3, 10, 26, 320);
-        animateBar(waveBar4, 16, 34, 250);
-    }
-
-    private void animateBar(View bar, int minDp, int maxDp, long duration) {
-        if (bar == null) return;
-        int minPx = (int) (minDp * getResources().getDisplayMetrics().density);
-        int maxPx = (int) (maxDp * getResources().getDisplayMetrics().density);
-
-        ValueAnimator animator = ValueAnimator.ofInt(minPx, maxPx);
-        animator.setDuration(duration);
-        animator.setRepeatCount(ValueAnimator.INFINITE);
-        animator.setRepeatMode(ValueAnimator.REVERSE);
-        animator.addUpdateListener(animation -> {
-            if (!isListening) {
-                animator.cancel();
-                return;
-            }
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) bar.getLayoutParams();
-            params.height = (int) animation.getAnimatedValue();
-            bar.setLayoutParams(params);
-        });
-        animator.start();
-        activeAnimators.add(animator);
-    }
-
-    private void stopWaveAnimation() {
-        for (ValueAnimator animator : activeAnimators) {
-            animator.cancel();
+        if (btnStopMic != null) {
+            btnStopMic.setVisibility(View.GONE);
         }
-        activeAnimators.clear();
+
+        if (llVoiceVisualizer != null) {
+            llVoiceVisualizer.setVisibility(View.GONE);
+        }
+
+        etInput.setVisibility(View.VISIBLE);
+
+        resetVoiceBars();
+    }
+
+    private void updateVoiceBars(float rmsdB) {
+        if (!isListening) return;
+
+        float level = (rmsdB + 2.0f) / 12.0f;
+        level = Math.max(0.0f, Math.min(1.0f, level));
+
+        voiceRmsLevel =
+                voiceRmsLevel * 0.72f
+                        + level * 0.28f;
+
+        float normalized = voiceRmsLevel;
+
+        int minHeight = dpToPx(7);
+        int maxHeight = dpToPx(34);
+
+        int h1 = (int) (
+                minHeight
+                        + normalized
+                        * (maxHeight - minHeight)
+                        * 0.72f
+        );
+
+        int h2 = (int) (
+                minHeight
+                        + normalized
+                        * (maxHeight - minHeight)
+                        * 1.00f
+        );
+
+        int h3 = (int) (
+                minHeight
+                        + normalized
+                        * (maxHeight - minHeight)
+                        * 0.84f
+        );
+
+        int h4 = (int) (
+                minHeight
+                        + normalized
+                        * (maxHeight - minHeight)
+                        * 0.92f
+        );
+
+        setBarHeight(waveBar1, h1);
+        setBarHeight(waveBar2, h2);
+        setBarHeight(waveBar3, h3);
+        setBarHeight(waveBar4, h4);
+    }
+
+    private void resetVoiceBars() {
+        voiceRmsLevel = 0.0f;
+
+        int minHeight = dpToPx(7);
+
+        setBarHeight(waveBar1, minHeight);
+        setBarHeight(waveBar2, minHeight);
+        setBarHeight(waveBar3, minHeight);
+        setBarHeight(waveBar4, minHeight);
+    }
+
+    private void setBarHeight(View bar, int height) {
+        if (bar == null) return;
+
+        ViewGroup.LayoutParams params = bar.getLayoutParams();
+
+        if (params == null) return;
+
+        params.height = height;
+        bar.setLayoutParams(params);
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (
+                dp * getResources().getDisplayMetrics().density
+                        + 0.5f
+        );
     }
 
     private void showAccountBottomSheet() {
@@ -977,7 +1131,6 @@ private final ActivityResultLauncher<String[]> filePicker =
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopWaveAnimation();
         if (speechRecognizer != null) speechRecognizer.destroy();
         if (textToSpeech != null) {
             textToSpeech.stop();
