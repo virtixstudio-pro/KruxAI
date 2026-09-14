@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.MotionEvent;
+import android.view.animation.OvershootInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -48,6 +50,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final List<ChatMessage> messageList;
     private final OnSpeechRequestedListener speechListener;
     private final OnFeedbackRequestedListener feedbackListener;
+    private final OnUserActionListener userActionListener;
 
     private final Map<String, String> feedbackStates = new HashMap<>();
 
@@ -61,14 +64,22 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onFeedbackRequested(ChatMessage message, String type);
     }
 
+    public interface OnUserActionListener {
+        void onEditRequested(ChatMessage message);
+        void onCopyRequested(ChatMessage message);
+        void onRetryRequested(ChatMessage message);
+    }
+
     public ChatAdapter(
             List<ChatMessage> messageList,
             OnSpeechRequestedListener speechListener,
-            OnFeedbackRequestedListener feedbackListener
+            OnFeedbackRequestedListener feedbackListener,
+            OnUserActionListener userActionListener
     ) {
         this.messageList = messageList;
         this.speechListener = speechListener;
         this.feedbackListener = feedbackListener;
+        this.userActionListener = userActionListener;
     }
 
     @Override
@@ -125,9 +136,33 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         if (holder instanceof UserViewHolder) {
 
-            ((UserViewHolder) holder)
-                    .tvMessage
-                    .setText(message.getText());
+            UserViewHolder userHolder = (UserViewHolder) holder;
+
+            userHolder.tvMessage.setText(
+                    message.getText() == null ? "" : message.getText()
+            );
+
+            userHolder.btnEdit.setOnClickListener(v -> {
+                if (userActionListener != null) {
+                    userActionListener.onEditRequested(message);
+                }
+            });
+
+            userHolder.btnCopy.setOnClickListener(v -> {
+                if (userActionListener != null) {
+                    userActionListener.onCopyRequested(message);
+                }
+            });
+
+            userHolder.btnRetry.setOnClickListener(v -> {
+                if (userActionListener != null) {
+                    userActionListener.onRetryRequested(message);
+                }
+            });
+
+            animateActionButton(userHolder.btnEdit);
+            animateActionButton(userHolder.btnCopy);
+            animateActionButton(userHolder.btnRetry);
 
             return;
         }
@@ -144,6 +179,34 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         setupReasoning(aiHolder, message);
         setupActions(aiHolder, context, message);
         setupFeedback(aiHolder, message);
+    }
+
+    private void animateActionButton(@NonNull View button) {
+        button.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate()
+                            .scaleX(0.88f)
+                            .scaleY(0.88f)
+                            .alpha(0.82f)
+                            .setDuration(70)
+                            .start();
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .alpha(1f)
+                            .setDuration(230)
+                            .setInterpolator(new OvershootInterpolator(2.4f))
+                            .start();
+                    break;
+            }
+
+            return false;
+        });
     }
 
     private void renderMessage(
@@ -379,9 +442,18 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         });
 
         String extension = extensionForLanguage(language);
-        String prefix = sanitizeFileName(
-                fileName.isEmpty() ? "KruxAI_Code" : fileName
-        );
+        String prefix = sanitizeFileName(fileName);
+
+        if (prefix.isEmpty()) {
+            download.setOnClickListener(v ->
+                    Toast.makeText(
+                            context,
+                            "Nom de fichier introuvable",
+                            Toast.LENGTH_SHORT
+                    ).show()
+            );
+            return;
+        }
 
         if (prefix.endsWith(extension)) {
             prefix = prefix.substring(
@@ -413,11 +485,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         button.setColorFilter(Color.parseColor("#B79BCB"));
         button.setBackgroundColor(Color.TRANSPARENT);
         button.setContentDescription(description);
-        button.setPadding(7, 7, 7, 7);
+        button.setPadding(6, 6, 6, 6);
 
-        button.setLayoutParams(
-                new LinearLayout.LayoutParams(38, 38)
-        );
+        LinearLayout.LayoutParams actionParams =
+                new LinearLayout.LayoutParams(30, 30);
+        actionParams.setMargins(3, 0, 3, 0);
+        button.setLayoutParams(actionParams);
 
         return button;
     }
@@ -970,14 +1043,17 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             extends RecyclerView.ViewHolder {
 
         TextView tvMessage;
+        ImageButton btnEdit;
+        ImageButton btnCopy;
+        ImageButton btnRetry;
 
         UserViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            tvMessage =
-                    itemView.findViewById(
-                            R.id.tvMessage
-                    );
+            tvMessage = itemView.findViewById(R.id.tvMessage);
+            btnEdit = itemView.findViewById(R.id.btnEdit);
+            btnCopy = itemView.findViewById(R.id.btnCopy);
+            btnRetry = itemView.findViewById(R.id.btnRetry);
         }
     }
 

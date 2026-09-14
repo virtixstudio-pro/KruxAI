@@ -47,6 +47,7 @@ import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.api.WebSearchEngine;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.core.ToolRouter;
+import com.virtixstudio.kruxai.core.KruxState;
 import com.virtixstudio.kruxai.models.ChatMessage;
 import com.virtixstudio.kruxai.models.Feedback;
 import com.virtixstudio.kruxai.models.KruxModel;
@@ -100,6 +101,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private boolean isThinkingMode = true;
     private String currentSessionId;
     private boolean isGenerating = false;
+    private KruxState kruxState = KruxState.IDLE;
+    private View kruxStatusContainer;
+    private TextView tvKruxStatus;
 
 private final ActivityResultLauncher<String[]> filePicker =
         registerForActivityResult(
@@ -160,7 +164,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         rvHistory = findViewById(R.id.rvHistory);
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
-        waveBar1 = findViewById(R.id.waveBar1);
+                kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
+        tvKruxStatus = findViewById(R.id.tvKruxStatus);
+waveBar1 = findViewById(R.id.waveBar1);
         waveBar2 = findViewById(R.id.waveBar2);
         waveBar3 = findViewById(R.id.waveBar3);
         waveBar4 = findViewById(R.id.waveBar4);
@@ -171,7 +177,35 @@ private final ActivityResultLauncher<String[]> filePicker =
         navLogout = findViewById(R.id.navLogout);
 
         messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(messageList, this, new ChatAdapter.OnFeedbackRequestedListener() { @Override public void onFeedbackRequested(ChatMessage message, String type) { handleFeedback(message, type); } });
+        chatAdapter = new ChatAdapter(
+                messageList,
+                this,
+                new ChatAdapter.OnFeedbackRequestedListener() {
+                    @Override
+                    public void onFeedbackRequested(
+                            ChatMessage message,
+                            String type
+                    ) {
+                        handleFeedback(message, type);
+                    }
+                },
+                new ChatAdapter.OnUserActionListener() {
+                    @Override
+                    public void onEditRequested(ChatMessage message) {
+                        handleEditMessage(message);
+                    }
+
+                    @Override
+                    public void onCopyRequested(ChatMessage message) {
+                        handleCopyMessage(message);
+                    }
+
+                    @Override
+                    public void onRetryRequested(ChatMessage message) {
+                        // Réessayer sera implémenté séparément.
+                    }
+                }
+        );
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
@@ -607,6 +641,54 @@ private final ActivityResultLauncher<String[]> filePicker =
                 );
     }
 
+    private void handleEditMessage(ChatMessage message) {
+        if (message == null) {
+            return;
+        }
+
+        String text = message.getText();
+
+        if (text == null) {
+            text = "";
+        }
+
+        etInput.setText(text);
+        etInput.setSelection(etInput.length());
+        etInput.requestFocus();
+    }
+
+    private void handleCopyMessage(ChatMessage message) {
+        if (message == null) {
+            return;
+        }
+
+        String text = message.getText();
+
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        android.content.ClipboardManager clipboard =
+                (android.content.ClipboardManager)
+                        getSystemService(CLIPBOARD_SERVICE);
+
+        if (clipboard != null) {
+            android.content.ClipData clip =
+                    android.content.ClipData.newPlainText(
+                            "Message Krux",
+                            text
+                    );
+
+            clipboard.setPrimaryClip(clip);
+
+            Toast.makeText(
+                    this,
+                    "Message copié",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
     private void sendMessage() {
         String prompt = etInput.getText().toString().trim();
         if (prompt.isEmpty()) return;
@@ -614,10 +696,12 @@ private final ActivityResultLauncher<String[]> filePicker =
         ChatMessage userMessage = new ChatMessage(prompt, true);
         saveMessageToDatabase(userMessage);
         etInput.setText("");
+        setKruxState(KruxState.THINKING);
 
         ToolRouter.Tool tool = ToolRouter.decide(prompt, isDeepSearchEnabled);
 
         if (tool == ToolRouter.Tool.WEB_SEARCH) {
+            setKruxState(KruxState.SEARCHING);
             webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
                 public void onSuccess(List<SearchResult> results, String formattedContext) {
@@ -630,6 +714,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 }
             });
         } else {
+            setKruxState(KruxState.GENERATING);
             executeAiQuery(prompt, "", new ArrayList<>());
         }
     }
@@ -1057,6 +1142,50 @@ private final ActivityResultLauncher<String[]> filePicker =
                 chatAdapter.notifyDataSetChanged();
             });
         }
+    }
+
+    private void setKruxState(KruxState state) {
+        if (state == null) {
+            state = KruxState.IDLE;
+        }
+
+        kruxState = state;
+
+        final KruxState displayState = state;
+
+        runOnUiThread(() -> {
+            if (kruxStatusContainer == null || tvKruxStatus == null) {
+                return;
+            }
+
+            switch (displayState) {
+                case THINKING:
+                    tvKruxStatus.setText("Réflexion…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
+                    break;
+
+                case SEARCHING:
+                    tvKruxStatus.setText("Recherche…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
+                    break;
+
+                case GENERATING:
+                    tvKruxStatus.setText("Génération…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
+                    break;
+
+                case ERROR:
+                    tvKruxStatus.setText("Une erreur est survenue");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
+                    break;
+
+                case LISTENING:
+                case IDLE:
+                default:
+                    kruxStatusContainer.setVisibility(View.GONE);
+                    break;
+            }
+        });
     }
 
     private void setGeneratingState(boolean generating) {
