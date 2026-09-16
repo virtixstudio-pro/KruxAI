@@ -750,6 +750,13 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         setGeneratingState(true);
 
+        ChatMessage aiMessage = new ChatMessage("", false, sources);
+        runOnUiThread(() -> {
+            messageList.add(aiMessage);
+            chatAdapter.notifyItemInserted(messageList.size() - 1);
+            rvChat.smoothScrollToPosition(messageList.size() - 1);
+        });
+
         ApiClient.sendRequest(
                 selectedKruxModel,
                 systemPrompt,
@@ -774,15 +781,36 @@ waveBar1 = findViewById(R.id.waveBar1);
                     cleanResponse = cleanResponse.replaceAll("<REMEMBER>.*?</REMEMBER>", "").trim();
                 }
 
-                ChatMessage aiMessage = new ChatMessage(cleanResponse, false, sources); aiMessage.setModel(modelBrand);
+                aiMessage.setText(cleanResponse);
+                aiMessage.setModel(modelBrand);
+                runOnUiThread(() -> chatAdapter.notifyItemChanged(messageList.indexOf(aiMessage)));
                 saveMessageToDatabase(aiMessage);
+            }
+
+            @Override
+            public void onPartialResponse(String partialResponse, String modelBrand) {
+                runOnUiThread(() -> {
+                    aiMessage.setText(partialResponse);
+                    aiMessage.setModel(modelBrand);
+                    int position = messageList.indexOf(aiMessage);
+                    if (position >= 0) {
+                        chatAdapter.notifyItemChanged(position);
+                        rvChat.smoothScrollToPosition(position);
+                    }
+                });
             }
 
             @Override
             public void onError(String errorMessage) {
                 runOnUiThread(() -> setGeneratingState(false));
-                ChatMessage errorMsg = new ChatMessage("Erreur : " + errorMessage, false);
-                saveMessageToDatabase(errorMsg);
+                aiMessage.setText("Erreur : " + errorMessage);
+                runOnUiThread(() -> {
+                    int position = messageList.indexOf(aiMessage);
+                    if (position >= 0) {
+                        chatAdapter.notifyItemChanged(position);
+                    }
+                });
+                saveMessageToDatabase(aiMessage);
             }
         });
     }

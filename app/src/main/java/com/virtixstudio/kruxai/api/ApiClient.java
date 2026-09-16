@@ -25,6 +25,7 @@ public class ApiClient {
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
         void onError(String friendlyMessage);
+        default void onPartialResponse(String response, String modelBrand) {}
         default void onWebSearchStarted(String query) {}
         default void onWebSearchFinished(List<SearchResult> results) {}
     }
@@ -334,7 +335,8 @@ public class ApiClient {
             String response = sendWithModel(
                     model,
                     systemPrompt,
-                    currentPrompt
+                    currentPrompt,
+                    callback
             );
 
             if (response == null || response.trim().isEmpty()) {
@@ -405,7 +407,7 @@ public class ApiClient {
                     + "Réponds directement à l'utilisateur.";
         }
 
-        return sendWithModel(model, systemPrompt, currentPrompt);
+        return sendWithModel(model, systemPrompt, currentPrompt, callback);
     }
 
     private static String extractWebQuery(String response) {
@@ -446,7 +448,8 @@ public class ApiClient {
     private static String sendWithModel(
             KruxModel model,
             String systemPrompt,
-            String userMessage
+            String userMessage,
+            ApiCallback callback
     ) throws Exception {
 
         switch (model.getProvider()) {
@@ -457,7 +460,9 @@ public class ApiClient {
                         BuildConfig.GROQ_API_KEY,
                         model.getModelId(),
                         systemPrompt,
-                        userMessage
+                        userMessage,
+                        callback,
+                        model.getDisplayName()
                 );
 
             case "CEREBRAS":
@@ -466,7 +471,9 @@ public class ApiClient {
                         BuildConfig.CEREBRAS_API_KEY,
                         model.getModelId(),
                         systemPrompt,
-                        userMessage
+                        userMessage,
+                        callback,
+                        model.getDisplayName()
                 );
 
             case "MISTRAL":
@@ -475,7 +482,9 @@ public class ApiClient {
                         BuildConfig.MISTRAL_API_KEY,
                         model.getModelId(),
                         systemPrompt,
-                        userMessage
+                        userMessage,
+                        callback,
+                        model.getDisplayName()
                 );
 
             case "HUGGINGFACE":
@@ -486,7 +495,9 @@ public class ApiClient {
                         BuildConfig.HF_API_KEY,
                         model.getModelId(),
                         systemPrompt,
-                        userMessage
+                        userMessage,
+                        callback,
+                        model.getDisplayName()
                 );
 
             case "GEMINI":
@@ -494,7 +505,9 @@ public class ApiClient {
                         BuildConfig.GEMINI_API_KEY,
                         model.getModelId(),
                         systemPrompt,
-                        userMessage
+                        userMessage,
+                        callback,
+                        model.getDisplayName()
                 );
 
             default:
@@ -509,7 +522,9 @@ public class ApiClient {
             String apiKey,
             String model,
             String systemPrompt,
-            String userMessage
+            String userMessage,
+            ApiCallback callback,
+            String modelBrand
     ) throws Exception {
 
         if (apiKey == null || apiKey.trim().isEmpty()) {
@@ -556,6 +571,7 @@ public class ApiClient {
         );
 
         json.put("messages", messages);
+        json.put("stream", true);
 
         try (OutputStream os = conn.getOutputStream()) {
             os.write(
@@ -579,33 +595,52 @@ public class ApiClient {
                         )
                 );
 
-        StringBuilder response =
-                new StringBuilder();
-
+        StringBuilder response = new StringBuilder();
         String line;
 
         while ((line = reader.readLine()) != null) {
-            response.append(line);
+            if (!line.startsWith("data:")) {
+                continue;
+            }
+
+            String data = line.substring(5).trim();
+            if (data.isEmpty() || "[DONE]".equals(data)) {
+                continue;
+            }
+
+            JSONObject event = new JSONObject(data);
+            JSONArray choices = event.optJSONArray("choices");
+            if (choices == null || choices.length() == 0) {
+                continue;
+            }
+
+            JSONObject delta = choices.getJSONObject(0).optJSONObject("delta");
+            if (delta == null) {
+                continue;
+            }
+
+            String fragment = delta.optString("content", "");
+            if (!fragment.isEmpty()) {
+                response.append(fragment);
+                if (callback != null) {
+                    callback.onPartialResponse(response.toString(), modelBrand);
+                }
+            }
         }
 
         reader.close();
         conn.disconnect();
 
-        JSONObject result =
-                new JSONObject(response.toString());
-
-        return result
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content");
+        return response.toString();
     }
 
     private static String callGemini(
             String apiKey,
             String model,
             String systemPrompt,
-            String userMessage
+            String userMessage,
+            ApiCallback callback,
+            String modelBrand
     ) throws Exception {
 
         if (apiKey == null || apiKey.trim().isEmpty()) {
@@ -616,7 +651,7 @@ public class ApiClient {
                 "https://generativelanguage.googleapis.com/"
                         + "v1beta/models/"
                         + model
-                        + ":generateContent?key="
+                        + ":streamGenerateContent?alt=sse&key="
                         + apiKey
         );
 
@@ -680,27 +715,48 @@ public class ApiClient {
                         )
                 );
 
-        StringBuilder response =
-                new StringBuilder();
-
+        StringBuilder response = new StringBuilder();
         String line;
 
         while ((line = reader.readLine()) != null) {
-            response.append(line);
+            if (!line.startsWith("data:")) {
+                continue;
+            }
+
+            String data = line.substring(5).trim();
+            if (data.isEmpty()) {
+                continue;
+            }
+
+            JSONObject event = new JSONObject(data);
+            JSONArray candidates = event.optJSONArray("candidates");
+            if (candidates == null || candidates.length() == 0) {
+                continue;
+            }
+
+            JSONObject content = candidates.getJSONObject(0)
+                    .optJSONObject("content");
+            if (content == null) {
+                continue;
+            }
+
+            JSONArray parts = content.optJSONArray("parts");
+            if (parts == null || parts.length() == 0) {
+                continue;
+            }
+
+            String fragment = parts.getJSONObject(0).optString("text", "");
+            if (!fragment.isEmpty()) {
+                response.append(fragment);
+                if (callback != null) {
+                    callback.onPartialResponse(response.toString(), modelBrand);
+                }
+            }
         }
 
         reader.close();
         conn.disconnect();
 
-        JSONObject result =
-                new JSONObject(response.toString());
-
-        return result
-                .getJSONArray("candidates")
-                .getJSONObject(0)
-                .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text");
+        return response.toString();
     }
 }
