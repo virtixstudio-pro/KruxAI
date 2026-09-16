@@ -21,10 +21,15 @@ import java.util.concurrent.TimeUnit;
 public class ApiClient {
 
     private static final String TAG = "KruxApiClient";
+    private static volatile Thread activeRequestThread;
+    private static volatile HttpURLConnection activeConnection;
+    private static volatile ApiCallback activeCallback;
+    private static volatile boolean cancellationNotified;
 
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
         void onError(String friendlyMessage);
+        default void onCancelled() {}
         default void onPartialResponse(String response, String modelBrand) {}
         default void onWebSearchStarted(String query) {}
         default void onWebSearchFinished(List<SearchResult> results) {}
@@ -43,6 +48,9 @@ public class ApiClient {
             ApiCallback callback
     ) {
         new Thread(() -> {
+            activeRequestThread = Thread.currentThread();
+            activeCallback = callback;
+            cancellationNotified = false;
 
             /*
              * Fallback global utilisé lorsqu'aucun modèle précis
@@ -78,6 +86,11 @@ public class ApiClient {
                             callback
                     );
 
+                    if (Thread.currentThread().isInterrupted()) {
+                        notifyCancelled(callback);
+                        return;
+                    }
+
                     if (response != null
                             && !response.trim().isEmpty()) {
 
@@ -98,6 +111,11 @@ public class ApiClient {
                     lastError = new Exception("Réponse vide.");
 
                 } catch (Exception e) {
+
+                    if (Thread.currentThread().isInterrupted()) {
+                        notifyCancelled(callback);
+                        return;
+                    }
 
                     lastError = e;
 
@@ -136,6 +154,9 @@ public class ApiClient {
             ApiCallback callback
     ) {
         new Thread(() -> {
+            activeRequestThread = Thread.currentThread();
+            activeCallback = callback;
+            cancellationNotified = false;
 
             KruxModel[] fallbackModels =
                     buildFallbackModels(selectedModel);
@@ -158,6 +179,11 @@ public class ApiClient {
                             callback
                     );
 
+                    if (Thread.currentThread().isInterrupted()) {
+                        notifyCancelled(callback);
+                        return;
+                    }
+
                     if (response != null
                             && !response.trim().isEmpty()) {
 
@@ -179,6 +205,11 @@ public class ApiClient {
 
                 } catch (Exception e) {
 
+                    if (Thread.currentThread().isInterrupted()) {
+                        notifyCancelled(callback);
+                        return;
+                    }
+
                     lastError = e;
 
                     Log.w(
@@ -196,6 +227,27 @@ public class ApiClient {
             );
 
         }).start();
+    }
+
+    public static void cancelCurrentRequest() {
+        Thread requestThread = activeRequestThread;
+        if (requestThread != null) {
+            requestThread.interrupt();
+        }
+
+        HttpURLConnection connection = activeConnection;
+        if (connection != null) {
+            connection.disconnect();
+        }
+
+        notifyCancelled(activeCallback);
+    }
+
+    private static synchronized void notifyCancelled(ApiCallback callback) {
+        if (!cancellationNotified && callback != null) {
+            cancellationNotified = true;
+            callback.onCancelled();
+        }
     }
 
     private static KruxModel[] buildFallbackModels(
@@ -535,6 +587,7 @@ public class ApiClient {
 
         HttpURLConnection conn =
                 (HttpURLConnection) url.openConnection();
+        activeConnection = conn;
 
         conn.setRequestMethod("POST");
 
@@ -630,6 +683,7 @@ public class ApiClient {
 
         reader.close();
         conn.disconnect();
+        activeConnection = null;
 
         return response.toString();
     }
@@ -657,6 +711,7 @@ public class ApiClient {
 
         HttpURLConnection conn =
                 (HttpURLConnection) url.openConnection();
+        activeConnection = conn;
 
         conn.setRequestMethod("POST");
 
@@ -757,6 +812,7 @@ public class ApiClient {
 
         reader.close();
         conn.disconnect();
+        activeConnection = null;
 
         return response.toString();
     }

@@ -58,6 +58,45 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
+    <EditText
+        android:id="@+id/etSearchHistory"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_rounded_input"
+        android:hint="Rechercher dans l’historique"
+        android:paddingHorizontal="12dp"
+        android:singleLine="true"
+        android:textColor="#FAF7FF"
+        android:textColorHint="#766A8A"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:id="@+id/navSearchChats"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingHorizontal="8dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_search_web"
+            android:tint="#A855F7"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rechercher une discussion"
+            android:textColor="#FAF7FF"
+            android:textSize="14sp" />
+    </LinearLayout>
+
     <!-- Liste d'historique (RecyclerView ou liste vide) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvHistory"
@@ -95,7 +134,34 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Mode Studio &amp; Agents"
+            android:text="Projets &amp; Studio"
+            android:textColor="#FAF7FF"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/navCustomize"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingHorizontal="8dp"
+        android:layout_marginTop="4dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_palette"
+            android:tint="#A855F7"
+            android:layout_marginEnd="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Personnaliser l’app"
             android:textColor="#FAF7FF"
             android:textSize="14sp" />
     </LinearLayout>

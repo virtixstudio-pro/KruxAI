@@ -103,6 +103,12 @@
             android:layout_height="0dp"
             android:layout_weight="1">
 
+            <com.virtixstudio.kruxai.ui.KruxWelcomeSceneView
+                android:id="@+id/welcomeScene"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0.82" />
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvChat"
                 android:layout_width="match_parent"
@@ -110,6 +116,81 @@
                 android:clipToPadding="false"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="8dp" />
+
+            <LinearLayout
+                android:id="@+id/welcomePanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginHorizontal="24dp"
+                android:background="@drawable/bg_rounded_card"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bienvenue dans KruxAI"
+                    android:textColor="#FAF7FF"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Un espace premium pour réfléchir, créer et avancer."
+                    android:textColor="#B9AFCB"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/welcomePromptOne"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="14dp"
+                    android:text="Organise mes idées pour ce projet"
+                    android:textColor="#FAF7FF"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/welcomePromptTwo"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="14dp"
+                    android:text="Aide-moi à écrire un plan clair"
+                    android:textColor="#FAF7FF"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/welcomePromptThree"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="14dp"
+                    android:text="Explique-moi un sujet simplement"
+                    android:textColor="#FAF7FF"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/welcomeNewChat"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="#A855F7"
+                    android:text="Nouvelle discussion"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
 
             <!-- Bouton flottant TTS (Pause / Play vocal) en haut à droite -->
             <ImageButton

@@ -1,6 +1,11 @@
 package com.virtixstudio.kruxai.ui;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.animation.ValueAnimator;
 import android.content.Intent;
@@ -17,8 +22,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -66,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
 
     private DrawerLayout drawerLayout;
     private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
-    private View navStudio, navLogout;
+    private View navSearchChats, navStudio, navCustomize, navLogout;
     private Button btnNewChat;
 
     // Sélecteur de modèle Krux
@@ -77,6 +84,9 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private KruxModel selectedKruxModel = KruxModel.KRUX_35_FLASH;
     private EditText etInput;
     private RecyclerView rvChat, rvHistory;
+    private View welcomePanel;
+    private Button welcomeNewChat;
+    private KruxWelcomeSceneView welcomeScene;
     private LinearLayout llVoiceVisualizer;
     private View waveBar1, waveBar2, waveBar3, waveBar4;
 
@@ -162,6 +172,10 @@ private final ActivityResultLauncher<String[]> filePicker =
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
         rvHistory = findViewById(R.id.rvHistory);
+        welcomePanel = findViewById(R.id.welcomePanel);
+        welcomeNewChat = findViewById(R.id.welcomeNewChat);
+        welcomeScene = findViewById(R.id.welcomeScene);
+        setupWelcomePanel();
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
                 kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
@@ -173,7 +187,9 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         btnCloseSidebar = findViewById(R.id.btnCloseSidebar);
         btnNewChat = findViewById(R.id.btnNewChat);
+        navSearchChats = findViewById(R.id.navSearchChats);
         navStudio = findViewById(R.id.navStudio);
+        navCustomize = findViewById(R.id.navCustomize);
         navLogout = findViewById(R.id.navLogout);
 
         messageList = new ArrayList<>();
@@ -202,10 +218,26 @@ waveBar1 = findViewById(R.id.waveBar1);
 
                     @Override
                     public void onRetryRequested(ChatMessage message) {
-                        // Réessayer sera implémenté séparément.
+                        if (message != null && message.getText() != null) {
+                            executeAiQuery(
+                                    message.getText(),
+                                    "",
+                                    new ArrayList<>()
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void onUserMessageLongPressed(
+                            View anchor,
+                            ChatMessage message
+                    ) {
+                        showUserMessageActions(anchor, message);
                     }
                 }
         );
+
+            applySavedTheme();
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
@@ -250,7 +282,13 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
         btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
-        btnSend.setOnClickListener(v -> sendMessage());
+        btnSend.setOnClickListener(v -> {
+            if (isGenerating) {
+                ApiClient.cancelCurrentRequest();
+            } else {
+                sendMessage();
+            }
+        });
         btnMic.setOnClickListener(v -> toggleVoiceRecognition());
         if (btnStopMic != null) btnStopMic.setOnClickListener(v -> toggleVoiceRecognition());
         if (btnTtsControl != null) btnTtsControl.setOnClickListener(v -> toggleTtsPlayback());
@@ -533,6 +571,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (chatAdapter != null) {
             chatAdapter.notifyDataSetChanged();
         }
+        updateWelcomePanel();
 
         if (rvChat != null && !messageList.isEmpty()) {
             rvChat.post(() ->
@@ -689,12 +728,66 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
+    private void setupWelcomePanel() {
+        int[] promptIds = {
+                R.id.welcomePromptOne,
+                R.id.welcomePromptTwo,
+                R.id.welcomePromptThree
+        };
+
+        for (int promptId : promptIds) {
+            TextView prompt = findViewById(promptId);
+            if (prompt != null) {
+                prompt.setOnClickListener(v -> {
+                    etInput.setText(((TextView) v).getText());
+                    etInput.setSelection(etInput.length());
+                    etInput.requestFocus();
+                });
+            }
+        }
+
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setOnClickListener(v -> startNewDiscussion());
+        }
+        updateWelcomePanel();
+    }
+
+    private void startNewDiscussion() {
+        currentSessionId = "session_" + System.currentTimeMillis();
+        getSharedPreferences("krux_chat", MODE_PRIVATE)
+                .edit()
+                .putString("current_session_id", currentSessionId)
+                .apply();
+        messageList.clear();
+        chatAdapter.notifyDataSetChanged();
+        updateWelcomePanel();
+        if (welcomeScene != null) {
+            welcomeScene.resetAnimation();
+        }
+        etInput.setText("");
+        etInput.requestFocus();
+    }
+
+    private void updateWelcomePanel() {
+        if (welcomePanel != null) {
+            welcomePanel.setVisibility(
+                    messageList == null || messageList.isEmpty()
+                            ? View.VISIBLE
+                            : View.GONE
+            );
+        }
+    }
+
     private void sendMessage() {
         String prompt = etInput.getText().toString().trim();
         if (prompt.isEmpty()) return;
 
         ChatMessage userMessage = new ChatMessage(prompt, true);
         saveMessageToDatabase(userMessage);
+        updateWelcomePanel();
+        if (welcomeScene != null) {
+            welcomeScene.setAnimating(false);
+        }
         etInput.setText("");
         setKruxState(KruxState.THINKING);
 
@@ -720,6 +813,8 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
+        setKruxState(KruxState.GENERATING);
+
         StringBuilder historyBuilder = new StringBuilder();
         int startIndex = Math.max(0, messageList.size() - 10);
         for (int i = startIndex; i < messageList.size() - 1; i++) {
@@ -764,7 +859,10 @@ waveBar1 = findViewById(R.id.waveBar1);
                 new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String rawResponse, String modelBrand) {
-                runOnUiThread(() -> setGeneratingState(false));
+                runOnUiThread(() -> {
+                    setGeneratingState(false);
+                    setKruxState(KruxState.IDLE);
+                });
 
                 String cleanResponse = rawResponse;
                 if (cleanResponse.contains("<REMEMBER>") && cleanResponse.contains("</REMEMBER>")) {
@@ -802,7 +900,10 @@ waveBar1 = findViewById(R.id.waveBar1);
 
             @Override
             public void onError(String errorMessage) {
-                runOnUiThread(() -> setGeneratingState(false));
+                runOnUiThread(() -> {
+                    setGeneratingState(false);
+                    setKruxState(KruxState.IDLE);
+                });
                 aiMessage.setText("Erreur : " + errorMessage);
                 runOnUiThread(() -> {
                     int position = messageList.indexOf(aiMessage);
@@ -811,6 +912,20 @@ waveBar1 = findViewById(R.id.waveBar1);
                     }
                 });
                 saveMessageToDatabase(aiMessage);
+            }
+
+            @Override
+            public void onCancelled() {
+                runOnUiThread(() -> {
+                    setGeneratingState(false);
+                    setKruxState(KruxState.IDLE);
+                    aiMessage.setText("");
+                    int position = messageList.indexOf(aiMessage);
+                    if (position >= 0) {
+                        messageList.remove(position);
+                        chatAdapter.notifyItemRemoved(position);
+                    }
+                });
             }
         });
     }
@@ -1143,11 +1258,367 @@ waveBar1 = findViewById(R.id.waveBar1);
         dialog.show();
     }
 
+    private void showUserMessageActions(View anchor, ChatMessage message) {
+        if (anchor == null || message == null) {
+            return;
+        }
+
+        LinearLayout menu = new LinearLayout(this);
+        menu.setOrientation(LinearLayout.VERTICAL);
+        menu.setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
+        menu.setBackgroundColor(Color.rgb(25, 16, 42));
+
+        PopupWindow popup = new PopupWindow(
+                menu,
+                dpToPx(220),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                true
+        );
+        popup.setBackgroundDrawable(new ColorDrawable(Color.rgb(25, 16, 42)));
+        popup.setElevation(dpToPx(10));
+        popup.setOutsideTouchable(true);
+
+        addUserAction(menu, R.drawable.ic_copy, "Copier", () -> {
+            popup.dismiss();
+            handleCopyMessage(message);
+        });
+        addUserAction(menu, R.drawable.ic_edit, "Modifier", () -> {
+            popup.dismiss();
+            handleEditMessage(message);
+        });
+        addUserAction(menu, R.drawable.ic_retry, "Réessayer", () -> {
+            popup.dismiss();
+            if (message.getText() != null) {
+                executeAiQuery(message.getText(), "", new ArrayList<>());
+            }
+        });
+
+        popup.showAsDropDown(
+                anchor,
+                -dpToPx(220) + anchor.getWidth(),
+                dpToPx(6)
+        );
+    }
+
+    private void addUserAction(
+            LinearLayout menu,
+            int iconRes,
+            String label,
+            Runnable action
+    ) {
+        TextView item = new TextView(this);
+        item.setText(label);
+        item.setTextColor(Color.WHITE);
+        item.setTextSize(14);
+        item.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        item.setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0);
+        item.setCompoundDrawablePadding(dpToPx(12));
+        item.setPadding(dpToPx(12), 0, dpToPx(12), 0);
+        item.setMinHeight(dpToPx(46));
+        item.setOnClickListener(v -> action.run());
+        menu.addView(item);
+    }
+
+    private void showDiscussionSearch() {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setHint("Mot ou phrase à rechercher");
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Rechercher une discussion")
+                .setView(input)
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Rechercher", null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(
+                AlertDialog.BUTTON_POSITIVE
+        ).setOnClickListener(v -> {
+            String query = input.getText().toString().trim().toLowerCase(Locale.ROOT);
+            if (query.isEmpty()) {
+                input.setError("Saisis un mot à rechercher");
+                return;
+            }
+
+            StringBuilder result = new StringBuilder();
+            int matches = 0;
+            for (ChatMessage message : messageList) {
+                String text = message.getText() == null ? "" : message.getText();
+                if (text.toLowerCase(Locale.ROOT).contains(query)) {
+                    matches++;
+                    result.append(matches)
+                            .append(". ")
+                            .append(text.replace('\n', ' '))
+                            .append("\n\n");
+                }
+            }
+
+            if (matches == 0) {
+                result.append("Aucune discussion trouvée.");
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle(matches + " résultat(s)")
+                    .setMessage(result.toString())
+                    .setPositiveButton("Fermer", null)
+                    .show();
+            dialog.dismiss();
+        }));
+
+        dialog.show();
+    }
+
+    private void applySavedTheme() {
+        SharedPreferences preferences = getSharedPreferences(
+                "krux_theme",
+                MODE_PRIVATE
+        );
+        String palette = preferences.getString("palette", "midnight");
+        String font = preferences.getString("font", "sans-serif");
+        String scene = preferences.getString("scene", "blackhole");
+        float radius = preferences.getFloat("radius", 12f);
+        float size = preferences.getFloat("size", 15f);
+        int userBubble = parseThemeColor(
+            preferences.getString("userBubble", "#120B24"),
+            Color.rgb(18, 11, 36)
+        );
+        int aiBubble = parseThemeColor(
+            preferences.getString("aiBubble", "#00000000"),
+            Color.TRANSPARENT
+        );
+        int accent = parseThemeColor(
+            preferences.getString("accent", "#A855F7"),
+            Color.rgb(168, 85, 247)
+        );
+
+        int background = Color.rgb(7, 5, 15);
+        int userText = Color.rgb(250, 247, 255);
+        int aiText = Color.rgb(250, 247, 255);
+
+        if ("graphite".equals(palette)) {
+            background = Color.rgb(16, 18, 22);
+            if (!preferences.contains("userBubble")) {
+                userBubble = Color.rgb(38, 43, 52);
+            }
+            userText = Color.WHITE;
+            aiText = Color.rgb(235, 239, 245);
+        } else if ("ocean".equals(palette)) {
+            background = Color.rgb(5, 16, 28);
+            if (!preferences.contains("userBubble")) {
+                userBubble = Color.rgb(10, 52, 76);
+            }
+            userText = Color.rgb(232, 248, 255);
+            aiText = Color.rgb(225, 240, 248);
+        }
+
+        if (drawerLayout != null) {
+            drawerLayout.setBackgroundColor(background);
+        }
+        if (welcomeScene != null) {
+            welcomeScene.setScene(scene);
+        }
+        if (btnSend != null) {
+            btnSend.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+        }
+        if (tvKruxStatus != null) {
+            tvKruxStatus.setTextColor(accent);
+        }
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setBackgroundTintList(ColorStateList.valueOf(accent));
+        }
+        if (chatAdapter != null) {
+            chatAdapter.applyTheme(
+                    userBubble,
+                    userText,
+                    aiBubble,
+                    aiText,
+                    radius,
+                    size,
+                    font
+            );
+        }
+    }
+
+    private int parseThemeColor(String value, int fallback) {
+        try {
+            return Color.parseColor(value);
+        } catch (Exception error) {
+            return fallback;
+        }
+    }
+
+    private void showCustomizationSheet() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(12));
+
+        TextView title = new TextView(this);
+        title.setText("Personnaliser l’app");
+        title.setTextSize(20);
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        content.addView(title);
+
+        TextView preview = new TextView(this);
+        preview.setText("Aperçu de tes messages");
+        preview.setTextColor(Color.WHITE);
+        preview.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        preview.setPadding(dpToPx(14), 0, dpToPx(14), 0);
+        content.addView(preview);
+
+        RadioGroup palette = new RadioGroup(this);
+        addChoice(palette, "Midnight violet", "midnight");
+        addChoice(palette, "Graphite premium", "graphite");
+        addChoice(palette, "Ocean focus", "ocean");
+        content.addView(sectionLabel("Palette"));
+        content.addView(palette);
+
+        RadioGroup font = new RadioGroup(this);
+        addChoice(font, "Sans moderne", "sans-serif");
+        addChoice(font, "Serif éditoriale", "serif");
+        addChoice(font, "Mono développeur", "monospace");
+        content.addView(sectionLabel("Police"));
+        content.addView(font);
+
+        RadioGroup shape = new RadioGroup(this);
+        addChoice(shape, "Compacte", "8");
+        addChoice(shape, "Soft", "16");
+        addChoice(shape, "Pill premium", "26");
+        content.addView(sectionLabel("Forme des bulles"));
+        content.addView(shape);
+
+        RadioGroup userBubble = new RadioGroup(this);
+        addChoice(userBubble, "Violet profond", "#120B24");
+        addChoice(userBubble, "Bleu océan", "#0A344C");
+        addChoice(userBubble, "Graphite", "#262B34");
+        content.addView(sectionLabel("Bulle utilisateur"));
+        content.addView(userBubble);
+
+        RadioGroup aiBubble = new RadioGroup(this);
+        addChoice(aiBubble, "Sans fond", "#00000000");
+        addChoice(aiBubble, "Carte sombre", "#171126");
+        addChoice(aiBubble, "Carte bleutée", "#102A3A");
+        content.addView(sectionLabel("Bulle IA"));
+        content.addView(aiBubble);
+
+        RadioGroup accent = new RadioGroup(this);
+        addChoice(accent, "Violet", "#A855F7");
+        addChoice(accent, "Cyan", "#22D3EE");
+        addChoice(accent, "Rose", "#FB7185");
+        content.addView(sectionLabel("Couleur d’accent"));
+        content.addView(accent);
+
+        RadioGroup scene = new RadioGroup(this);
+        addChoice(scene, "Trou noir futuriste", "blackhole");
+        addChoice(scene, "Aurora orbitale", "aurora");
+        addChoice(scene, "Minimal sombre", "minimal");
+        content.addView(sectionLabel("Fond animé de l’accueil"));
+        content.addView(scene);
+
+        SeekBar size = new SeekBar(this);
+        size.setMax(5);
+        size.setProgress(1);
+        content.addView(sectionLabel("Taille du texte"));
+        content.addView(size);
+
+        Button apply = new Button(this);
+        apply.setText("Appliquer");
+        content.addView(apply);
+
+        android.widget.CompoundButton.OnCheckedChangeListener previewListener =
+            (button, checked) -> updateThemePreview(
+                preview,
+                selectedChoice(userBubble, "#120B24"),
+                selectedChoice(shape, "12"),
+                selectedChoice(accent, "#A855F7")
+            );
+        userBubble.setOnCheckedChangeListener(previewListener);
+        shape.setOnCheckedChangeListener(previewListener);
+        accent.setOnCheckedChangeListener(previewListener);
+        updateThemePreview(preview, "#120B24", "12", "#A855F7");
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        dialog.setContentView(content);
+        apply.setOnClickListener(v -> {
+            String paletteValue = selectedChoice(palette, "midnight");
+            String fontValue = selectedChoice(font, "sans-serif");
+            float radiusValue = Float.parseFloat(selectedChoice(shape, "12"));
+            float sizeValue = 14f + size.getProgress();
+
+            getSharedPreferences("krux_theme", MODE_PRIVATE)
+                    .edit()
+                    .putString("palette", paletteValue)
+                    .putString("font", fontValue)
+                    .putString("userBubble", selectedChoice(userBubble, "#120B24"))
+                    .putString("aiBubble", selectedChoice(aiBubble, "#00000000"))
+                    .putString("accent", selectedChoice(accent, "#A855F7"))
+                    .putString("scene", selectedChoice(scene, "blackhole"))
+                    .putFloat("radius", radiusValue)
+                    .putFloat("size", sizeValue)
+                    .apply();
+            applySavedTheme();
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    private void updateThemePreview(
+            TextView preview,
+            String userBubble,
+            String radius,
+            String accent
+    ) {
+        preview.setTextColor(parseThemeColor(accent, Color.WHITE));
+        GradientDrawable previewBackground = new GradientDrawable();
+        previewBackground.setColor(parseThemeColor(userBubble, Color.DKGRAY));
+        previewBackground.setCornerRadius(
+                dpToPx((int) Float.parseFloat(radius))
+        );
+        preview.setBackground(previewBackground);
+    }
+
+    private TextView sectionLabel(String text) {
+        TextView label = new TextView(this);
+        label.setText(text);
+        label.setTextColor(Color.rgb(168, 85, 247));
+        label.setTextSize(12);
+        label.setPadding(0, dpToPx(14), 0, dpToPx(2));
+        return label;
+    }
+
+    private void addChoice(RadioGroup group, String label, String value) {
+        RadioButton choice = new RadioButton(this);
+        choice.setText(label);
+        choice.setTag(value);
+        choice.setTextColor(Color.WHITE);
+        group.addView(choice);
+    }
+
+    private String selectedChoice(RadioGroup group, String fallback) {
+        int checkedId = group.getCheckedRadioButtonId();
+        if (checkedId == -1) return fallback;
+        View checked = group.findViewById(checkedId);
+        Object value = checked == null ? null : checked.getTag();
+        return value == null ? fallback : value.toString();
+    }
+
     private void setupSidebarEvents() {
+        if (navSearchChats != null) {
+            navSearchChats.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                showDiscussionSearch();
+            });
+        }
         if (navStudio != null) {
             navStudio.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);
                 startActivity(new Intent(MainActivity.this, StudioActivity.class));
+            });
+        }
+        if (navCustomize != null) {
+            navCustomize.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                showCustomizationSheet();
             });
         }
         if (navLogout != null) {
@@ -1161,13 +1632,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (btnNewChat != null) {
             btnNewChat.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);
-                currentSessionId = "session_" + System.currentTimeMillis();
-                getSharedPreferences("krux_chat", MODE_PRIVATE)
-                        .edit()
-                        .putString("current_session_id", currentSessionId)
-                        .apply();
-                messageList.clear();
-                chatAdapter.notifyDataSetChanged();
+                startNewDiscussion();
             });
         }
     }
@@ -1220,6 +1685,9 @@ waveBar1 = findViewById(R.id.waveBar1);
         isGenerating = generating;
 
         if (btnSend != null) {
+            btnSend.setImageResource(
+                generating ? R.drawable.ic_stop : R.drawable.ic_send
+            );
             btnSend.setBackgroundResource(
                     generating
                             ? R.drawable.bg_send_button_active
@@ -1243,6 +1711,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                 messageList.clear();
                 messageList.addAll(session.getMessages());
                 chatAdapter.notifyDataSetChanged();
+                updateWelcomePanel();
                 if (drawerLayout != null) drawerLayout.closeDrawers();
             }
 
@@ -1263,6 +1732,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                 if (session.getId().equals(currentSessionId)) {
                     messageList.clear();
                     chatAdapter.notifyDataSetChanged();
+                    updateWelcomePanel();
                 }
                 loadHistorySidebar();
             }
@@ -1270,25 +1740,14 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         rvHistory.setAdapter(historyAdapter);
 
-        View searchView = null;
-
-        if (searchView instanceof EditText) {
-            EditText etSearch = (EditText) searchView;
+        EditText etSearch = findViewById(R.id.etSearchHistory);
+        if (etSearch != null) {
             etSearch.addTextChangedListener(new android.text.TextWatcher() {
                 @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                     filterSessions(s.toString(), sessions, historyAdapter);
                 }
                 @Override public void afterTextChanged(android.text.Editable s) {}
-            });
-        } else if (searchView instanceof androidx.appcompat.widget.SearchView) {
-            androidx.appcompat.widget.SearchView sv = (androidx.appcompat.widget.SearchView) searchView;
-            sv.setOnQueryTextListener(new androidx.appcompat.widget.SearchView.OnQueryTextListener() {
-                @Override public boolean onQueryTextSubmit(String query) { return false; }
-                @Override public boolean onQueryTextChange(String newText) {
-                    filterSessions(newText, sessions, historyAdapter);
-                    return true;
-                }
             });
         }
     }

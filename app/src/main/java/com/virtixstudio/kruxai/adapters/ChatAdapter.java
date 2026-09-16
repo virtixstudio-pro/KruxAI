@@ -55,6 +55,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> feedbackStates = new HashMap<>();
 
     private Markwon markwon;
+        private int userBubbleColor = Color.parseColor("#120B24");
+        private int userTextColor = Color.parseColor("#FAF7FF");
+        private int aiBubbleColor = Color.TRANSPARENT;
+        private int aiTextColor = Color.parseColor("#FAF7FF");
+        private float bubbleRadius = 12f;
+        private float messageTextSize = 15f;
+        private String messageFont = "sans-serif";
 
     public interface OnSpeechRequestedListener {
         void onSpeakRequested(String text);
@@ -68,6 +75,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onEditRequested(ChatMessage message);
         void onCopyRequested(ChatMessage message);
         void onRetryRequested(ChatMessage message);
+                void onUserMessageLongPressed(View anchor, ChatMessage message);
     }
 
     public ChatAdapter(
@@ -80,7 +88,27 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.speechListener = speechListener;
         this.feedbackListener = feedbackListener;
         this.userActionListener = userActionListener;
+                applyPreferences();
     }
+
+        public void applyTheme(
+                        int userBubbleColor,
+                        int userTextColor,
+                            int aiBubbleColor,
+                            int aiTextColor,
+                        float bubbleRadius,
+                            float messageTextSize,
+                            String messageFont
+        ) {
+                this.userBubbleColor = userBubbleColor;
+                this.userTextColor = userTextColor;
+                this.aiBubbleColor = aiBubbleColor;
+                this.aiTextColor = aiTextColor;
+                this.bubbleRadius = bubbleRadius;
+                this.messageTextSize = messageTextSize;
+                this.messageFont = messageFont;
+                notifyDataSetChanged();
+        }
 
     @Override
     public int getItemViewType(int position) {
@@ -141,28 +169,20 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             userHolder.tvMessage.setText(
                     message.getText() == null ? "" : message.getText()
             );
+            userHolder.tvMessage.setTextColor(userTextColor);
+            userHolder.tvMessage.setTextSize(messageTextSize);
+            userHolder.tvMessage.setTypeface(Typeface.create(messageFont, Typeface.NORMAL));
+            GradientDrawable bubble = new GradientDrawable();
+            bubble.setColor(userBubbleColor);
+            bubble.setCornerRadius(bubbleRadius);
+            userHolder.tvMessage.setBackground(bubble);
 
-            userHolder.btnEdit.setOnClickListener(v -> {
-                if (userActionListener != null) {
-                    userActionListener.onEditRequested(message);
-                }
-            });
-
-            userHolder.btnCopy.setOnClickListener(v -> {
-                if (userActionListener != null) {
-                    userActionListener.onCopyRequested(message);
-                }
-            });
-
-            userHolder.btnRetry.setOnClickListener(v -> {
-                if (userActionListener != null) {
-                    userActionListener.onRetryRequested(message);
-                }
-            });
-
-            animateActionButton(userHolder.btnEdit);
-            animateActionButton(userHolder.btnCopy);
-            animateActionButton(userHolder.btnRetry);
+                        userHolder.tvMessage.setOnLongClickListener(v -> {
+                                if (userActionListener != null) {
+                                        userActionListener.onUserMessageLongPressed(v, message);
+                                }
+                                return true;
+                        });
 
             return;
         }
@@ -300,8 +320,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 )
         );
-        tv.setTextColor(Color.parseColor("#FAF7FF"));
-        tv.setTextSize(15);
+        tv.setTextColor(aiTextColor);
+        tv.setTextSize(messageTextSize);
+        tv.setTypeface(Typeface.create(messageFont, Typeface.NORMAL));
+        GradientDrawable aiBubble = new GradientDrawable();
+        aiBubble.setColor(aiBubbleColor);
+        aiBubble.setCornerRadius(bubbleRadius);
+        tv.setBackground(aiBubble);
         tv.setLineSpacing(0, 1.12f);
         tv.setPadding(4, 4, 4, 8);
 
@@ -1043,17 +1068,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             extends RecyclerView.ViewHolder {
 
         TextView tvMessage;
-        ImageButton btnEdit;
-        ImageButton btnCopy;
-        ImageButton btnRetry;
-
         UserViewHolder(@NonNull View itemView) {
             super(itemView);
 
             tvMessage = itemView.findViewById(R.id.tvMessage);
-            btnEdit = itemView.findViewById(R.id.btnEdit);
-            btnCopy = itemView.findViewById(R.id.btnCopy);
-            btnRetry = itemView.findViewById(R.id.btnRetry);
         }
     }
 
