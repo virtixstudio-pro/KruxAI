@@ -734,18 +734,19 @@ public class ApiClient {
                 continue;
             }
 
-            JSONObject content = candidates.getJSONObject(0)
+            JSONObject candidateContent = candidates.getJSONObject(0)
                     .optJSONObject("content");
-            if (content == null) {
+            if (candidateContent == null) {
                 continue;
             }
 
-            JSONArray parts = content.optJSONArray("parts");
-            if (parts == null || parts.length() == 0) {
+            JSONArray candidateParts = candidateContent.optJSONArray("parts");
+            if (candidateParts == null || candidateParts.length() == 0) {
                 continue;
             }
 
-            String fragment = parts.getJSONObject(0).optString("text", "");
+            String fragment = candidateParts.getJSONObject(0)
+                    .optString("text", "");
             if (!fragment.isEmpty()) {
                 response.append(fragment);
                 if (callback != null) {
