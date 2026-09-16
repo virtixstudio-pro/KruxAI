@@ -1525,8 +1525,8 @@ waveBar1 = findViewById(R.id.waveBar1);
         apply.setText("Appliquer");
         content.addView(apply);
 
-        android.widget.CompoundButton.OnCheckedChangeListener previewListener =
-            (button, checked) -> updateThemePreview(
+        RadioGroup.OnCheckedChangeListener previewListener =
+            (group, checkedId) -> updateThemePreview(
                 preview,
                 selectedChoice(userBubble, "#120B24"),
                 selectedChoice(shape, "12"),

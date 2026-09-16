@@ -88,7 +88,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.speechListener = speechListener;
         this.feedbackListener = feedbackListener;
         this.userActionListener = userActionListener;
-                applyPreferences();
     }
 
         public void applyTheme(
