@@ -6,6 +6,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -43,6 +45,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private boolean isSignUpMode = false;
     private boolean isLoading = false;
+    private static final long LOGIN_TIMEOUT_MS = 15000L;
+    private final Handler loadingHandler = new Handler(Looper.getMainLooper());
+    private Runnable loadingTimeoutRunnable;
 
     private FirebaseAuth auth;
     private FirebaseFirestore db;
@@ -410,6 +415,24 @@ public class LoginActivity extends AppCompatActivity {
     private void setLoading(boolean loading) {
 
         isLoading = loading;
+
+        if (loading) {
+            if (loadingTimeoutRunnable != null) {
+                loadingHandler.removeCallbacks(loadingTimeoutRunnable);
+            }
+            loadingTimeoutRunnable = () -> {
+                if (isLoading) {
+                    setLoading(false);
+                    showMessage("La connexion prend trop de temps. Vérifie ton Internet et réessaie.");
+                }
+            };
+            loadingHandler.postDelayed(loadingTimeoutRunnable, LOGIN_TIMEOUT_MS);
+        } else {
+            if (loadingTimeoutRunnable != null) {
+                loadingHandler.removeCallbacks(loadingTimeoutRunnable);
+                loadingTimeoutRunnable = null;
+            }
+        }
 
         if (btnSubmit != null) {
             btnSubmit.setEnabled(!loading);
