@@ -8,6 +8,7 @@ package com.virtixstudio.kruxai.core;
  * SEARCHING  : Krux effectue une recherche externe.
  * GENERATING : Krux génère la réponse.
  * LISTENING  : Krux écoute la voix de l'utilisateur.
+ * MEMORY     : Krux met à jour la mémoire de l'utilisateur.
  * ERROR      : une opération vient d'échouer.
  */
 public enum KruxState {
@@ -16,5 +17,6 @@ public enum KruxState {
     SEARCHING,
     GENERATING,
     LISTENING,
+    MEMORY,
     ERROR
 }

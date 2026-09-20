@@ -846,6 +846,8 @@ waveBar1 = findViewById(R.id.waveBar1);
         setGeneratingState(true);
 
         ChatMessage aiMessage = new ChatMessage("", false, sources);
+        aiMessage.setStreaming(true);
+
         runOnUiThread(() -> {
             messageList.add(aiMessage);
             chatAdapter.notifyItemInserted(messageList.size() - 1);
@@ -871,7 +873,9 @@ waveBar1 = findViewById(R.id.waveBar1);
                         int end = cleanResponse.indexOf("</REMEMBER>");
                         if (end > start) {
                             String fact = cleanResponse.substring(start, end).trim();
-                            dbHelper.addMemoryFact(fact); saveMemoryToCloud(fact);
+                            setKruxState(KruxState.MEMORY);
+                            dbHelper.addMemoryFact(fact);
+                            saveMemoryToCloud(fact);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -881,7 +885,14 @@ waveBar1 = findViewById(R.id.waveBar1);
 
                 aiMessage.setText(cleanResponse);
                 aiMessage.setModel(modelBrand);
-                runOnUiThread(() -> chatAdapter.notifyItemChanged(messageList.indexOf(aiMessage)));
+                aiMessage.setStreaming(false);
+
+                runOnUiThread(() -> {
+                    int position = messageList.indexOf(aiMessage);
+                    if (position >= 0) {
+                        chatAdapter.notifyItemChanged(position);
+                    }
+                });
                 saveMessageToDatabase(aiMessage);
             }
 
@@ -904,7 +915,9 @@ waveBar1 = findViewById(R.id.waveBar1);
                     setGeneratingState(false);
                     setKruxState(KruxState.IDLE);
                 });
+                aiMessage.setStreaming(false);
                 aiMessage.setText("Erreur : " + errorMessage);
+
                 runOnUiThread(() -> {
                     int position = messageList.indexOf(aiMessage);
                     if (position >= 0) {
@@ -919,6 +932,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                 runOnUiThread(() -> {
                     setGeneratingState(false);
                     setKruxState(KruxState.IDLE);
+                    aiMessage.setStreaming(false);
                     aiMessage.setText("");
                     int position = messageList.indexOf(aiMessage);
                     if (position >= 0) {
@@ -1664,6 +1678,11 @@ waveBar1 = findViewById(R.id.waveBar1);
 
                 case GENERATING:
                     tvKruxStatus.setText("Génération…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
+                    break;
+
+                case MEMORY:
+                    tvKruxStatus.setText("Mise à jour de la mémoire…");
                     kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 

@@ -131,7 +131,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bienvenue dans KruxAI"
+                    android:text="Bonjour !"
                     android:textColor="#FAF7FF"
                     android:textSize="24sp"
                     android:textStyle="bold" />
@@ -141,7 +141,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:text="Un espace premium pour réfléchir, créer et avancer."
+                    android:text="Prêt à créer quelque chose de puissant ?\nDis-moi ce que tu veux construire, je suis là."
                     android:textColor="#B9AFCB"
                     android:textSize="14sp" />
 

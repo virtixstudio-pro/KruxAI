@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -18,6 +19,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import android.text.method.HideReturnsTransformationMethod;
+import android.text.method.PasswordTransformationMethod;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -42,6 +46,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private TextView tvTitle;
     private TextView tvToggleMode;
+    private TextView tvForgotPassword;
+    private KruxWelcomeSceneView loginWelcomeScene;
 
     private boolean isSignUpMode = false;
     private boolean isLoading = false;
@@ -68,6 +74,59 @@ public class LoginActivity extends AppCompatActivity {
         btnSubmit = findViewById(R.id.btnSubmit);
         tvTitle = findViewById(R.id.tvTitle);
         tvToggleMode = findViewById(R.id.tvToggleMode);
+        tvForgotPassword = findViewById(R.id.tvForgotPassword);
+        loginWelcomeScene = findViewById(R.id.loginWelcomeScene);
+
+        if (loginWelcomeScene != null) {
+            loginWelcomeScene.setScene("blackhole");
+            loginWelcomeScene.setAnimating(true);
+        }
+
+        tvForgotPassword.setOnClickListener(v -> {
+            if (!isLoading) {
+                handleForgotPassword();
+            }
+        });
+
+        etPassword.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (etPassword.getCompoundDrawables()[2] != null
+                        && event.getX() >= etPassword.getWidth()
+                        - etPassword.getPaddingRight()
+                        - dpToPx(48)) {
+
+                    boolean visible =
+                            etPassword.getTransformationMethod() == null;
+
+                    if (visible) {
+                        etPassword.setTransformationMethod(
+                                PasswordTransformationMethod.getInstance()
+                        );
+                    } else {
+                        etPassword.setTransformationMethod(
+                                HideReturnsTransformationMethod.getInstance()
+                        );
+                    }
+
+                    etPassword.setSelection(
+                            etPassword.getText().length()
+                    );
+
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        TextView tvLanguage = findViewById(R.id.tvLanguage);
+        tvLanguage.setOnClickListener(v ->
+                showMessage("Le changement de langue sera disponible prochainement.")
+        );
+
+        Button btnGoogle = findViewById(R.id.btnGoogle);
+        btnGoogle.setOnClickListener(v ->
+                showMessage("Connexion Google : configuration Firebase requise.")
+        );
 
         tvToggleMode.setOnClickListener(v -> {
             if (!isLoading) {
@@ -85,7 +144,10 @@ public class LoginActivity extends AppCompatActivity {
     private void toggleMode() {
         isSignUpMode = !isSignUpMode;
 
+        playModeTransition();
+
         if (isSignUpMode) {
+            tvForgotPassword.setVisibility(View.GONE);
             tvTitle.setText("Inscription");
 
             etFirstName.setVisibility(View.VISIBLE);
@@ -95,6 +157,7 @@ public class LoginActivity extends AppCompatActivity {
             tvToggleMode.setText("Déjà un compte ? Se connecter");
 
         } else {
+            tvForgotPassword.setVisibility(View.VISIBLE);
             tvTitle.setText("Connexion");
 
             etFirstName.setVisibility(View.GONE);
@@ -102,6 +165,59 @@ public class LoginActivity extends AppCompatActivity {
 
             btnSubmit.setText("Se connecter");
             tvToggleMode.setText("Pas encore de compte ? S'inscrire");
+        }
+    }
+
+    private void playModeTransition() {
+        View[] views = {
+                etEmail,
+                etPassword,
+                etRepeatPassword,
+                btnSubmit,
+                tvToggleMode
+        };
+
+        for (View view : views) {
+            if (view == null) continue;
+
+            view.animate()
+                    .alpha(0.15f)
+                    .translationX(isSignUpMode ? -18f : 18f)
+                    .setDuration(90L)
+                    .withEndAction(() -> {
+                        view.animate()
+                                .alpha(1f)
+                                .translationX(0f)
+                                .setDuration(240L)
+                                .setInterpolator(
+                                        new android.view.animation.DecelerateInterpolator(1.8f)
+                                )
+                                .start();
+                    })
+                    .start();
+        }
+
+        if (loginWelcomeScene != null) {
+            loginWelcomeScene.setScene(
+                    isSignUpMode ? "aurora" : "blackhole"
+            );
+            loginWelcomeScene.animate()
+                    .scaleX(1.06f)
+                    .scaleY(1.06f)
+                    .alpha(0.72f)
+                    .setDuration(120L)
+                    .withEndAction(() ->
+                            loginWelcomeScene.animate()
+                                    .scaleX(1f)
+                                    .scaleY(1f)
+                                    .alpha(1f)
+                                    .setDuration(360L)
+                                    .setInterpolator(
+                                            new android.view.animation.OvershootInterpolator(1.2f)
+                                    )
+                                    .start()
+                    )
+                    .start();
         }
     }
 
@@ -213,6 +329,32 @@ public class LoginActivity extends AppCompatActivity {
                         showFirebaseError(task.getException());
                     } else {
                         showMessage("Impossible de se connecter.");
+                    }
+                });
+    }
+
+    private void handleForgotPassword() {
+
+        String email = etEmail.getText().toString().trim();
+
+        if (email.isEmpty()) {
+            showMessage("Entre ton adresse email pour recevoir le lien.");
+            etEmail.requestFocus();
+            return;
+        }
+
+        setLoading(true);
+
+        auth.sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    setLoading(false);
+
+                    if (task.isSuccessful()) {
+                        showMessage("Un lien de réinitialisation a été envoyé à ton adresse email.");
+                    } else if (task.getException() != null) {
+                        showFirebaseError(task.getException());
+                    } else {
+                        showMessage("Impossible d'envoyer le lien de réinitialisation.");
                     }
                 });
     }

@@ -30,6 +30,7 @@ public class ChatMessage {
     private List<SearchResult> sources;
     private String model;
     private String sessionId;
+    private boolean streaming;
 
     public ChatMessage() {
         this.id = UUID.randomUUID().toString();
@@ -118,6 +119,14 @@ public class ChatMessage {
 
     public String getSessionId() {
         return sessionId;
+    }
+
+    public boolean isStreaming() {
+        return streaming;
+    }
+
+    public void setStreaming(boolean streaming) {
+        this.streaming = streaming;
     }
 
     public void setSessionId(String sessionId) {

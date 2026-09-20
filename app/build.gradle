@@ -11,8 +11,8 @@ android {
         applicationId "com.virtixstudio.kruxai"
         minSdk 24
         targetSdk 34
-        versionCode 31
-        versionName "2.9.8.19"
+        versionCode 37
+        versionName "2.9.8.25"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

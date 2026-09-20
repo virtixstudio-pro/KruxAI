@@ -4,7 +4,6 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -13,19 +12,21 @@ import androidx.annotation.Nullable;
 
 public class KruxStatusView extends View {
 
-    private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint kPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    private float rotation = 0f;
     private ValueAnimator animator;
+    private float progress = 0f;
+    private boolean active = true;
 
     public KruxStatusView(Context context) {
         super(context);
         init();
     }
 
-    public KruxStatusView(Context context, @Nullable AttributeSet attrs) {
+    public KruxStatusView(
+            Context context,
+            @Nullable AttributeSet attrs
+    ) {
         super(context, attrs);
         init();
     }
@@ -40,24 +41,15 @@ public class KruxStatusView extends View {
     }
 
     private void init() {
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-
-        ringPaint.setStyle(Paint.Style.STROKE);
-        ringPaint.setStrokeWidth(2.2f);
-        ringPaint.setColor(0xFFB56CFF);
-        ringPaint.setAlpha(210);
-
         dotPaint.setStyle(Paint.Style.FILL);
-        dotPaint.setColor(0xFFE0B8FF);
-
-        kPaint.setStyle(Paint.Style.STROKE);
-        kPaint.setStrokeWidth(2.8f);
-        kPaint.setStrokeCap(Paint.Cap.ROUND);
-        kPaint.setStrokeJoin(Paint.Join.ROUND);
-        kPaint.setColor(0xFFF7EFFF);
-        kPaint.setShadowLayer(8f, 0f, 0f, 0xFFA855F7);
+        dotPaint.setColor(0xFFEBD8FF);
 
         startAnimation();
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+        invalidate();
     }
 
     private void startAnimation() {
@@ -65,14 +57,16 @@ public class KruxStatusView extends View {
             animator.cancel();
         }
 
-        animator = ValueAnimator.ofFloat(0f, 360f);
-        animator.setDuration(2200L);
+        animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(1250L);
         animator.setInterpolator(new LinearInterpolator());
         animator.setRepeatCount(ValueAnimator.INFINITE);
+
         animator.addUpdateListener(animation -> {
-            rotation = (float) animation.getAnimatedValue();
+            progress = (float) animation.getAnimatedValue();
             invalidate();
         });
+
         animator.start();
     }
 
@@ -82,34 +76,44 @@ public class KruxStatusView extends View {
 
         float cx = getWidth() / 2f;
         float cy = getHeight() / 2f;
-        float radius = Math.min(getWidth(), getHeight()) * 0.28f;
 
-        RectF orbit = new RectF(
-                cx - radius,
-                cy - radius,
-                cx + radius,
-                cy + radius
-        );
+        float spacing = Math.min(getWidth(), getHeight()) * 0.20f;
+        float baseRadius = Math.min(getWidth(), getHeight()) * 0.075f;
 
-        canvas.drawArc(orbit, rotation, 285f, false, ringPaint);
+        for (int i = 0; i < 3; i++) {
 
-        double angle = Math.toRadians(rotation - 90f);
-        float dotX = cx + (float) Math.cos(angle) * radius;
-        float dotY = cy + (float) Math.sin(angle) * radius;
+            float phase = (progress + i * 0.22f) % 1f;
 
-        canvas.drawCircle(dotX, dotY, 4.2f, dotPaint);
+            /*
+             * Petit mouvement vertical :
+             * chaque point monte puis redescend.
+             */
+            float wave = (float) Math.sin(phase * Math.PI * 2.0);
 
-        float kSize = radius * 0.95f;
-        float left = cx - kSize * 0.38f;
-        float top = cy - kSize * 0.55f;
-        float bottom = cy + kSize * 0.55f;
-        float midX = cx + kSize * 0.05f;
-        float upperX = cx + kSize * 0.42f;
-        float lowerX = cx + kSize * 0.42f;
+            float y = cy - wave * baseRadius * 2.2f;
 
-        canvas.drawLine(left, top, left, bottom, kPaint);
-        canvas.drawLine(left, cy, upperX, top, kPaint);
-        canvas.drawLine(left, cy, lowerX, bottom, kPaint);
+            /*
+             * L'opacité suit légèrement le mouvement.
+             */
+            int alpha;
+
+            if (!active) {
+                alpha = 55;
+            } else {
+                alpha = 80 + (int) ((wave + 1f) * 55f);
+            }
+
+            dotPaint.setAlpha(Math.max(35, Math.min(190, alpha)));
+
+            float x = cx + (i - 1) * spacing;
+
+            canvas.drawCircle(
+                    x,
+                    y,
+                    baseRadius,
+                    dotPaint
+            );
+        }
     }
 
     @Override
@@ -118,6 +122,7 @@ public class KruxStatusView extends View {
             animator.cancel();
             animator = null;
         }
+
         super.onDetachedFromWindow();
     }
 }

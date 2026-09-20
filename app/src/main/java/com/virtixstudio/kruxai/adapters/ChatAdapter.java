@@ -312,6 +312,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     ) {
         if (text == null || text.trim().isEmpty()) return;
 
+        text = normalizeInlineHtml(text);
+
         TextView tv = new TextView(container.getContext());
         tv.setLayoutParams(
                 new LinearLayout.LayoutParams(
@@ -322,15 +324,30 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         tv.setTextColor(aiTextColor);
         tv.setTextSize(messageTextSize);
         tv.setTypeface(Typeface.create(messageFont, Typeface.NORMAL));
-        GradientDrawable aiBubble = new GradientDrawable();
-        aiBubble.setColor(aiBubbleColor);
-        aiBubble.setCornerRadius(bubbleRadius);
-        tv.setBackground(aiBubble);
-        tv.setLineSpacing(0, 1.12f);
-        tv.setPadding(4, 4, 4, 8);
+        // Le texte IA reste volontairement libre :
+        // pas de gros rectangle autour de chaque paragraphe.
+        tv.setBackgroundColor(Color.TRANSPARENT);
+        tv.setLineSpacing(0, 1.16f);
+        tv.setPadding(2, 2, 2, 9);
 
         markwon.setMarkdown(tv, text);
         container.addView(tv);
+    }
+
+    private String normalizeInlineHtml(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+
+        return text
+                .replaceAll("(?i)<br\\s*/?>", "\\n")
+                .replaceAll("(?i)</p\\s*>", "\\n\\n")
+                .replaceAll("(?i)<p\\s*>", "")
+                .replaceAll("(?i)<div\\s*>", "")
+                .replaceAll("(?i)</div\\s*>", "\\n")
+                .replaceAll("(?i)<li\\s*>", "\\n• ")
+                .replaceAll("(?i)</li\\s*>", "")
+                .replaceAll("&nbsp;", " ");
     }
 
     private void addCodeBlock(
@@ -895,8 +912,22 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Context context,
             ChatMessage message
     ) {
-        holder.btnCopy.setOnClickListener(v -> {
+        if (message.isStreaming()) {
+            holder.layoutActions.setVisibility(View.GONE);
+            holder.layoutActions.setAlpha(0f);
+        } else {
+            holder.layoutActions.setVisibility(View.VISIBLE);
+            holder.layoutActions.setAlpha(0f);
 
+            holder.layoutActions.post(() ->
+                    holder.layoutActions.animate()
+                            .alpha(1f)
+                            .setDuration(220)
+                            .start()
+            );
+        }
+
+        holder.btnCopy.setOnClickListener(v -> {
             ClipboardManager clipboard =
                     (ClipboardManager)
                             context.getSystemService(
@@ -921,7 +952,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         });
 
         holder.btnShare.setOnClickListener(v -> {
-
             Intent shareIntent =
                     new Intent(Intent.ACTION_SEND);
 
@@ -949,13 +979,17 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         );
 
         holder.btnSpeak.setOnClickListener(v -> {
-
             if (speechListener != null) {
                 speechListener.onSpeakRequested(
                         message.getText()
                 );
             }
         });
+
+        animateActionButton(holder.btnCopy);
+        animateActionButton(holder.btnShare);
+        animateActionButton(holder.btnDownload);
+        animateActionButton(holder.btnSpeak);
     }
 
     private void setupFeedback(
@@ -1083,6 +1117,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         LinearLayout layoutReasoning;
         LinearLayout btnToggleReasoning;
         LinearLayout layoutSources;
+        LinearLayout layoutActions;
 
         ImageView ivArrowReasoning;
 
@@ -1127,6 +1162,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             layoutSources =
                     itemView.findViewById(
                             R.id.layoutSources
+                    );
+
+            layoutActions =
+                    itemView.findViewById(
+                            R.id.layoutActions
                     );
 
             rvSources =

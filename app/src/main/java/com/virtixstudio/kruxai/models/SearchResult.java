@@ -7,6 +7,7 @@ public class SearchResult {
     private String snippet;
     private String url;
     private String domain;
+    private String imageUrl;
 
     public SearchResult() {}
 
@@ -40,4 +41,12 @@ public class SearchResult {
     }
 
     public String getDomain() { return domain; }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
 }
