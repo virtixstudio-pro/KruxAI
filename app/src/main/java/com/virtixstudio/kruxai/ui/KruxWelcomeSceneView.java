@@ -12,8 +12,6 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
-import com.virtixstudio.kruxai.R;
-
 public class KruxWelcomeSceneView extends View {
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -44,10 +42,7 @@ public class KruxWelcomeSceneView extends View {
     private void init() {
         setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-        backgroundBitmap = BitmapFactory.decodeResource(
-                getResources(),
-                R.drawable.krux_welcome_background
-        );
+        backgroundBitmap = null;
 
         animationStart = System.currentTimeMillis();
     }

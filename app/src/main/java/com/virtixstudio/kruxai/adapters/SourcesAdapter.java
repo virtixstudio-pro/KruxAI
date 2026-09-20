@@ -238,7 +238,7 @@ public class SourcesAdapter
             Bitmap finalBitmap = bitmap;
 
             mainHandler.post(() -> {
-                if (holder.getBindingAdapterPosition()
+                if (holder.getAdapterPosition()
                         == RecyclerView.NO_POSITION) {
                     return;
                 }
