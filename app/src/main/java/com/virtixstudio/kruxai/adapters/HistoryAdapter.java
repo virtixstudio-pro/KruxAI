@@ -13,6 +13,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.models.ChatMessage;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.virtixstudio.kruxai.models.ChatSession;
 
 import java.util.ArrayList;
@@ -34,7 +42,17 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     public HistoryAdapter(Context context, List<ChatSession> sessionList, OnSessionActionListener listener) {
         this.sessionList = new ArrayList<>(sessionList);
         this.listener = listener;
-        this.dbHelper = new KruxDatabaseHelper(context);
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user != null) {
+            this.dbHelper = new KruxDatabaseHelper(
+                    context,
+                    user.getUid()
+            );
+        } else {
+            this.dbHelper = new KruxDatabaseHelper(context);
+        }
     }
 
     public void updateList(List<ChatSession> newList) {

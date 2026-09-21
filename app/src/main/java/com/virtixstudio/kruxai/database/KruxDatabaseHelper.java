@@ -220,7 +220,9 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
                 String sender = cursor.getString(0);
                 String text = cursor.getString(1);
                 boolean isUser = "user".equalsIgnoreCase(sender);
-                messages.add(new ChatMessage(text, isUser));
+                ChatMessage message = new ChatMessage(text, isUser);
+                message.setSessionId(sessionId);
+                messages.add(message);
             } while (cursor.moveToNext());
         }
         cursor.close();
