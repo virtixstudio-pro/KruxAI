@@ -18,7 +18,26 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 3;
 
     public KruxDatabaseHelper(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this(context, "default");
+    }
+
+    public KruxDatabaseHelper(Context context, String accountId) {
+        super(
+                context,
+                DATABASE_NAME + "_" + safeAccountId(accountId),
+                null,
+                DATABASE_VERSION
+        );
+    }
+
+    private static String safeAccountId(String accountId) {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            return "default";
+        }
+
+        return accountId
+                .trim()
+                .replaceAll("[^a-zA-Z0-9_-]", "_");
     }
 
     @Override

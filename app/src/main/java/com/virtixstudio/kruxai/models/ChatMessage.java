@@ -15,10 +15,26 @@ public class ChatMessage {
     }
 
     private static String resolveSessionId() {
-        if (appContext == null) return null;
+        if (appContext == null) {
+            return null;
+        }
+
+        com.google.firebase.auth.FirebaseUser user =
+                com.google.firebase.auth.FirebaseAuth
+                        .getInstance()
+                        .getCurrentUser();
+
+        if (user == null) {
+            return null;
+        }
+
+        String accountId = user.getUid();
 
         return appContext
-                .getSharedPreferences("krux_chat", android.content.Context.MODE_PRIVATE)
+                .getSharedPreferences(
+                        "krux_chat_" + accountId,
+                        android.content.Context.MODE_PRIVATE
+                )
                 .getString("current_session_id", null);
     }
 

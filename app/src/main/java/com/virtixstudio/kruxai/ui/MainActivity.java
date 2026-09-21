@@ -137,15 +137,32 @@ private final ActivityResultLauncher<String[]> filePicker =
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
 
-        webSearchEngine = new WebSearchEngine();
-        dbHelper = new KruxDatabaseHelper(this);
+        if (currentUser == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
 
-        currentSessionId = getSharedPreferences("krux_chat", MODE_PRIVATE)
-                .getString("current_session_id", null);
+        webSearchEngine = new WebSearchEngine();
+
+        String accountId = currentUser.getUid();
+
+        dbHelper = new KruxDatabaseHelper(this, accountId);
+
+        String sessionPrefsName = "krux_chat_" + accountId;
+
+        currentSessionId = getSharedPreferences(
+                sessionPrefsName,
+                MODE_PRIVATE
+        ).getString("current_session_id", null);
 
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
-            getSharedPreferences("krux_chat", MODE_PRIVATE)
+
+            getSharedPreferences(
+                    sessionPrefsName,
+                    MODE_PRIVATE
+            )
                     .edit()
                     .putString("current_session_id", currentSessionId)
                     .apply();
@@ -451,10 +468,18 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void saveMessageToDatabase(ChatMessage message) {
+        if (currentUser == null || message == null) {
+            android.util.Log.w(
+                    "KRUX_SYNC",
+                    "Sauvegarde locale ignorée : aucun compte authentifié."
+            );
+            return;
+        }
+
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
 
-            getSharedPreferences("krux_chat", MODE_PRIVATE)
+            getSharedPreferences("krux_chat_" + (currentUser != null ? currentUser.getUid() : "default"), MODE_PRIVATE)
                     .edit()
                     .putString("current_session_id", currentSessionId)
                     .apply();
@@ -483,17 +508,11 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void saveMessageToCloud(ChatMessage message, String sender) {
-        if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
-                    .addOnSuccessListener(authResult -> {
-                        currentUser = authResult.getUser();
-
-                        if (currentUser != null) {
-                            saveMessageToCloud(message, sender);
-                        }
-                    });
-
+        if (currentUser == null || message == null) {
+            android.util.Log.w(
+                    "KRUX_SYNC",
+                    "Sauvegarde cloud ignorée : aucun compte authentifié."
+            );
             return;
         }
 
@@ -523,16 +542,10 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
-                    .addOnSuccessListener(authResult -> {
-                        currentUser = authResult.getUser();
-
-                        if (currentUser != null) {
-                            saveMemoryToCloud(fact);
-                        }
-                    });
-
+            android.util.Log.w(
+                    "KRUX_SYNC",
+                    "Sauvegarde mémoire cloud ignorée : aucun compte authentifié."
+            );
             return;
         }
 
@@ -555,6 +568,10 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void loadCurrentSession() {
+        if (currentUser == null) {
+            return;
+        }
+
         if (currentSessionId == null || currentSessionId.isEmpty()) {
             return;
         }
@@ -582,37 +599,25 @@ waveBar1 = findViewById(R.id.waveBar1);
 
     private void syncCloudData() {
         if (currentUser == null) {
-            FirebaseAuth.getInstance()
-                    .signInAnonymously()
-                    .addOnSuccessListener(authResult -> {
-                        currentUser = authResult.getUser();
-
-                        if (currentUser != null) {
-                            syncCloudData();
-                        }
-                    });
-
+            android.util.Log.w("KRUX_SYNC", "Aucun utilisateur Firebase connecté.");
             return;
         }
 
-        String uid = currentUser.getUid();
+        final String accountId = currentUser.getUid();
 
         db.collection("users")
-                .document(uid)
+                .document(accountId)
                 .collection("chats")
                 .get()
                 .addOnSuccessListener(snapshot -> {
 
-                    for (com.google.firebase.firestore.DocumentSnapshot doc
-                            : snapshot.getDocuments()) {
+                    String latestSessionId = null;
+                    long latestTimestamp = Long.MIN_VALUE;
+
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
 
                         String sessionId = doc.getString("sessionId");
 
-                        /*
-                         * Les anciens messages n'avaient pas de sessionId.
-                         * On les rattache à la session actuelle afin de
-                         * récupérer l'historique existant sans le perdre.
-                         */
                         if (sessionId == null || sessionId.trim().isEmpty()) {
                             sessionId = currentSessionId;
                         }
@@ -624,58 +629,80 @@ waveBar1 = findViewById(R.id.waveBar1);
                             continue;
                         }
 
-                        if (!dbHelper.hasMessage(sessionId, sender, text)) {
-                            dbHelper.saveMessage(
-                                    sessionId,
-                                    sender,
-                                    text
-                            );
+                        long timestamp = 0L;
+                        Object rawTimestamp = doc.get("timestamp");
+
+                        if (rawTimestamp instanceof Number) {
+                            timestamp = ((Number) rawTimestamp).longValue();
+                        } else if (rawTimestamp instanceof com.google.firebase.Timestamp) {
+                            timestamp = ((com.google.firebase.Timestamp) rawTimestamp)
+                                    .toDate()
+                                    .getTime();
                         }
+
+                        if (!dbHelper.hasMessage(sessionId, sender, text)) {
+                            dbHelper.saveMessage(sessionId, sender, text);
+                        }
+
+                        if (timestamp >= latestTimestamp) {
+                            latestTimestamp = timestamp;
+                            latestSessionId = sessionId;
+                        }
+                    }
+
+                    if (latestSessionId != null && !latestSessionId.trim().isEmpty()) {
+                        currentSessionId = latestSessionId;
+
+                        getSharedPreferences(
+                                "krux_chat_" + accountId,
+                                MODE_PRIVATE
+                        )
+                                .edit()
+                                .putString("current_session_id", currentSessionId)
+                                .apply();
                     }
 
                     loadCurrentSession();
                     loadHistorySidebar();
+
+                    db.collection("users")
+                            .document(accountId)
+                            .collection("memory")
+                            .get()
+                            .addOnSuccessListener(memorySnapshot -> {
+
+                                for (com.google.firebase.firestore.DocumentSnapshot doc
+                                        : memorySnapshot.getDocuments()) {
+
+                                    String fact = doc.getString("fact");
+
+                                    if (fact != null
+                                            && !fact.trim().isEmpty()
+                                            && !dbHelper.hasMemoryFact(fact)) {
+                                        dbHelper.addMemoryFact(fact);
+                                    }
+                                }
+
+                                android.util.Log.d(
+                                        "KRUX_SYNC",
+                                        "Synchronisation terminée pour " + accountId
+                                );
+
+                            })
+                            .addOnFailureListener(e ->
+                                    android.util.Log.e(
+                                            "KRUX_SYNC",
+                                            "Erreur synchronisation mémoire",
+                                            e
+                                    )
+                            );
+
                 })
-                .addOnFailureListener(error ->
+                .addOnFailureListener(e ->
                         android.util.Log.e(
                                 "KRUX_SYNC",
-                                "Erreur synchronisation chats",
-                                error
-                        )
-                );
-
-        db.collection("users")
-                .document(uid)
-                .collection("memory")
-                .get()
-                .addOnSuccessListener(snapshot -> {
-
-                    for (com.google.firebase.firestore.DocumentSnapshot doc
-                            : snapshot.getDocuments()) {
-
-                        String fact = doc.getString("fact");
-
-                        if (fact == null || fact.trim().isEmpty()) {
-                            continue;
-                        }
-
-                        fact = fact.trim();
-
-                        if (!dbHelper.hasMemoryFact(fact)) {
-                            dbHelper.addMemoryFact(fact);
-                        }
-                    }
-
-                    android.util.Log.d(
-                            "KRUX_SYNC",
-                            "Mémoire cloud synchronisée."
-                    );
-                })
-                .addOnFailureListener(error ->
-                        android.util.Log.e(
-                                "KRUX_SYNC",
-                                "Erreur synchronisation mémoire",
-                                error
+                                "Erreur synchronisation conversations",
+                                e
                         )
                 );
     }
@@ -753,11 +780,21 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void startNewDiscussion() {
+        if (currentUser == null) {
+            return;
+        }
+
         currentSessionId = "session_" + System.currentTimeMillis();
-        getSharedPreferences("krux_chat", MODE_PRIVATE)
-                .edit()
-                .putString("current_session_id", currentSessionId)
-                .apply();
+
+        if (currentUser != null) {
+            getSharedPreferences(
+                    "krux_chat_" + currentUser.getUid(),
+                    MODE_PRIVATE
+            )
+                    .edit()
+                    .putString("current_session_id", currentSessionId)
+                    .apply();
+        }
         messageList.clear();
         chatAdapter.notifyDataSetChanged();
         updateWelcomePanel();
@@ -1723,7 +1760,7 @@ waveBar1 = findViewById(R.id.waveBar1);
             @Override
             public void onSessionClick(ChatSession session) {
                 currentSessionId = session.getId();
-                getSharedPreferences("krux_chat", MODE_PRIVATE)
+                getSharedPreferences("krux_chat_" + (currentUser != null ? currentUser.getUid() : "default"), MODE_PRIVATE)
                         .edit()
                         .putString("current_session_id", currentSessionId)
                         .apply();
