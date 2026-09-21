@@ -17,6 +17,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.view.View;
+import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -130,6 +131,9 @@ private final ActivityResultLauncher<String[]> filePicker =
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        setupKruxSidebar();
+        setupWelcomePrompts();
 
         ChatMessage.initializeContext(this);
 
@@ -650,7 +654,22 @@ waveBar1 = findViewById(R.id.waveBar1);
                         }
                     }
 
-                    if (latestSessionId != null && !latestSessionId.trim().isEmpty()) {
+                    /*
+                     * Ne pas remplacer la session courante si elle existe déjà.
+                     * La synchronisation cloud restaure les données, mais ne doit
+                     * pas déplacer silencieusement l'utilisateur vers une autre
+                     * discussion.
+                     */
+                    String savedSessionId = getSharedPreferences(
+                            "krux_chat_" + accountId,
+                            MODE_PRIVATE
+                    ).getString("current_session_id", null);
+
+                    if (savedSessionId != null && !savedSessionId.trim().isEmpty()) {
+                        currentSessionId = savedSessionId;
+                    } else if (latestSessionId != null
+                            && !latestSessionId.trim().isEmpty()) {
+
                         currentSessionId = latestSessionId;
 
                         getSharedPreferences(
@@ -2015,5 +2034,131 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
+
+
+    private void setupKruxSidebar() {
+        if (drawerLayout == null) {
+            return;
+        }
+
+        if (btnMenu != null) {
+            btnMenu.setOnClickListener(v -> {
+                if (!drawerLayout.isDrawerOpen(Gravity.LEFT)) {
+                    drawerLayout.openDrawer(Gravity.LEFT);
+                }
+            });
+        }
+
+        if (btnCloseSidebar != null) {
+            btnCloseSidebar.setOnClickListener(v ->
+                    drawerLayout.closeDrawer(Gravity.LEFT)
+            );
+        }
+
+        if (btnNewChat != null) {
+            btnNewChat.setOnClickListener(v -> {
+                startNewDiscussion();
+                drawerLayout.closeDrawer(Gravity.LEFT);
+            });
+        }
+
+        if (navSearchChats != null) {
+            navSearchChats.setOnClickListener(v -> {
+                if (etSearchHistory == null) {
+                    return;
+                }
+
+                etSearchHistory.setVisibility(
+                        etSearchHistory.getVisibility() == View.VISIBLE
+                                ? View.GONE
+                                : View.VISIBLE
+                );
+
+                if (etSearchHistory.getVisibility() == View.VISIBLE) {
+                    etSearchHistory.requestFocus();
+                }
+            });
+        }
+
+        if (navCustomize != null) {
+            navCustomize.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(Gravity.LEFT);
+                showAccountBottomSheet();
+            });
+        }
+
+        if (navLogout != null) {
+            navLogout.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(Gravity.LEFT);
+
+                if (mAuth != null) {
+                    mAuth.signOut();
+                }
+
+                startActivity(
+                        new Intent(
+                                MainActivity.this,
+                                LoginActivity.class
+                        )
+                );
+
+                finish();
+            });
+        }
+
+        if (navStudio != null) {
+            navStudio.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(Gravity.LEFT);
+
+                Toast.makeText(
+                        MainActivity.this,
+                        "Studio Krux — bientôt disponible",
+                        Toast.LENGTH_SHORT
+                ).show();
+            });
+        }
+    }
+
+    private void setupWelcomePrompts() {
+        View.OnClickListener listener = v -> {
+            if (etInput == null) {
+                return;
+            }
+
+            if (v instanceof TextView) {
+                String prompt =
+                        ((TextView) v).getText().toString();
+
+                etInput.setText(prompt);
+                etInput.setSelection(
+                        etInput.getText().length()
+                );
+
+                etInput.requestFocus();
+            }
+        };
+
+        if (welcomePromptOne != null) {
+            welcomePromptOne.setOnClickListener(listener);
+        }
+
+        if (welcomePromptTwo != null) {
+            welcomePromptTwo.setOnClickListener(listener);
+        }
+
+        if (welcomePromptThree != null) {
+            welcomePromptThree.setOnClickListener(listener);
+        }
+
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setOnClickListener(v -> {
+                startNewDiscussion();
+
+                if (etInput != null) {
+                    etInput.requestFocus();
+                }
+            });
+        }
+    }
 
 }

@@ -1,197 +1,234 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="280dp"
+    android:layout_width="300dp"
     android:layout_height="match_parent"
     android:layout_gravity="start"
-    android:background="#07050F"
+    android:background="#090611"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingStart="14dp"
+    android:paddingTop="18dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="12dp">
 
-    <!-- En-tête Sidebar -->
+    <!-- HEADER -->
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
-        android:layout_marginBottom="16dp">
+        android:orientation="horizontal">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="KruxAI Studio"
-            android:textColor="#A855F7"
-            android:textSize="18sp"
+            android:text="Krux"
+            android:textColor="#FAF7FF"
+            android:textSize="21sp"
             android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnCloseSidebar"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Fermer"
+            android:padding="9dp"
             android:src="@drawable/ic_menu"
-            android:tint="#B9AFCB"
-            android:padding="8dp" />
+            android:tint="#B9AFCB" />
+
     </LinearLayout>
 
-    <!-- Bouton Nouvelle Discussion -->
-    <Button
+
+    <!-- NOUVEAU CHAT -->
+
+    <TextView
         android:id="@+id/btnNewChat"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:backgroundTint="#120B24"
-        android:text="+ Nouvelle discussion"
-        android:textColor="#FAF7FF"
-        android:textSize="14sp"
-        android:textAllCaps="false"
-        android:layout_marginBottom="16dp"
-        android:gravity="start|center_vertical"
-        android:paddingStart="16dp"
-        style="?attr/borderlessButtonStyle" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Historique récent"
-        android:textColor="#766A8A"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <EditText
-        android:id="@+id/etSearchHistory"
-        android:layout_width="match_parent"
-        android:layout_height="42dp"
+        android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
         android:background="@drawable/bg_rounded_input"
-        android:hint="Rechercher dans l’historique"
-        android:paddingHorizontal="12dp"
-        android:singleLine="true"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:paddingStart="15dp"
+        android:text="+   Nouveau chat"
         android:textColor="#FAF7FF"
-        android:textColorHint="#766A8A"
-        android:textSize="13sp" />
+        android:textSize="14sp" />
+
+
+    <!-- RECHERCHE -->
 
     <LinearLayout
         android:id="@+id/navSearchChats"
         android:layout_width="match_parent"
         android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="?attr/selectableItemBackground"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_rounded_input"
         android:clickable="true"
         android:focusable="true"
-        android:paddingHorizontal="8dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
 
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="10dp"
             android:src="@drawable/ic_search_web"
-            android:tint="#A855F7"
-            android:layout_marginEnd="12dp" />
+            android:tint="#A855F7" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Rechercher une discussion"
-            android:textColor="#FAF7FF"
+            android:layout_weight="1"
+            android:text="Rechercher"
+            android:textColor="#AFA3BD"
             android:textSize="14sp" />
+
     </LinearLayout>
 
-    <!-- Liste d'historique (RecyclerView ou liste vide) -->
+
+    <!-- RECHERCHE HISTORIQUE -->
+
+    <EditText
+        android:id="@+id/etSearchHistory"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_rounded_input"
+        android:hint="Rechercher une discussion"
+        android:paddingHorizontal="13dp"
+        android:textColor="#FAF7FF"
+        android:textColorHint="#6F647B"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+
+    <!-- TITRE HISTORIQUE -->
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="7dp"
+        android:text="Discussions"
+        android:textColor="#756A85"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+
+    <!-- HISTORIQUE
+         Cette zone prend tout l'espace disponible. -->
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvHistory"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="12dp" />
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
+        android:scrollbars="none" />
 
-    <!-- Séparateur -->
+
+    <!-- SEPARATEUR -->
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#120B24"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="7dp"
+        android:background="#1B1426" />
 
-    <!-- Options Avancées (Mode Studio) -->
+
+    <!-- PROJETS -->
+
     <LinearLayout
         android:id="@+id/navStudio"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:layout_height="45dp"
         android:background="?attr/selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingHorizontal="8dp">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="12dp"
             android:src="@drawable/ic_palette"
-            android:tint="#A855F7"
-            android:layout_marginEnd="12dp" />
+            android:tint="#BFA7FF" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Projets &amp; Studio"
-            android:textColor="#FAF7FF"
+            android:textColor="#EDE7F5"
             android:textSize="14sp" />
+
     </LinearLayout>
+
+
+    <!-- PARAMETRES — EN BAS -->
 
     <LinearLayout
         android:id="@+id/navCustomize"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:layout_height="45dp"
         android:background="?attr/selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
-        android:paddingHorizontal="8dp"
-        android:layout_marginTop="4dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="12dp"
             android:src="@drawable/ic_palette"
-            android:tint="#A855F7"
-            android:layout_marginEnd="12dp" />
+            android:tint="#BFA7FF" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Personnaliser l’app"
-            android:textColor="#FAF7FF"
+            android:text="Paramètres"
+            android:textColor="#EDE7F5"
             android:textSize="14sp" />
+
     </LinearLayout>
 
-    <!-- Déconnexion -->
+
+    <!-- COMPTE / DECONNEXION -->
+
     <LinearLayout
         android:id="@+id/navLogout"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:layout_height="45dp"
         android:background="?attr/selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
-        android:paddingHorizontal="8dp"
-        android:layout_marginTop="4dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
 
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="12dp"
             android:src="@drawable/ic_account"
-            android:tint="#EF4444"
-            android:layout_marginEnd="12dp" />
+            android:tint="#82758F" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Se déconnecter"
-            android:textColor="#EF4444"
+            android:textColor="#82758F"
             android:textSize="14sp" />
+
     </LinearLayout>
 
 </LinearLayout>
