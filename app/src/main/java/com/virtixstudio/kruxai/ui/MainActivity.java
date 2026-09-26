@@ -86,6 +86,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private EditText etInput;
     private RecyclerView rvChat, rvHistory;
     private View welcomePanel;
+    private EditText etSearchHistory;
+    private TextView welcomePromptOne;
+    private TextView welcomePromptTwo;
+    private TextView welcomePromptThree;
     private Button welcomeNewChat;
     private KruxWelcomeSceneView welcomeScene;
     private LinearLayout llVoiceVisualizer;
@@ -131,9 +135,6 @@ private final ActivityResultLauncher<String[]> filePicker =
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        setupKruxSidebar();
-        setupWelcomePrompts();
 
         ChatMessage.initializeContext(this);
 
@@ -212,6 +213,14 @@ waveBar1 = findViewById(R.id.waveBar1);
         navStudio = findViewById(R.id.navStudio);
         navCustomize = findViewById(R.id.navCustomize);
         navLogout = findViewById(R.id.navLogout);
+
+        etSearchHistory = findViewById(R.id.etSearchHistory);
+        welcomePromptOne = findViewById(R.id.welcomePromptOne);
+        welcomePromptTwo = findViewById(R.id.welcomePromptTwo);
+        welcomePromptThree = findViewById(R.id.welcomePromptThree);
+
+        setupKruxSidebar();
+        setupWelcomePrompts();
 
         messageList = new ArrayList<>();
         chatAdapter = new ChatAdapter(
