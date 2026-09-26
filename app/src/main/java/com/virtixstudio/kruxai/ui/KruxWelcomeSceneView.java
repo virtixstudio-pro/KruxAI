@@ -42,7 +42,7 @@ public class KruxWelcomeSceneView extends View {
     }
 
     private void init() {
-        setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
         animationStart = System.currentTimeMillis();
 
