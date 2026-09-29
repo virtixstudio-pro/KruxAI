@@ -134,13 +134,17 @@ private final ActivityResultLauncher<String[]> filePicker =
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        android.util.Log.e("KRUX_BOOT", "BOOT 01: super.onCreate");
         setContentView(R.layout.activity_main);
+        android.util.Log.e("KRUX_BOOT", "BOOT 02: setContentView OK");
 
         ChatMessage.initializeContext(this);
+        android.util.Log.e("KRUX_BOOT", "BOOT 03: ChatMessage context OK");
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
+        android.util.Log.e("KRUX_BOOT", "BOOT 04: FirebaseAuth OK, user=" + (currentUser != null));
 
         if (currentUser == null) {
             startActivity(new Intent(this, LoginActivity.class));
@@ -149,10 +153,12 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         webSearchEngine = new WebSearchEngine();
+        android.util.Log.e("KRUX_BOOT", "BOOT 05: WebSearchEngine OK");
 
         String accountId = currentUser.getUid();
 
         dbHelper = new KruxDatabaseHelper(this, accountId);
+        android.util.Log.e("KRUX_BOOT", "BOOT 06: DatabaseHelper OK");
 
         String sessionPrefsName = "krux_chat_" + accountId;
 
@@ -190,6 +196,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         tvTokenRemaining = findViewById(R.id.tvTokenRemaining);
 
         updateKruxModelUI();
+        android.util.Log.e("KRUX_BOOT", "BOOT 07: updateKruxModelUI OK");
 
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
@@ -198,6 +205,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         welcomeNewChat = findViewById(R.id.welcomeNewChat);
         welcomeScene = findViewById(R.id.welcomeScene);
         setupWelcomePanel();
+        android.util.Log.e("KRUX_BOOT", "BOOT 08: setupWelcomePanel OK");
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
                 kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
@@ -220,7 +228,9 @@ waveBar1 = findViewById(R.id.waveBar1);
         welcomePromptThree = findViewById(R.id.welcomePromptThree);
 
         setupKruxSidebar();
+        android.util.Log.e("KRUX_BOOT", "BOOT 09: setupKruxSidebar OK");
         setupWelcomePrompts();
+        android.util.Log.e("KRUX_BOOT", "BOOT 10: setupWelcomePrompts OK");
 
         messageList = new ArrayList<>();
         chatAdapter = new ChatAdapter(
@@ -324,12 +334,19 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (btnTtsControl != null) btnTtsControl.setOnClickListener(v -> toggleTtsPlayback());
 
         setupSidebarEvents();
+        android.util.Log.e("KRUX_BOOT", "BOOT 11: setupSidebarEvents OK");
         initSpeechRecognizer();
+        android.util.Log.e("KRUX_BOOT", "BOOT 12: initSpeechRecognizer OK");
         initTextToSpeech();
+        android.util.Log.e("KRUX_BOOT", "BOOT 13: initTextToSpeech OK");
         listenToFirebaseMessages();
+        android.util.Log.e("KRUX_BOOT", "BOOT 14: listenToFirebaseMessages OK");
         loadHistorySidebar();
+        android.util.Log.e("KRUX_BOOT", "BOOT 15: loadHistorySidebar OK");
         loadCurrentSession();
+        android.util.Log.e("KRUX_BOOT", "BOOT 16: loadCurrentSession OK");
         syncCloudData();
+        android.util.Log.e("KRUX_BOOT", "BOOT 17: syncCloudData OK");
     }
 
     private void showKruxModelSelector() {
