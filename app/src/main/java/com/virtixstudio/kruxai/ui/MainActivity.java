@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private DrawerLayout drawerLayout;
     private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
     private View navSearchChats, navStudio, navCustomize, navLogout;
-    private Button btnNewChat;
+    private TextView btnNewChat;
 
     // Sélecteur de modèle Krux
     private LinearLayout kruxModelCapsule;
