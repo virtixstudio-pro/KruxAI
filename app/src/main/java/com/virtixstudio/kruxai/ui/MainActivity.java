@@ -2248,13 +2248,6 @@ waveBar1 = findViewById(R.id.waveBar1);
             });
         }
 
-        if (navCustomize != null) {
-            navCustomize.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(Gravity.LEFT);
-                showAccountBottomSheet();
-            });
-        }
-
         if (navLogout != null) {
             navLogout.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(Gravity.LEFT);
