@@ -1544,6 +1544,8 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
+        private Uri selectedWallpaperUri = null;
+
     private void showCustomizationSheet() {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -1557,13 +1559,66 @@ waveBar1 = findViewById(R.id.waveBar1);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         content.addView(title);
 
-        TextView preview = new TextView(this);
-        preview.setText("Aperçu de tes messages");
-        preview.setTextColor(Color.WHITE);
-        preview.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        preview.setPadding(dpToPx(14), 0, dpToPx(14), 0);
-        content.addView(preview);
+        // --- BLOC APERÇU STYLE WHATSAPP ---
+        LinearLayout previewCard = new LinearLayout(this);
+        previewCard.setOrientation(LinearLayout.VERTICAL);
+        previewCard.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
 
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.setMargins(0, dpToPx(12), 0, dpToPx(16));
+        previewCard.setLayoutParams(cardParams);
+
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(Color.parseColor("#0F0D15"));
+        cardBg.setCornerRadius(dpToPx(16));
+        cardBg.setStroke(dpToPx(1), Color.parseColor("#2A2634"));
+        previewCard.setBackground(cardBg);
+
+        // Mini Bulle Utilisateur
+        TextView previewUserBubble = new TextView(this);
+        previewUserBubble.setText("Krux, montre-moi le style.");
+        previewUserBubble.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8));
+        LinearLayout.LayoutParams userParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        userParams.gravity = android.view.Gravity.END;
+        userParams.setMargins(dpToPx(32), 0, 0, dpToPx(8));
+        previewUserBubble.setLayoutParams(userParams);
+        previewCard.addView(previewUserBubble);
+
+        // Mini Bulle IA
+        TextView previewAiBubble = new TextView(this);
+        previewAiBubble.setText("Aperçu en direct activé !");
+        previewAiBubble.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8));
+        LinearLayout.LayoutParams aiParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        aiParams.gravity = android.view.Gravity.START;
+        aiParams.setMargins(0, 0, dpToPx(32), dpToPx(6));
+        previewAiBubble.setLayoutParams(aiParams);
+        previewCard.addView(previewAiBubble);
+
+        // Mini bloc de code
+        TextView previewCodeBlock = new TextView(this);
+        previewCodeBlock.setText("System.out.println(\"KruxAI Live\");");
+        previewCodeBlock.setTextSize(11);
+        previewCodeBlock.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
+        LinearLayout.LayoutParams codeParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        codeParams.setMargins(dpToPx(8), 0, dpToPx(32), 0);
+        previewCodeBlock.setLayoutParams(codeParams);
+        previewCard.addView(previewCodeBlock);
+
+        content.addView(previewCard);
+
+        // --- SECTIONS DE SÉLECTION ---
         RadioGroup palette = new RadioGroup(this);
         addChoice(palette, "Midnight violet", "midnight");
         addChoice(palette, "Graphite premium", "graphite");
@@ -1613,6 +1668,15 @@ waveBar1 = findViewById(R.id.waveBar1);
         content.addView(sectionLabel("Fond animé de l’accueil"));
         content.addView(scene);
 
+        // Bouton Fond d écran personnalisé
+        content.addView(sectionLabel("Fond d’écran personnalisé"));
+        Button btnPickWallpaper = new Button(this);
+        btnPickWallpaper.setText("Choisir une image de fond");
+        btnPickWallpaper.setTextColor(Color.WHITE);
+        btnPickWallpaper.setBackgroundColor(Color.parseColor("#1F192E"));
+        btnPickWallpaper.setOnClickListener(v -> openImagePicker());
+        content.addView(btnPickWallpaper);
+
         SeekBar size = new SeekBar(this);
         size.setMax(5);
         size.setProgress(1);
@@ -1623,34 +1687,47 @@ waveBar1 = findViewById(R.id.waveBar1);
         apply.setText("Appliquer");
         content.addView(apply);
 
-        RadioGroup.OnCheckedChangeListener previewListener =
-            (group, checkedId) -> updateThemePreview(
-                preview,
+        // Écouteurs pour mise à jour instantanée
+        Runnable updatePreviewAction = () -> updateThemePreview(
+                previewUserBubble,
+                previewAiBubble,
+                previewCodeBlock,
                 selectedChoice(userBubble, "#120B24"),
+                selectedChoice(aiBubble, "#00000000"),
                 selectedChoice(shape, "12"),
-                selectedChoice(accent, "#A855F7")
-            );
+                selectedChoice(accent, "#A855F7"),
+                selectedChoice(font, "sans-serif"),
+                14f + size.getProgress()
+        );
+
+        RadioGroup.OnCheckedChangeListener previewListener = (group, checkedId) -> updatePreviewAction.run();
         userBubble.setOnCheckedChangeListener(previewListener);
+        aiBubble.setOnCheckedChangeListener(previewListener);
         shape.setOnCheckedChangeListener(previewListener);
         accent.setOnCheckedChangeListener(previewListener);
-        updateThemePreview(preview, "#120B24", "12", "#A855F7");
+        font.setOnCheckedChangeListener(previewListener);
+        size.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar sb, int p, boolean b) { updatePreviewAction.run(); }
+            @Override public void onStartTrackingTouch(SeekBar sb) {}
+            @Override public void onStopTrackingTouch(SeekBar sb) {}
+        });
+
+        updatePreviewAction.run();
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         dialog.setContentView(content);
-        View bottomSheet = dialog.findViewById(
-                com.google.android.material.R.id.design_bottom_sheet
-        );
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
         if (bottomSheet != null) {
             bottomSheet.setBackgroundColor(Color.TRANSPARENT);
         }
+
         apply.setOnClickListener(v -> {
             String paletteValue = selectedChoice(palette, "midnight");
             String fontValue = selectedChoice(font, "sans-serif");
             float radiusValue = Float.parseFloat(selectedChoice(shape, "12"));
             float sizeValue = 14f + size.getProgress();
 
-            getSharedPreferences("krux_theme", MODE_PRIVATE)
-                    .edit()
+            var editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit()
                     .putString("palette", paletteValue)
                     .putString("font", fontValue)
                     .putString("userBubble", selectedChoice(userBubble, "#120B24"))
@@ -1658,12 +1735,69 @@ waveBar1 = findViewById(R.id.waveBar1);
                     .putString("accent", selectedChoice(accent, "#A855F7"))
                     .putString("scene", selectedChoice(scene, "blackhole"))
                     .putFloat("radius", radiusValue)
-                    .putFloat("size", sizeValue)
-                    .apply();
+                    .putFloat("size", sizeValue);
+
+            if (selectedWallpaperUri != null) {
+                editor.putString("custom_wallpaper", selectedWallpaperUri.toString());
+            }
+
+            editor.apply();
             applySavedTheme();
             dialog.dismiss();
         });
         dialog.show();
+    }
+
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, 1002);
+    }
+
+    private void updateThemePreview(
+            TextView userBubbleView,
+            TextView aiBubbleView,
+            TextView codeBlockView,
+            String userBgColor,
+            String aiBgColor,
+            String radiusStr,
+            String accentColorStr,
+            String fontStr,
+            float textSize
+    ) {
+        int radiusPx = dpToPx((int) Float.parseFloat(radiusStr));
+        int accentColor = parseThemeColor(accentColorStr, Color.parseColor("#A855F7"));
+        int userColor = parseThemeColor(userBgColor, Color.parseColor("#120B24"));
+        int aiColor = parseThemeColor(aiBgColor, Color.TRANSPARENT);
+
+        GradientDrawable userBg = new GradientDrawable();
+        userBg.setColor(userColor);
+        userBg.setCornerRadius(radiusPx);
+        userBubbleView.setBackground(userBg);
+        userBubbleView.setTextColor(Color.WHITE);
+        userBubbleView.setTextSize(textSize);
+
+        GradientDrawable aiBg = new GradientDrawable();
+        aiBg.setColor(aiColor == Color.TRANSPARENT ? Color.parseColor("#14101D") : aiColor);
+        aiBg.setCornerRadius(radiusPx);
+        aiBubbleView.setBackground(aiBg);
+        aiBubbleView.setTextColor(Color.WHITE);
+        aiBubbleView.setTextSize(textSize);
+
+        GradientDrawable codeBg = new GradientDrawable();
+        codeBg.setColor(Color.parseColor("#08060C"));
+        codeBg.setCornerRadius(dpToPx(8));
+        codeBg.setStroke(dpToPx(1), accentColor);
+        codeBlockView.setBackground(codeBg);
+        codeBlockView.setTextColor(accentColor);
+
+        android.graphics.Typeface tf = android.graphics.Typeface.SANS_SERIF;
+        if ("serif".equals(fontStr)) tf = android.graphics.Typeface.SERIF;
+        else if ("monospace".equals(fontStr)) tf = android.graphics.Typeface.MONOSPACE;
+
+        userBubbleView.setTypeface(tf);
+        aiBubbleView.setTypeface(tf);
+        codeBlockView.setTypeface(android.graphics.Typeface.MONOSPACE);
     }
 
     private void updateThemePreview(
