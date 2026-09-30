@@ -1728,7 +1728,7 @@ waveBar1 = findViewById(R.id.waveBar1);
             float sizeValue = 14f + size.getProgress();
 
             SharedPreferences.Editor editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit();
-                    .putString("palette", paletteValue)
+            editor.putString("palette", paletteValue)
                     .putString("font", fontValue)
                     .putString("userBubble", selectedChoice(userBubble, "#120B24"))
                     .putString("aiBubble", selectedChoice(aiBubble, "#00000000"))
