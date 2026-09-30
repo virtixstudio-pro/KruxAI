@@ -1547,6 +1547,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(12));
+        content.setBackgroundColor(Color.TRANSPARENT);
 
         TextView title = new TextView(this);
         title.setText("Personnaliser l’app");
@@ -1635,6 +1636,12 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         dialog.setContentView(content);
+        View bottomSheet = dialog.findViewById(
+                com.google.android.material.R.id.design_bottom_sheet
+        );
+        if (bottomSheet != null) {
+            bottomSheet.setBackgroundColor(Color.TRANSPARENT);
+        }
         apply.setOnClickListener(v -> {
             String paletteValue = selectedChoice(palette, "midnight");
             String fontValue = selectedChoice(font, "sans-serif");
