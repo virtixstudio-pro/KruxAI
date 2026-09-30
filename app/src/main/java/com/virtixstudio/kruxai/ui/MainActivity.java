@@ -521,7 +521,8 @@ waveBar1 = findViewById(R.id.waveBar1);
         dbHelper.saveMessage(
                 currentSessionId,
                 sender,
-                message.getText()
+                message.getText(),
+                message.getTimestamp()
         );
 
         runOnUiThread(() -> {
@@ -670,8 +671,8 @@ waveBar1 = findViewById(R.id.waveBar1);
                                     .getTime();
                         }
 
-                        if (!dbHelper.hasMessage(sessionId, sender, text)) {
-                            dbHelper.saveMessage(sessionId, sender, text);
+                        if (!dbHelper.hasMessage(sessionId, sender, text, timestamp)) {
+                            dbHelper.saveMessage(sessionId, sender, text, timestamp);
                         }
 
                         if (timestamp >= latestTimestamp) {

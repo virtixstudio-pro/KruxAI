@@ -106,6 +106,20 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    public boolean hasMessage(String sessionId, String sender, String text, long timestamp) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT 1 FROM messages WHERE session_id = ? AND sender = ? AND message = ? AND (timestamp = ? OR (typeof(timestamp) = "integer" AND abs(timestamp - ?) < 2000)) LIMIT 1",
+                new String[]{sessionId, sender, text, String.valueOf(timestamp), String.valueOf(timestamp)}
+        );
+
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+
+        return exists;
+    }
+
     public boolean hasMessage(String sessionId, String sender, String text) {
         SQLiteDatabase db = this.getReadableDatabase();
 
@@ -135,11 +149,16 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public void saveMessage(String sessionId, String sender, String text) {
+        saveMessage(sessionId, sender, text, System.currentTimeMillis());
+    }
+
+    public void saveMessage(String sessionId, String sender, String text, long timestamp) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put("session_id", sessionId);
         values.put("sender", sender);
         values.put("message", text);
+        values.put("timestamp", timestamp);
         db.insert("messages", null, values);
     }
 
@@ -214,14 +233,18 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         List<ChatMessage> messages = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery("SELECT sender, message FROM messages WHERE session_id = ? ORDER BY id ASC", new String[]{sessionId});
+        Cursor cursor = db.rawQuery("SELECT sender, message, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", new String[]{sessionId});
         if (cursor.moveToFirst()) {
             do {
                 String sender = cursor.getString(0);
                 String text = cursor.getString(1);
+                long timestamp = cursor.getLong(2);
                 boolean isUser = "user".equalsIgnoreCase(sender);
                 ChatMessage message = new ChatMessage(text, isUser);
                 message.setSessionId(sessionId);
+                if (timestamp > 0) {
+                    message.setTimestamp(timestamp);
+                }
                 messages.add(message);
             } while (cursor.moveToNext());
         }
