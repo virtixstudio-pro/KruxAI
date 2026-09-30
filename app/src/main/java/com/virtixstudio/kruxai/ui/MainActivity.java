@@ -1727,7 +1727,7 @@ waveBar1 = findViewById(R.id.waveBar1);
             float radiusValue = Float.parseFloat(selectedChoice(shape, "12"));
             float sizeValue = 14f + size.getProgress();
 
-            var editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit()
+            SharedPreferences.Editor editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit();
                     .putString("palette", paletteValue)
                     .putString("font", fontValue)
                     .putString("userBubble", selectedChoice(userBubble, "#120B24"))

@@ -110,7 +110,7 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.rawQuery(
-                "SELECT 1 FROM messages WHERE session_id = ? AND sender = ? AND message = ? AND (timestamp = ? OR (typeof(timestamp) = "integer" AND abs(timestamp - ?) < 2000)) LIMIT 1",
+                "SELECT 1 FROM messages WHERE session_id = ? AND sender = ? AND message = ? AND (timestamp = ? OR (typeof(timestamp) = 'integer' AND abs(timestamp - ?) < 2000)) LIMIT 1",
                 new String[]{sessionId, sender, text, String.valueOf(timestamp), String.valueOf(timestamp)}
         );
 
