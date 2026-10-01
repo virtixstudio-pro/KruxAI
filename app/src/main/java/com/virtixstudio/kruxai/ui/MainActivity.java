@@ -103,6 +103,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
+    private String currentUserFirstName = "";
+    private String currentUserEmail = "";
+private String selectedFileName = "";
+private String selectedFileContent = "";
 
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -145,6 +149,32 @@ private final ActivityResultLauncher<String[]> filePicker =
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
         android.util.Log.e("KRUX_BOOT", "BOOT 04: FirebaseAuth OK, user=" + (currentUser != null));
+
+        if (currentUser != null) {
+            currentUserEmail = currentUser.getEmail() != null
+                ? currentUser.getEmail()
+                : "";
+
+            db.collection("users")
+                .document(currentUser.getUid())
+                .get()
+                .addOnSuccessListener(document -> {
+                    if (document.exists()) {
+                        String firstName = document.getString("firstName");
+                        if (firstName != null) {
+                            currentUserFirstName = firstName.trim();
+                        }
+                    }
+                    android.util.Log.d(
+                        "KRUX_PROFILE",
+                        "Profil chargé : firstName=" + currentUserFirstName
+                            + ", email=" + currentUserEmail
+                    );
+                })
+                .addOnFailureListener(e ->
+                    android.util.Log.e("KRUX_PROFILE", "Échec chargement profil Firebase", e)
+                );
+        }
 
         if (currentUser == null) {
             startActivity(new Intent(this, LoginActivity.class));
@@ -564,11 +594,30 @@ waveBar1 = findViewById(R.id.waveBar1);
                 .document(currentUser.getUid())
                 .collection("chats")
                 .document(message.getId())
-                .set(cloudMessage);
+                .set(cloudMessage)
+                .addOnSuccessListener(unused ->
+                        android.util.Log.d(
+                                "KRUX_SYNC",
+                                "Message synchronisé : " + message.getId()
+                        )
+                )
+                .addOnFailureListener(e ->
+                        android.util.Log.e(
+                                "KRUX_SYNC",
+                                "Échec synchronisation message : " + message.getId(),
+                                e
+                        )
+                );
     }
 
-    private void saveMemoryToCloud(String fact) {
+    private void saveMemoryToCloud(
+            String fact,
+            Runnable onComplete
+    ) {
         if (fact == null || fact.trim().isEmpty()) {
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
 
@@ -577,25 +626,125 @@ waveBar1 = findViewById(R.id.waveBar1);
                     "KRUX_SYNC",
                     "Sauvegarde mémoire cloud ignorée : aucun compte authentifié."
             );
+
+            if (onComplete != null) {
+                onComplete.run();
+            }
             return;
         }
 
         String cleanFact = fact.trim();
 
-        java.util.Map<String, Object> memory =
-                new java.util.HashMap<>();
+        com.google.firebase.firestore.CollectionReference memoryCollection =
+                db.collection("users")
+                        .document(currentUser.getUid())
+                        .collection("memory");
 
-        memory.put("fact", cleanFact);
-        memory.put(
-                "createdAt",
-                com.google.firebase.firestore.FieldValue.serverTimestamp()
-        );
+        memoryCollection
+                .whereEqualTo("fact", cleanFact)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(snapshot -> {
 
-        db.collection("users")
-                .document(currentUser.getUid())
-                .collection("memory")
-                .document(java.util.UUID.randomUUID().toString())
-                .set(memory);
+                    if (!snapshot.isEmpty()) {
+
+                        String memoryId =
+                                snapshot.getDocuments()
+                                        .get(0)
+                                        .getId();
+
+                        java.util.Map<String, Object> update =
+                                new java.util.HashMap<>();
+
+                        update.put(
+                                "updatedAt",
+                                com.google.firebase.firestore.FieldValue.serverTimestamp()
+                        );
+
+                        memoryCollection
+                                .document(memoryId)
+                                .update(update)
+                                .addOnSuccessListener(unused -> {
+
+                                    android.util.Log.d(
+                                            "KRUX_SYNC",
+                                            "Mémoire Firestore mise à jour : "
+                                                    + memoryId
+                                    );
+
+                                    if (onComplete != null) {
+                                        onComplete.run();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+
+                                    android.util.Log.e(
+                                            "KRUX_SYNC",
+                                            "Échec mise à jour mémoire Firestore : "
+                                                    + memoryId,
+                                            e
+                                    );
+
+                                    if (onComplete != null) {
+                                        onComplete.run();
+                                    }
+                                });
+
+                    } else {
+
+                        java.util.Map<String, Object> memory =
+                                new java.util.HashMap<>();
+
+                        memory.put("fact", cleanFact);
+                        memory.put(
+                                "createdAt",
+                                com.google.firebase.firestore.FieldValue.serverTimestamp()
+                        );
+                        memory.put(
+                                "updatedAt",
+                                com.google.firebase.firestore.FieldValue.serverTimestamp()
+                        );
+
+                        memoryCollection
+                                .add(memory)
+                                .addOnSuccessListener(documentReference -> {
+
+                                    android.util.Log.d(
+                                            "KRUX_SYNC",
+                                            "Nouvelle mémoire Firestore : "
+                                                    + documentReference.getId()
+                                    );
+
+                                    if (onComplete != null) {
+                                        onComplete.run();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+
+                                    android.util.Log.e(
+                                            "KRUX_SYNC",
+                                            "Échec création mémoire Firestore",
+                                            e
+                                    );
+
+                                    if (onComplete != null) {
+                                        onComplete.run();
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+
+                    android.util.Log.e(
+                            "KRUX_SYNC",
+                            "Échec recherche mémoire Firestore",
+                            e
+                    );
+
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                });
     }
 
     private void loadCurrentSession() {
@@ -812,9 +961,12 @@ waveBar1 = findViewById(R.id.waveBar1);
             TextView prompt = findViewById(promptId);
             if (prompt != null) {
                 prompt.setOnClickListener(v -> {
-                    etInput.setText(((TextView) v).getText());
-                    etInput.setSelection(etInput.length());
-                    etInput.requestFocus();
+                    String promptText = ((TextView) v).getText().toString().trim();
+
+                    if (!promptText.isEmpty()) {
+                        etInput.setText(promptText);
+                        sendMessage();
+                    }
                 });
             }
         }
@@ -865,6 +1017,9 @@ waveBar1 = findViewById(R.id.waveBar1);
         String prompt = etInput.getText().toString().trim();
         if (prompt.isEmpty()) return;
 
+        final String fileNameForRequest = selectedFileName;
+        final String fileContentForRequest = selectedFileContent;
+
         ChatMessage userMessage = new ChatMessage(prompt, true);
         saveMessageToDatabase(userMessage);
         updateWelcomePanel();
@@ -881,21 +1036,45 @@ waveBar1 = findViewById(R.id.waveBar1);
             webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
                 public void onSuccess(List<SearchResult> results, String formattedContext) {
-                    executeAiQuery(prompt, formattedContext, results);
+                    executeAiQuery(
+                            prompt,
+                            formattedContext,
+                            results,
+                            fileNameForRequest,
+                            fileContentForRequest
+                    );
                 }
 
                 @Override
                 public void onError(String error) {
-                    executeAiQuery(prompt, "", new ArrayList<>());
+                    executeAiQuery(
+                            prompt,
+                            "",
+                            new ArrayList<>(),
+                            fileNameForRequest,
+                            fileContentForRequest
+                    );
                 }
             });
         } else {
             setKruxState(KruxState.GENERATING);
-            executeAiQuery(prompt, "", new ArrayList<>());
+            executeAiQuery(
+                    prompt,
+                    "",
+                    new ArrayList<>(),
+                    fileNameForRequest,
+                    fileContentForRequest
+            );
         }
     }
 
-    private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
+    private void executeAiQuery(
+            String userPrompt,
+            String webContext,
+            List<SearchResult> sources,
+            String fileName,
+            String fileContent
+    ) {
         setKruxState(KruxState.GENERATING);
 
         StringBuilder historyBuilder = new StringBuilder();
@@ -920,13 +1099,37 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         String systemPrompt = new SystemPromptBuilder()
+                .withKruxModel(
+                    selectedKruxModel != null
+                        ? selectedKruxModel.getDisplayName()
+                        : "KRUX Prime"
+                )
+                .withUserProfile(currentUserFirstName, currentUserEmail)
                 .withHistory(historyBuilder.toString())
                 .build();
 
         StringBuilder promptWithContext = new StringBuilder();
-        promptWithContext.append("Utilisateur: ").append(userPrompt);
+
+        if (fileContent != null && !fileContent.trim().isEmpty()) {
+            promptWithContext
+                    .append("FICHIER JOINT : ")
+                    .append(fileName != null ? fileName : "fichier")
+                    .append("\n")
+                    .append("Analyse réellement le contenu ci-dessous. ")
+                    .append("Ne prétends pas avoir lu le fichier si son contenu n'est pas présent.")
+                    .append("\n--- DÉBUT DU FICHIER ---\n")
+                    .append(fileContent)
+                    .append("--- FIN DU FICHIER ---\n\n");
+        }
+
+        promptWithContext
+                .append("Utilisateur: ")
+                .append(userPrompt);
 
         setGeneratingState(true);
+
+        selectedFileName = "";
+        selectedFileContent = "";
 
         ChatMessage aiMessage = new ChatMessage("", false, sources);
         aiMessage.setStreaming(true);
@@ -950,20 +1153,82 @@ waveBar1 = findViewById(R.id.waveBar1);
                 });
 
                 String cleanResponse = rawResponse;
-                if (cleanResponse.contains("<REMEMBER>") && cleanResponse.contains("</REMEMBER>")) {
+
+                boolean memoryUpdateStarted = false;
+
+                if (cleanResponse.contains("<REMEMBER>")
+                        && cleanResponse.contains("</REMEMBER>")) {
+
                     try {
-                        int start = cleanResponse.indexOf("<REMEMBER>") + 10;
-                        int end = cleanResponse.indexOf("</REMEMBER>");
+                        int start =
+                                cleanResponse.indexOf("<REMEMBER>") + 10;
+
+                        int end =
+                                cleanResponse.indexOf("</REMEMBER>");
+
                         if (end > start) {
-                            String fact = cleanResponse.substring(start, end).trim();
-                            setKruxState(KruxState.MEMORY);
-                            dbHelper.addMemoryFact(fact);
-                            saveMemoryToCloud(fact);
+
+                            String fact =
+                                    cleanResponse
+                                            .substring(start, end)
+                                            .trim();
+
+                            if (!fact.isEmpty()) {
+
+                                memoryUpdateStarted = true;
+
+                                setKruxState(KruxState.MEMORY);
+
+                                boolean alreadyExists =
+                                        dbHelper.hasMemoryFact(fact);
+
+                                if (!alreadyExists) {
+                                    dbHelper.addMemoryFact(fact);
+                                }
+
+                                boolean verifiedLocally =
+                                        dbHelper.hasMemoryFact(fact);
+
+                                android.util.Log.d(
+                                        "KRUX_MEMORY",
+                                        "SQLite mémoire "
+                                                + (verifiedLocally
+                                                ? "vérifiée"
+                                                : "NON vérifiée")
+                                                + " : "
+                                                + fact
+                                );
+
+                                saveMemoryToCloud(
+                                        fact,
+                                        () -> setKruxState(KruxState.IDLE)
+                                );
+                            }
+
                         }
+
                     } catch (Exception e) {
-                        e.printStackTrace();
+
+                        android.util.Log.e(
+                                "KRUX_MEMORY",
+                                "Erreur pendant la mise à jour mémoire",
+                                e
+                        );
+
+                        setKruxState(KruxState.IDLE);
                     }
-                    cleanResponse = cleanResponse.replaceAll("<REMEMBER>.*?</REMEMBER>", "").trim();
+
+                    cleanResponse =
+                            cleanResponse
+                                    .replaceAll(
+                                            "<REMEMBER>.*?</REMEMBER>",
+                                            ""
+                                    )
+                                    .trim();
+                }
+
+                if (!memoryUpdateStarted) {
+                    setKruxState(KruxState.IDLE);
                 }
 
                 aiMessage.setText(cleanResponse);
@@ -1509,7 +1774,39 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         if (drawerLayout != null) {
-            drawerLayout.setBackgroundColor(background);
+            String wallpaperValue = preferences.getString("custom_wallpaper", null);
+            boolean wallpaperApplied = false;
+
+            if (wallpaperValue != null && !wallpaperValue.trim().isEmpty()) {
+                try {
+                    Uri wallpaperUri = Uri.parse(wallpaperValue);
+
+                    try (java.io.InputStream inputStream =
+                                 getContentResolver().openInputStream(wallpaperUri)) {
+
+                        android.graphics.drawable.Drawable wallpaper =
+                                android.graphics.drawable.Drawable.createFromStream(
+                                        inputStream,
+                                        wallpaperValue
+                                );
+
+                        if (wallpaper != null) {
+                            drawerLayout.setBackground(wallpaper);
+                            wallpaperApplied = true;
+                        }
+                    }
+                } catch (Exception error) {
+                    android.util.Log.e(
+                            "KRUX_THEME",
+                            "Impossible d'appliquer le fond personnalisé",
+                            error
+                    );
+                }
+            }
+
+            if (!wallpaperApplied) {
+                drawerLayout.setBackgroundColor(background);
+            }
         }
         if (welcomeScene != null) {
             welcomeScene.setScene(scene);
@@ -1683,6 +1980,51 @@ waveBar1 = findViewById(R.id.waveBar1);
         content.addView(sectionLabel("Taille du texte"));
         content.addView(size);
 
+        // Restaurer les choix actuellement sauvegardés
+        SharedPreferences savedTheme = getSharedPreferences(
+                "krux_theme",
+                MODE_PRIVATE
+        );
+
+        selectChoice(
+                palette,
+                savedTheme.getString("palette", "midnight")
+        );
+
+        selectChoice(
+                font,
+                savedTheme.getString("font", "sans-serif")
+        );
+
+        selectChoice(
+                shape,
+                savedTheme.getString("radius", "16")
+        );
+
+        selectChoice(
+                userBubble,
+                savedTheme.getString("userBubble", "#120B24")
+        );
+
+        selectChoice(
+                aiBubble,
+                savedTheme.getString("aiBubble", "#00000000")
+        );
+
+        selectChoice(
+                accent,
+                savedTheme.getString("accent", "#A855F7")
+        );
+
+        selectChoice(
+                scene,
+                savedTheme.getString("scene", "blackhole")
+        );
+
+        float savedSize = savedTheme.getFloat("size", 15f);
+        int savedProgress = Math.round(savedSize - 14f);
+        size.setProgress(Math.max(0, Math.min(5, savedProgress)));
+
         Button apply = new Button(this);
         apply.setText("Appliquer");
         content.addView(apply);
@@ -1749,9 +2091,70 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("image/*");
+        intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        );
         startActivityForResult(intent, 1002);
+    }
+
+    @Override
+    protected void onActivityResult(
+            int requestCode,
+            int resultCode,
+            Intent data
+    ) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode != 1002 || resultCode != RESULT_OK || data == null) {
+            return;
+        }
+
+        Uri uri = data.getData();
+
+        if (uri == null) {
+            Toast.makeText(
+                    this,
+                    "Aucune image sélectionnée",
+                    Toast.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        selectedWallpaperUri = uri;
+
+        try {
+            int takeFlags = data.getFlags()
+                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+            getContentResolver().takePersistableUriPermission(
+                    uri,
+                    takeFlags
+            );
+        } catch (SecurityException error) {
+            android.util.Log.w(
+                    "KRUX_THEME",
+                    "Permission persistante non disponible",
+                    error
+            );
+        }
+
+        getSharedPreferences("krux_theme", MODE_PRIVATE)
+                .edit()
+                .putString("custom_wallpaper", uri.toString())
+                .apply();
+
+        applySavedTheme();
+
+        Toast.makeText(
+                this,
+                "Fond d’écran appliqué",
+                Toast.LENGTH_SHORT
+        ).show();
     }
 
     private void updateThemePreview(
@@ -1838,6 +2241,25 @@ waveBar1 = findViewById(R.id.waveBar1);
         View checked = group.findViewById(checkedId);
         Object value = checked == null ? null : checked.getTag();
         return value == null ? fallback : value.toString();
+    }
+
+    private void selectChoice(RadioGroup group, String value) {
+        if (group == null || value == null) {
+            return;
+        }
+
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+
+            if (child instanceof RadioButton) {
+                Object tag = child.getTag();
+
+                if (tag != null && value.equals(tag.toString())) {
+                    group.check(child.getId());
+                    return;
+                }
+            }
+        }
     }
 
     private void setupSidebarEvents() {
@@ -2175,25 +2597,129 @@ waveBar1 = findViewById(R.id.waveBar1);
 
     private void handleSelectedFile(Uri uri) {
         try {
-            String fileName = uri.getLastPathSegment();
+            String fileName = null;
 
-            if (fileName == null || fileName.trim().isEmpty()) {
-                fileName = "Fichier sélectionné";
+            android.database.Cursor cursor =
+                    getContentResolver().query(
+                            uri,
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+
+            if (cursor != null) {
+                int nameIndex =
+                        cursor.getColumnIndex(
+                                android.provider.OpenableColumns.DISPLAY_NAME
+                        );
+
+                if (cursor.moveToFirst() && nameIndex >= 0) {
+                    fileName = cursor.getString(nameIndex);
+                }
+
+                cursor.close();
             }
 
-            String message =
-                    "📎 Fichier sélectionné : " + fileName +
-                    "\n\nKrux peut maintenant utiliser ce fichier comme pièce jointe.";
+            if (fileName == null || fileName.trim().isEmpty()) {
+                fileName = uri.getLastPathSegment();
+            }
+
+            if (fileName == null || fileName.trim().isEmpty()) {
+                fileName = "fichier";
+            }
+
+            String lowerName = fileName.toLowerCase(java.util.Locale.ROOT);
+
+            boolean supported =
+                    lowerName.endsWith(".txt")
+                    || lowerName.endsWith(".java")
+                    || lowerName.endsWith(".xml")
+                    || lowerName.endsWith(".json")
+                    || lowerName.endsWith(".csv")
+                    || lowerName.endsWith(".md")
+                    || lowerName.endsWith(".html")
+                    || lowerName.endsWith(".htm")
+                    || lowerName.endsWith(".css")
+                    || lowerName.endsWith(".js")
+                    || lowerName.endsWith(".ts")
+                    || lowerName.endsWith(".kt")
+                    || lowerName.endsWith(".kts")
+                    || lowerName.endsWith(".gradle")
+                    || lowerName.endsWith(".properties")
+                    || lowerName.endsWith(".yml")
+                    || lowerName.endsWith(".yaml")
+                    || lowerName.endsWith(".sql")
+                    || lowerName.endsWith(".c")
+                    || lowerName.endsWith(".cpp")
+                    || lowerName.endsWith(".h")
+                    || lowerName.endsWith(".hpp")
+                    || lowerName.endsWith(".py")
+                    || lowerName.endsWith(".sh");
+
+            if (!supported) {
+                selectedFileName = "";
+                selectedFileContent = "";
+
+                Toast.makeText(
+                        MainActivity.this,
+                        "Ce type de fichier n'est pas encore pris en charge",
+                        Toast.LENGTH_LONG
+                ).show();
+
+                return;
+            }
+
+            java.io.InputStream inputStream =
+                    getContentResolver().openInputStream(uri);
+
+            if (inputStream == null) {
+                throw new Exception("Impossible d'ouvrir le fichier");
+            }
+
+            java.io.BufferedReader reader =
+                    new java.io.BufferedReader(
+                            new java.io.InputStreamReader(
+                                    inputStream,
+                                    java.nio.charset.StandardCharsets.UTF_8
+                            )
+                    );
+
+            StringBuilder content = new StringBuilder();
+            String line;
+            int maxChars = 150000;
+
+            while ((line = reader.readLine()) != null) {
+                if (content.length() + line.length() + 1 > maxChars) {
+                    content.append("\n[CONTENU TRONQUÉ À 150 000 CARACTÈRES]");
+                    break;
+                }
+
+                content.append(line).append("\n");
+            }
+
+            reader.close();
+            inputStream.close();
+
+            selectedFileName = fileName;
+            selectedFileContent = content.toString();
 
             Toast.makeText(
                     MainActivity.this,
-                    "Fichier sélectionné",
+                    "Fichier prêt : " + fileName,
                     Toast.LENGTH_SHORT
             ).show();
 
-            etInput.setText(message);
-
         } catch (Exception e) {
+            selectedFileName = "";
+            selectedFileContent = "";
+
+            android.util.Log.e(
+                    "KRUX_FILE",
+                    "Impossible de lire le fichier",
+                    e
+            );
+
             Toast.makeText(
                     MainActivity.this,
                     "Impossible de lire le fichier",
@@ -2201,8 +2727,6 @@ waveBar1 = findViewById(R.id.waveBar1);
             ).show();
         }
     }
-
-
 
     private void setupKruxSidebar() {
         if (drawerLayout == null) {

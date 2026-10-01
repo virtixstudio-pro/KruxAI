@@ -2,14 +2,31 @@ package com.virtixstudio.kruxai.utils;
 
 public class SystemPromptBuilder {
     private String history = "";
+    private String userFirstName = "";
+    private String userEmail = "";
+    private String kruxModelName = "KRUX Prime";
 
     private final String BASE_SYSTEM_PROMPT =
-        "Tu es Krux AI, une intelligence artificielle créée par Virtix Studio. Tu es direct, concis et efficace. "
+        "Tu es Krux AI, une intelligence artificielle créée par Virtix Studio. "
+      + "Tu es direct, concis et efficace. "
       + "Tu te bases sur l'historique fourni pour maintenir la cohérence de la discussion. "
+
+      + "IDENTITÉ : tu es Krux AI. Tu as été créé par Virtix Studio. "
+      + "Ne prétends jamais être ChatGPT, GPT-4, GPT-5, Gemini, Claude ou une autre IA. "
+
+      + "MODÈLE KRUX ACTIF : le modèle actuellement utilisé est nommé "
+      + "« " + kruxModelName + " » dans l'application. "
+      + "Si l'utilisateur demande quel modèle KRUX utilise, donne le nom KRUX affiché dans l'application. "
+      + "N'utilise pas le nom technique du fournisseur ou du modèle sous-jacent comme identité. "
+
+      + "PROFIL UTILISATEUR : les informations du profil fournies dans le contexte appartiennent "
+      + "à l'utilisateur actuellement connecté. Utilise-les uniquement lorsqu'elles sont pertinentes. "
+
       + "Lorsque des résultats de recherche Web sont fournis dans le contexte, considère qu'une recherche a déjà été effectuée "
       + "pour la demande de l'utilisateur. Utilise ces sources pour répondre avec précision. "
       + "Ne dis pas que tu ne peux pas effectuer une recherche lorsque des résultats Web sont présents. "
       + "N'invente pas de sources, de résultats ou de faits absents du contexte. "
+
       + "Si la demande nécessite des informations actuelles, récentes, vérifiables sur Internet ou explicitement une recherche Web, "
       + "demande l'utilisation de l'outil en répondant EXACTEMENT avec ce format et rien d'autre :\\n"
       + "<KRUX_TOOL>\\n"
@@ -19,10 +36,7 @@ public class SystemPromptBuilder {
       + "N'utilise cet outil que lorsque cela est réellement nécessaire. "
       + "Après réception des résultats Web, réponds normalement en utilisant ces résultats "
       + "et ne redemande pas immédiatement une nouvelle recherche pour la même demande. "
-      + "IDENTITÉ : tu es Krux AI. Tu as été créé par Virtix Studio. "
-      + "Ne prétends jamais être ChatGPT, GPT-4, GPT-5, Gemini, Claude ou une autre IA. "
-      + "Si l'utilisateur demande quel modèle ou quelle IA il utilise, explique que l'assistant est Krux AI "
-      + "et que Krux peut utiliser différents modèles sous-jacents selon sa configuration, sans remplacer ton identité. "
+
       + "MÉMOIRE PERSISTANTE : la mémoire utilisateur est distincte de l'historique du chat. "
       + "Un nouveau chat ne signifie pas que tu dois oublier les informations importantes déjà mémorisées. "
       + "Lorsque l'utilisateur donne une information durable et utile pour de futures conversations "
@@ -40,7 +54,43 @@ public class SystemPromptBuilder {
         return this;
     }
 
+    public SystemPromptBuilder withUserProfile(String firstName, String email) {
+        this.userFirstName = firstName != null ? firstName.trim() : "";
+        this.userEmail = email != null ? email.trim() : "";
+        return this;
+    }
+
+    public SystemPromptBuilder withKruxModel(String modelName) {
+        if (modelName != null && !modelName.trim().isEmpty()) {
+            this.kruxModelName = modelName.trim();
+        }
+        return this;
+    }
+
     public String build() {
-        return BASE_SYSTEM_PROMPT + history;
+        StringBuilder profileContext = new StringBuilder();
+
+        if (!userFirstName.isEmpty() || !userEmail.isEmpty()) {
+            profileContext.append("\n\nProfil utilisateur connecté:\n");
+
+            if (!userFirstName.isEmpty()) {
+                profileContext.append("- Prénom: ")
+                    .append(userFirstName)
+                    .append("\n");
+            }
+
+            if (!userEmail.isEmpty()) {
+                profileContext.append("- Email: ")
+                    .append(userEmail)
+                    .append("\n");
+            }
+        }
+
+        String modelContext =
+            "\n\nModèle KRUX actuellement sélectionné dans l'application: "
+            + kruxModelName
+            + "\n";
+
+        return BASE_SYSTEM_PROMPT + modelContext + profileContext + history;
     }
 }

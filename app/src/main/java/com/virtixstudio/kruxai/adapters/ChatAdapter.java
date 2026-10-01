@@ -444,11 +444,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         TextView codeView = new TextView(context);
         codeView.setText(code);
-        codeView.setTextColor(Color.parseColor("#E9E1F5"));
+        codeView.setTextColor(Color.parseColor("#78B7FF"));
         codeView.setTextSize(13);
         codeView.setTypeface(Typeface.MONOSPACE);
         codeView.setGravity(Gravity.TOP | Gravity.START);
-        codeView.setPadding(14, 12, 14, 14);
+        codeView.setPadding(18, 15, 18, 18);
         codeView.setHorizontallyScrolling(true);
         codeView.setTextIsSelectable(true);
 
@@ -565,8 +565,18 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                                 ? Color.parseColor("#E8DDF3")
                                 : Color.parseColor("#D2C5DE")
                 );
-                tv.setTextSize(13);
-                tv.setPadding(14, 10, 14, 10);
+                tv.setTextSize(rowIndex == 0 ? 13.5f : 13f);
+                tv.setTypeface(
+                        Typeface.create(
+                                Typeface.DEFAULT,
+                                rowIndex == 0
+                                        ? Typeface.BOLD
+                                        : Typeface.NORMAL
+                        )
+                );
+                tv.setGravity(Gravity.CENTER_VERTICAL);
+                tv.setMinHeight(52);
+                tv.setPadding(18, 14, 18, 14);
 
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(
@@ -574,16 +584,23 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                                 ? Color.parseColor("#29163B")
                                 : Color.parseColor("#171126")
                 );
-                bg.setStroke(1, Color.parseColor("#3B2748"));
+                bg.setCornerRadius(14);
+                bg.setStroke(
+                        1,
+                        rowIndex == 0
+                                ? Color.parseColor("#5A3970")
+                                : Color.parseColor("#3B2748")
+                );
                 tv.setBackground(bg);
 
-                row.addView(
-                        tv,
+                TableRow.LayoutParams cellParams =
                         new TableRow.LayoutParams(
                                 ViewGroup.LayoutParams.WRAP_CONTENT,
                                 ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-                );
+                        );
+                cellParams.setMargins(3, 3, 3, 3);
+
+                row.addView(tv, cellParams);
             }
 
             table.addView(row);

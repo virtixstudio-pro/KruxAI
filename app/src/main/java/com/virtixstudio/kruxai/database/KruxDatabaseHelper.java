@@ -233,7 +233,14 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         List<ChatMessage> messages = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery("SELECT sender, message, timestamp FROM messages WHERE session_id = ? ORDER BY id ASC", new String[]{sessionId});
+        Cursor cursor = db.rawQuery(
+                "SELECT sender, message, MAX(timestamp) AS timestamp " +
+                "FROM messages " +
+                "WHERE session_id = ? " +
+                "GROUP BY sender, message " +
+                "ORDER BY MIN(id) ASC",
+                new String[]{sessionId}
+        );
         if (cursor.moveToFirst()) {
             do {
                 String sender = cursor.getString(0);
