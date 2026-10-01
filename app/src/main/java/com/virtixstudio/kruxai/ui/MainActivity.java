@@ -292,7 +292,9 @@ waveBar1 = findViewById(R.id.waveBar1);
                             executeAiQuery(
                                     message.getText(),
                                     "",
-                                    new ArrayList<>()
+                                    new ArrayList<>(),
+                                    "",
+                                    ""
                             );
                         }
                     }
@@ -1651,7 +1653,13 @@ waveBar1 = findViewById(R.id.waveBar1);
         addUserAction(menu, R.drawable.ic_retry, "Réessayer", () -> {
             popup.dismiss();
             if (message.getText() != null) {
-                executeAiQuery(message.getText(), "", new ArrayList<>());
+                executeAiQuery(
+                        message.getText(),
+                        "",
+                        new ArrayList<>(),
+                        "",
+                        ""
+                );
             }
         });
 
