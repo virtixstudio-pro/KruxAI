@@ -118,7 +118,6 @@ private String selectedFileContent = "";
     private String currentSessionId;
     private boolean isGenerating = false;
     private KruxState kruxState = KruxState.IDLE;
-    private ChatMessage activeAiMessage;
     private View kruxStatusContainer;
     private TextView tvKruxStatus;
     private TextView tvWelcomeTitle, tvWelcomeSubtitle;
@@ -1154,7 +1153,6 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         ChatMessage aiMessage = new ChatMessage("", false, sources);
         aiMessage.setStreaming(true);
-        activeAiMessage = aiMessage;
 
         runOnUiThread(() -> {
             messageList.add(aiMessage);
@@ -2379,70 +2377,42 @@ waveBar1 = findViewById(R.id.waveBar1);
         final KruxState displayState = state;
 
         runOnUiThread(() -> {
-
-            if (chatAdapter == null || activeAiMessage == null) {
+            if (kruxStatusContainer == null || tvKruxStatus == null) {
                 return;
             }
 
-            String status;
-
             switch (displayState) {
-
                 case THINKING:
-                    status = "Réflexion…";
+                    tvKruxStatus.setText("Réflexion…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case SEARCHING:
-                    status = "Recherche sur le Web…";
+                    tvKruxStatus.setText("Recherche…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case GENERATING:
-                    status = "Génération…";
+                    tvKruxStatus.setText("Génération…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case MEMORY:
-                    status = "Mise à jour de la mémoire…";
+                    tvKruxStatus.setText("Mise à jour de la mémoire…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case ERROR:
-                    status = "Une erreur est survenue";
+                    tvKruxStatus.setText("Une erreur est survenue");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case LISTENING:
                 case IDLE:
                 default:
-
-                    final String completedId =
-                            activeAiMessage.getId();
-
-                    chatAdapter.setKruxAnswerStatus(
-                            completedId,
-                            "Terminé"
-                    );
-
-                    new android.os.Handler(
-                            android.os.Looper.getMainLooper()
-                    ).postDelayed(() -> {
-
-                        if (activeAiMessage != null
-                                && completedId.equals(
-                                        activeAiMessage.getId()
-                                )) {
-
-                            chatAdapter.clearKruxAnswerStatus(
-                                    completedId
-                            );
-                        }
-
-                    }, 900);
-
-                    return;
+                    kruxStatusContainer.setVisibility(View.GONE);
+                    break;
             }
-
-            chatAdapter.setKruxAnswerStatus(
-                    activeAiMessage.getId(),
-                    status
-            );
         });
     }
 

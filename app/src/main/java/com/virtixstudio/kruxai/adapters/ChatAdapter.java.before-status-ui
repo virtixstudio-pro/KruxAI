@@ -54,9 +54,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final Map<String, String> feedbackStates = new HashMap<>();
 
-    private String activeStatusMessageId = null;
-    private String activeStatusText = null;
-
     private Markwon markwon;
     private Context adapterContext;
     private int accentColor = Color.parseColor("#A855F7");
@@ -203,62 +200,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 message.getText() == null ? "" : message.getText()
         );
 
-        setupKruxAnswerStatus(aiHolder, message);
-
         setupSources(aiHolder, context, message);
         setupReasoning(aiHolder, message);
         setupActions(aiHolder, context, message);
         setupFeedback(aiHolder, message);
-    }
-
-    public void setKruxAnswerStatus(
-            String messageId,
-            String status
-    ) {
-        activeStatusMessageId = messageId;
-        activeStatusText = status;
-        notifyDataSetChanged();
-    }
-
-    public void clearKruxAnswerStatus(String messageId) {
-        if (messageId != null
-                && messageId.equals(activeStatusMessageId)) {
-
-            activeStatusMessageId = null;
-            activeStatusText = null;
-            notifyDataSetChanged();
-        }
-    }
-
-    private void setupKruxAnswerStatus(
-            AiViewHolder holder,
-            ChatMessage message
-    ) {
-        if (holder.kruxAnswerStatusContainer == null
-                || holder.tvKruxAnswerStatus == null) {
-            return;
-        }
-
-        boolean active =
-                activeStatusMessageId != null
-                && activeStatusMessageId.equals(message.getId())
-                && activeStatusText != null
-                && !activeStatusText.trim().isEmpty();
-
-        if (!active) {
-            holder.kruxAnswerStatusContainer.setVisibility(
-                    View.GONE
-            );
-            return;
-        }
-
-        holder.tvKruxAnswerStatus.setText(
-                activeStatusText
-        );
-
-        holder.kruxAnswerStatusContainer.setVisibility(
-                View.VISIBLE
-        );
     }
 
     private void animateActionButton(@NonNull View button) {
@@ -1273,8 +1218,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             extends RecyclerView.ViewHolder {
 
         LinearLayout messageContainer;
-        LinearLayout kruxAnswerStatusContainer;
-        TextView tvKruxAnswerStatus;
         TextView tvReasoningContent;
 
         LinearLayout layoutReasoning;
@@ -1300,16 +1243,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             messageContainer =
                     itemView.findViewById(
                             R.id.messageContainer
-                    );
-
-            kruxAnswerStatusContainer =
-                    itemView.findViewById(
-                            R.id.kruxAnswerStatusContainer
-                    );
-
-            tvKruxAnswerStatus =
-                    itemView.findViewById(
-                            R.id.tvKruxAnswerStatus
                     );
 
             tvReasoningContent =

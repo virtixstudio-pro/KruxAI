@@ -88,7 +88,13 @@
 
             </LinearLayout>
 
-
+            <include
+                android:id="@+id/kruxStatusContainer"
+                layout="@layout/krux_status"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true" />
 
         </RelativeLayout>
 

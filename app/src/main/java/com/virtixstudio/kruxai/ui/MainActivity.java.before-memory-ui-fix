@@ -19,7 +19,6 @@ import android.speech.tts.TextToSpeech;
 import android.view.View;
 import android.view.Gravity;
 import android.view.ViewGroup;
-import android.widget.ScrollView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -74,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
-    private ImageButton btnMenu, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
+    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
     private View navSearchChats, navStudio, navCustomize, navLogout;
     private TextView btnNewChat;
 
@@ -88,6 +87,10 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private RecyclerView rvChat, rvHistory;
     private View welcomePanel;
     private EditText etSearchHistory;
+    private TextView welcomePromptOne;
+    private TextView welcomePromptTwo;
+    private TextView welcomePromptThree;
+    private Button welcomeNewChat;
     private KruxWelcomeSceneView welcomeScene;
     private LinearLayout llVoiceVisualizer;
     private View waveBar1, waveBar2, waveBar3, waveBar4;
@@ -100,10 +103,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
     private FirebaseUser currentUser;
-    private String currentUserFirstName = "";
-    private String currentUserEmail = "";
-private String selectedFileName = "";
-private String selectedFileContent = "";
 
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
@@ -118,10 +117,8 @@ private String selectedFileContent = "";
     private String currentSessionId;
     private boolean isGenerating = false;
     private KruxState kruxState = KruxState.IDLE;
-    private ChatMessage activeAiMessage;
     private View kruxStatusContainer;
     private TextView tvKruxStatus;
-    private TextView tvWelcomeTitle, tvWelcomeSubtitle;
 
 private final ActivityResultLauncher<String[]> filePicker =
         registerForActivityResult(
@@ -148,34 +145,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
         android.util.Log.e("KRUX_BOOT", "BOOT 04: FirebaseAuth OK, user=" + (currentUser != null));
-
-        if (currentUser != null) {
-            currentUserEmail = currentUser.getEmail() != null
-                ? currentUser.getEmail()
-                : "";
-
-            db.collection("users")
-                .document(currentUser.getUid())
-                .get()
-                .addOnSuccessListener(document -> {
-                    if (document.exists()) {
-                        String firstName = document.getString("firstName");
-                        if (firstName != null) {
-                            currentUserFirstName = firstName.trim();
-                        }
-                    }
-                    android.util.Log.d(
-                        "KRUX_PROFILE",
-                        "Profil chargé : firstName=" + currentUserFirstName
-                            + ", email=" + currentUserEmail
-                    );
-
-                    runOnUiThread(() -> updateWelcomePanel());
-                })
-                .addOnFailureListener(e ->
-                    android.util.Log.e("KRUX_PROFILE", "Échec chargement profil Firebase", e)
-                );
-        }
 
         if (currentUser == null) {
             startActivity(new Intent(this, LoginActivity.class));
@@ -212,6 +181,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         drawerLayout = findViewById(R.id.drawerLayout);
         btnMenu = findViewById(R.id.btnMenu);
+        btnAccount = findViewById(R.id.btnAccount);
         btnPlus = findViewById(R.id.btnPlus);
         btnMic = findViewById(R.id.btnMic);
         btnStopMic = findViewById(R.id.btnStopMic);
@@ -232,9 +202,10 @@ private final ActivityResultLauncher<String[]> filePicker =
         rvChat = findViewById(R.id.rvChat);
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
-        tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
-        tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
+        welcomeNewChat = findViewById(R.id.welcomeNewChat);
         welcomeScene = findViewById(R.id.welcomeScene);
+        setupWelcomePanel();
+        android.util.Log.e("KRUX_BOOT", "BOOT 08: setupWelcomePanel OK");
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
                 kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
@@ -252,10 +223,14 @@ waveBar1 = findViewById(R.id.waveBar1);
         navLogout = findViewById(R.id.navLogout);
 
         etSearchHistory = findViewById(R.id.etSearchHistory);
+        welcomePromptOne = findViewById(R.id.welcomePromptOne);
+        welcomePromptTwo = findViewById(R.id.welcomePromptTwo);
+        welcomePromptThree = findViewById(R.id.welcomePromptThree);
 
         setupKruxSidebar();
         android.util.Log.e("KRUX_BOOT", "BOOT 09: setupKruxSidebar OK");
-        android.util.Log.e("KRUX_BOOT", "BOOT 10: welcome UI OK");
+        setupWelcomePrompts();
+        android.util.Log.e("KRUX_BOOT", "BOOT 10: setupWelcomePrompts OK");
 
         messageList = new ArrayList<>();
         chatAdapter = new ChatAdapter(
@@ -287,9 +262,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                             executeAiQuery(
                                     message.getText(),
                                     "",
-                                    new ArrayList<>(),
-                                    "",
-                                    ""
+                                    new ArrayList<>()
                             );
                         }
                     }
@@ -347,6 +320,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
+        btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
         btnSend.setOnClickListener(v -> {
             if (isGenerating) {
@@ -606,14 +580,8 @@ waveBar1 = findViewById(R.id.waveBar1);
                 );
     }
 
-    private void saveMemoryToCloud(
-            String fact,
-            Runnable onComplete
-    ) {
+    private void saveMemoryToCloud(String fact) {
         if (fact == null || fact.trim().isEmpty()) {
-            if (onComplete != null) {
-                onComplete.run();
-            }
             return;
         }
 
@@ -622,125 +590,40 @@ waveBar1 = findViewById(R.id.waveBar1);
                     "KRUX_SYNC",
                     "Sauvegarde mémoire cloud ignorée : aucun compte authentifié."
             );
-
-            if (onComplete != null) {
-                onComplete.run();
-            }
             return;
         }
 
         String cleanFact = fact.trim();
 
-        com.google.firebase.firestore.CollectionReference memoryCollection =
-                db.collection("users")
-                        .document(currentUser.getUid())
-                        .collection("memory");
+        java.util.Map<String, Object> memory =
+                new java.util.HashMap<>();
 
-        memoryCollection
-                .whereEqualTo("fact", cleanFact)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(snapshot -> {
+        memory.put("fact", cleanFact);
+        memory.put(
+                "createdAt",
+                com.google.firebase.firestore.FieldValue.serverTimestamp()
+        );
 
-                    if (!snapshot.isEmpty()) {
+        String memoryId = java.util.UUID.randomUUID().toString();
 
-                        String memoryId =
-                                snapshot.getDocuments()
-                                        .get(0)
-                                        .getId();
-
-                        java.util.Map<String, Object> update =
-                                new java.util.HashMap<>();
-
-                        update.put(
-                                "updatedAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-
-                        memoryCollection
-                                .document(memoryId)
-                                .update(update)
-                                .addOnSuccessListener(unused -> {
-
-                                    android.util.Log.d(
-                                            "KRUX_SYNC",
-                                            "Mémoire Firestore mise à jour : "
-                                                    + memoryId
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-
-                                    android.util.Log.e(
-                                            "KRUX_SYNC",
-                                            "Échec mise à jour mémoire Firestore : "
-                                                    + memoryId,
-                                            e
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                });
-
-                    } else {
-
-                        java.util.Map<String, Object> memory =
-                                new java.util.HashMap<>();
-
-                        memory.put("fact", cleanFact);
-                        memory.put(
-                                "createdAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-                        memory.put(
-                                "updatedAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-
-                        memoryCollection
-                                .add(memory)
-                                .addOnSuccessListener(documentReference -> {
-
-                                    android.util.Log.d(
-                                            "KRUX_SYNC",
-                                            "Nouvelle mémoire Firestore : "
-                                                    + documentReference.getId()
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-
-                                    android.util.Log.e(
-                                            "KRUX_SYNC",
-                                            "Échec création mémoire Firestore",
-                                            e
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                });
-                    }
-                })
-                .addOnFailureListener(e -> {
-
-                    android.util.Log.e(
-                            "KRUX_SYNC",
-                            "Échec recherche mémoire Firestore",
-                            e
-                    );
-
-                    if (onComplete != null) {
-                        onComplete.run();
-                    }
-                });
+        db.collection("users")
+                .document(currentUser.getUid())
+                .collection("memory")
+                .document(memoryId)
+                .set(memory)
+                .addOnSuccessListener(unused ->
+                        android.util.Log.d(
+                                "KRUX_SYNC",
+                                "Mémoire synchronisée : " + memoryId
+                        )
+                )
+                .addOnFailureListener(e ->
+                        android.util.Log.e(
+                                "KRUX_SYNC",
+                                "Échec synchronisation mémoire : " + memoryId,
+                                e
+                        )
+                );
     }
 
     private void loadCurrentSession() {
@@ -946,7 +829,32 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
+    private void setupWelcomePanel() {
+        int[] promptIds = {
+                R.id.welcomePromptOne,
+                R.id.welcomePromptTwo,
+                R.id.welcomePromptThree
+        };
 
+        for (int promptId : promptIds) {
+            TextView prompt = findViewById(promptId);
+            if (prompt != null) {
+                prompt.setOnClickListener(v -> {
+                    String promptText = ((TextView) v).getText().toString().trim();
+
+                    if (!promptText.isEmpty()) {
+                        etInput.setText(promptText);
+                        sendMessage();
+                    }
+                });
+            }
+        }
+
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setOnClickListener(v -> startNewDiscussion());
+        }
+        updateWelcomePanel();
+    }
 
     private void startNewDiscussion() {
         if (currentUser == null) {
@@ -975,71 +883,18 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void updateWelcomePanel() {
-        if (welcomePanel == null) {
-            return;
+        if (welcomePanel != null) {
+            welcomePanel.setVisibility(
+                    messageList == null || messageList.isEmpty()
+                            ? View.VISIBLE
+                            : View.GONE
+            );
         }
-
-        boolean empty = messageList == null || messageList.isEmpty();
-
-        welcomePanel.setVisibility(empty ? View.VISIBLE : View.GONE);
-
-        if (!empty && welcomeScene != null) {
-            welcomeScene.setAnimating(false);
-        }
-
-        if (tvWelcomeTitle == null || tvWelcomeSubtitle == null) {
-            return;
-        }
-
-        String name = currentUserFirstName != null
-                ? currentUserFirstName.trim()
-                : "";
-
-        if (name.isEmpty() && currentUserEmail != null) {
-            String email = currentUserEmail.trim();
-            int at = email.indexOf('@');
-
-            if (at > 0) {
-                name = email.substring(0, at).trim();
-            } else if (!email.isEmpty()) {
-                name = email;
-            }
-        }
-
-        if (name.isEmpty()) {
-            name = "toi";
-        }
-
-        int hour = java.util.Calendar.getInstance()
-                .get(java.util.Calendar.HOUR_OF_DAY);
-
-        String title;
-        String subtitle;
-
-        if (hour >= 5 && hour < 12) {
-            title = "Bonjour " + name;
-            subtitle = "Prêt à commencer quelque chose ?";
-        } else if (hour >= 12 && hour < 18) {
-            title = "Bon après-midi " + name;
-            subtitle = "On avance sur quoi aujourd’hui ?";
-        } else if (hour >= 18 && hour < 24) {
-            title = "Bonsoir " + name;
-            subtitle = "On fait quoi de beau ce soir ?";
-        } else {
-            title = "Bonne nuit " + name;
-            subtitle = "Encore debout ? On termine quelque chose ?";
-        }
-
-        tvWelcomeTitle.setText(title);
-        tvWelcomeSubtitle.setText(subtitle);
     }
 
     private void sendMessage() {
         String prompt = etInput.getText().toString().trim();
         if (prompt.isEmpty()) return;
-
-        final String fileNameForRequest = selectedFileName;
-        final String fileContentForRequest = selectedFileContent;
 
         ChatMessage userMessage = new ChatMessage(prompt, true);
         saveMessageToDatabase(userMessage);
@@ -1057,45 +912,21 @@ waveBar1 = findViewById(R.id.waveBar1);
             webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
                 public void onSuccess(List<SearchResult> results, String formattedContext) {
-                    executeAiQuery(
-                            prompt,
-                            formattedContext,
-                            results,
-                            fileNameForRequest,
-                            fileContentForRequest
-                    );
+                    executeAiQuery(prompt, formattedContext, results);
                 }
 
                 @Override
                 public void onError(String error) {
-                    executeAiQuery(
-                            prompt,
-                            "",
-                            new ArrayList<>(),
-                            fileNameForRequest,
-                            fileContentForRequest
-                    );
+                    executeAiQuery(prompt, "", new ArrayList<>());
                 }
             });
         } else {
             setKruxState(KruxState.GENERATING);
-            executeAiQuery(
-                    prompt,
-                    "",
-                    new ArrayList<>(),
-                    fileNameForRequest,
-                    fileContentForRequest
-            );
+            executeAiQuery(prompt, "", new ArrayList<>());
         }
     }
 
-    private void executeAiQuery(
-            String userPrompt,
-            String webContext,
-            List<SearchResult> sources,
-            String fileName,
-            String fileContent
-    ) {
+    private void executeAiQuery(String userPrompt, String webContext, List<SearchResult> sources) {
         setKruxState(KruxState.GENERATING);
 
         StringBuilder historyBuilder = new StringBuilder();
@@ -1120,41 +951,16 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         String systemPrompt = new SystemPromptBuilder()
-                .withKruxModel(
-                    selectedKruxModel != null
-                        ? selectedKruxModel.getDisplayName()
-                        : "KRUX Prime"
-                )
-                .withUserProfile(currentUserFirstName, currentUserEmail)
                 .withHistory(historyBuilder.toString())
                 .build();
 
         StringBuilder promptWithContext = new StringBuilder();
-
-        if (fileContent != null && !fileContent.trim().isEmpty()) {
-            promptWithContext
-                    .append("FICHIER JOINT : ")
-                    .append(fileName != null ? fileName : "fichier")
-                    .append("\n")
-                    .append("Analyse réellement le contenu ci-dessous. ")
-                    .append("Ne prétends pas avoir lu le fichier si son contenu n'est pas présent.")
-                    .append("\n--- DÉBUT DU FICHIER ---\n")
-                    .append(fileContent)
-                    .append("--- FIN DU FICHIER ---\n\n");
-        }
-
-        promptWithContext
-                .append("Utilisateur: ")
-                .append(userPrompt);
+        promptWithContext.append("Utilisateur: ").append(userPrompt);
 
         setGeneratingState(true);
 
-        selectedFileName = "";
-        selectedFileContent = "";
-
         ChatMessage aiMessage = new ChatMessage("", false, sources);
         aiMessage.setStreaming(true);
-        activeAiMessage = aiMessage;
 
         runOnUiThread(() -> {
             messageList.add(aiMessage);
@@ -1175,82 +981,20 @@ waveBar1 = findViewById(R.id.waveBar1);
                 });
 
                 String cleanResponse = rawResponse;
-
-                boolean memoryUpdateStarted = false;
-
-                if (cleanResponse.contains("<REMEMBER>")
-                        && cleanResponse.contains("</REMEMBER>")) {
-
+                if (cleanResponse.contains("<REMEMBER>") && cleanResponse.contains("</REMEMBER>")) {
                     try {
-                        int start =
-                                cleanResponse.indexOf("<REMEMBER>") + 10;
-
-                        int end =
-                                cleanResponse.indexOf("</REMEMBER>");
-
+                        int start = cleanResponse.indexOf("<REMEMBER>") + 10;
+                        int end = cleanResponse.indexOf("</REMEMBER>");
                         if (end > start) {
-
-                            String fact =
-                                    cleanResponse
-                                            .substring(start, end)
-                                            .trim();
-
-                            if (!fact.isEmpty()) {
-
-                                memoryUpdateStarted = true;
-
-                                setKruxState(KruxState.MEMORY);
-
-                                boolean alreadyExists =
-                                        dbHelper.hasMemoryFact(fact);
-
-                                if (!alreadyExists) {
-                                    dbHelper.addMemoryFact(fact);
-                                }
-
-                                boolean verifiedLocally =
-                                        dbHelper.hasMemoryFact(fact);
-
-                                android.util.Log.d(
-                                        "KRUX_MEMORY",
-                                        "SQLite mémoire "
-                                                + (verifiedLocally
-                                                ? "vérifiée"
-                                                : "NON vérifiée")
-                                                + " : "
-                                                + fact
-                                );
-
-                                saveMemoryToCloud(
-                                        fact,
-                                        () -> setKruxState(KruxState.IDLE)
-                                );
-                            }
-
+                            String fact = cleanResponse.substring(start, end).trim();
+                            setKruxState(KruxState.MEMORY);
+                            dbHelper.addMemoryFact(fact);
+                            saveMemoryToCloud(fact);
                         }
-
                     } catch (Exception e) {
-
-                        android.util.Log.e(
-                                "KRUX_MEMORY",
-                                "Erreur pendant la mise à jour mémoire",
-                                e
-                        );
-
-                        setKruxState(KruxState.IDLE);
+                        e.printStackTrace();
                     }
-
-                    cleanResponse =
-                            cleanResponse
-                                    .replaceAll(
-                                            "<REMEMBER>.*?</REMEMBER>",
-                                            ""
-                                    )
-                                    .trim();
-                }
-
-                if (!memoryUpdateStarted) {
-                    setKruxState(KruxState.IDLE);
+                    cleanResponse = cleanResponse.replaceAll("<REMEMBER>.*?</REMEMBER>", "").trim();
                 }
 
                 aiMessage.setText(cleanResponse);
@@ -1673,13 +1417,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         addUserAction(menu, R.drawable.ic_retry, "Réessayer", () -> {
             popup.dismiss();
             if (message.getText() != null) {
-                executeAiQuery(
-                        message.getText(),
-                        "",
-                        new ArrayList<>(),
-                        "",
-                        ""
-                );
+                executeAiQuery(message.getText(), "", new ArrayList<>());
             }
         });
 
@@ -1845,6 +1583,9 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (tvKruxStatus != null) {
             tvKruxStatus.setTextColor(accent);
         }
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setBackgroundTintList(ColorStateList.valueOf(accent));
+        }
         if (chatAdapter != null) {
             chatAdapter.applyTheme(
                     userBubble,
@@ -1869,33 +1610,10 @@ waveBar1 = findViewById(R.id.waveBar1);
         private Uri selectedWallpaperUri = null;
 
     private void showCustomizationSheet() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.TRANSPARENT);
-
-        ScrollView scrollView = new ScrollView(this);
-        scrollView.setFillViewport(true);
-
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(
-                dpToPx(20),
-                dpToPx(18),
-                dpToPx(20),
-                dpToPx(12)
-        );
+        content.setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(12));
         content.setBackgroundColor(Color.TRANSPARENT);
-
-        scrollView.addView(content);
-
-        root.addView(
-                scrollView,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        0,
-                        1f
-                )
-        );
 
         TextView title = new TextView(this);
         title.setText("Personnaliser l’app");
@@ -2075,31 +1793,7 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         Button apply = new Button(this);
         apply.setText("Appliquer");
-
-        LinearLayout actionBar = new LinearLayout(this);
-        actionBar.setOrientation(LinearLayout.VERTICAL);
-        actionBar.setPadding(
-                dpToPx(20),
-                dpToPx(8),
-                dpToPx(20),
-                dpToPx(12)
-        );
-
-        actionBar.addView(
-                apply,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        dpToPx(52)
-                )
-        );
-
-        root.addView(
-                actionBar,
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-        );
+        content.addView(apply);
 
         // Écouteurs pour mise à jour instantanée
         Runnable updatePreviewAction = () -> updateThemePreview(
@@ -2108,7 +1802,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                 previewCodeBlock,
                 selectedChoice(userBubble, "#120B24"),
                 selectedChoice(aiBubble, "#00000000"),
-                selectedChoice(shape, "16"),
+                selectedChoice(shape, "12"),
                 selectedChoice(accent, "#A855F7"),
                 selectedChoice(font, "sans-serif"),
                 14f + size.getProgress()
@@ -2129,7 +1823,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         updatePreviewAction.run();
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        dialog.setContentView(root);
+        dialog.setContentView(content);
         View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
         if (bottomSheet != null) {
             bottomSheet.setBackgroundColor(Color.TRANSPARENT);
@@ -2138,7 +1832,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         apply.setOnClickListener(v -> {
             String paletteValue = selectedChoice(palette, "midnight");
             String fontValue = selectedChoice(font, "sans-serif");
-            float radiusValue = Float.parseFloat(selectedChoice(shape, "16"));
+            float radiusValue = Float.parseFloat(selectedChoice(shape, "12"));
             float sizeValue = 14f + size.getProgress();
 
             SharedPreferences.Editor editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit();
@@ -2379,70 +2073,42 @@ waveBar1 = findViewById(R.id.waveBar1);
         final KruxState displayState = state;
 
         runOnUiThread(() -> {
-
-            if (chatAdapter == null || activeAiMessage == null) {
+            if (kruxStatusContainer == null || tvKruxStatus == null) {
                 return;
             }
 
-            String status;
-
             switch (displayState) {
-
                 case THINKING:
-                    status = "Réflexion…";
+                    tvKruxStatus.setText("Réflexion…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case SEARCHING:
-                    status = "Recherche sur le Web…";
+                    tvKruxStatus.setText("Recherche…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case GENERATING:
-                    status = "Génération…";
+                    tvKruxStatus.setText("Génération…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case MEMORY:
-                    status = "Mise à jour de la mémoire…";
+                    tvKruxStatus.setText("Mise à jour de la mémoire…");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case ERROR:
-                    status = "Une erreur est survenue";
+                    tvKruxStatus.setText("Une erreur est survenue");
+                    kruxStatusContainer.setVisibility(View.VISIBLE);
                     break;
 
                 case LISTENING:
                 case IDLE:
                 default:
-
-                    final String completedId =
-                            activeAiMessage.getId();
-
-                    chatAdapter.setKruxAnswerStatus(
-                            completedId,
-                            "Terminé"
-                    );
-
-                    new android.os.Handler(
-                            android.os.Looper.getMainLooper()
-                    ).postDelayed(() -> {
-
-                        if (activeAiMessage != null
-                                && completedId.equals(
-                                        activeAiMessage.getId()
-                                )) {
-
-                            chatAdapter.clearKruxAnswerStatus(
-                                    completedId
-                            );
-                        }
-
-                    }, 900);
-
-                    return;
+                    kruxStatusContainer.setVisibility(View.GONE);
+                    break;
             }
-
-            chatAdapter.setKruxAnswerStatus(
-                    activeAiMessage.getId(),
-                    status
-            );
         });
     }
 
@@ -2697,129 +2363,25 @@ waveBar1 = findViewById(R.id.waveBar1);
 
     private void handleSelectedFile(Uri uri) {
         try {
-            String fileName = null;
-
-            android.database.Cursor cursor =
-                    getContentResolver().query(
-                            uri,
-                            null,
-                            null,
-                            null,
-                            null
-                    );
-
-            if (cursor != null) {
-                int nameIndex =
-                        cursor.getColumnIndex(
-                                android.provider.OpenableColumns.DISPLAY_NAME
-                        );
-
-                if (cursor.moveToFirst() && nameIndex >= 0) {
-                    fileName = cursor.getString(nameIndex);
-                }
-
-                cursor.close();
-            }
+            String fileName = uri.getLastPathSegment();
 
             if (fileName == null || fileName.trim().isEmpty()) {
-                fileName = uri.getLastPathSegment();
+                fileName = "Fichier sélectionné";
             }
 
-            if (fileName == null || fileName.trim().isEmpty()) {
-                fileName = "fichier";
-            }
-
-            String lowerName = fileName.toLowerCase(java.util.Locale.ROOT);
-
-            boolean supported =
-                    lowerName.endsWith(".txt")
-                    || lowerName.endsWith(".java")
-                    || lowerName.endsWith(".xml")
-                    || lowerName.endsWith(".json")
-                    || lowerName.endsWith(".csv")
-                    || lowerName.endsWith(".md")
-                    || lowerName.endsWith(".html")
-                    || lowerName.endsWith(".htm")
-                    || lowerName.endsWith(".css")
-                    || lowerName.endsWith(".js")
-                    || lowerName.endsWith(".ts")
-                    || lowerName.endsWith(".kt")
-                    || lowerName.endsWith(".kts")
-                    || lowerName.endsWith(".gradle")
-                    || lowerName.endsWith(".properties")
-                    || lowerName.endsWith(".yml")
-                    || lowerName.endsWith(".yaml")
-                    || lowerName.endsWith(".sql")
-                    || lowerName.endsWith(".c")
-                    || lowerName.endsWith(".cpp")
-                    || lowerName.endsWith(".h")
-                    || lowerName.endsWith(".hpp")
-                    || lowerName.endsWith(".py")
-                    || lowerName.endsWith(".sh");
-
-            if (!supported) {
-                selectedFileName = "";
-                selectedFileContent = "";
-
-                Toast.makeText(
-                        MainActivity.this,
-                        "Ce type de fichier n'est pas encore pris en charge",
-                        Toast.LENGTH_LONG
-                ).show();
-
-                return;
-            }
-
-            java.io.InputStream inputStream =
-                    getContentResolver().openInputStream(uri);
-
-            if (inputStream == null) {
-                throw new Exception("Impossible d'ouvrir le fichier");
-            }
-
-            java.io.BufferedReader reader =
-                    new java.io.BufferedReader(
-                            new java.io.InputStreamReader(
-                                    inputStream,
-                                    java.nio.charset.StandardCharsets.UTF_8
-                            )
-                    );
-
-            StringBuilder content = new StringBuilder();
-            String line;
-            int maxChars = 150000;
-
-            while ((line = reader.readLine()) != null) {
-                if (content.length() + line.length() + 1 > maxChars) {
-                    content.append("\n[CONTENU TRONQUÉ À 150 000 CARACTÈRES]");
-                    break;
-                }
-
-                content.append(line).append("\n");
-            }
-
-            reader.close();
-            inputStream.close();
-
-            selectedFileName = fileName;
-            selectedFileContent = content.toString();
+            String message =
+                    "📎 Fichier sélectionné : " + fileName +
+                    "\n\nKrux peut maintenant utiliser ce fichier comme pièce jointe.";
 
             Toast.makeText(
                     MainActivity.this,
-                    "Fichier prêt : " + fileName,
+                    "Fichier sélectionné",
                     Toast.LENGTH_SHORT
             ).show();
 
+            etInput.setText(message);
+
         } catch (Exception e) {
-            selectedFileName = "";
-            selectedFileContent = "";
-
-            android.util.Log.e(
-                    "KRUX_FILE",
-                    "Impossible de lire le fichier",
-                    e
-            );
-
             Toast.makeText(
                     MainActivity.this,
                     "Impossible de lire le fichier",
@@ -2827,6 +2389,8 @@ waveBar1 = findViewById(R.id.waveBar1);
             ).show();
         }
     }
+
+
 
     private void setupKruxSidebar() {
         if (drawerLayout == null) {
@@ -2904,6 +2468,46 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
+    private void setupWelcomePrompts() {
+        View.OnClickListener listener = v -> {
+            if (etInput == null) {
+                return;
+            }
 
+            if (v instanceof TextView) {
+                String prompt =
+                        ((TextView) v).getText().toString();
+
+                etInput.setText(prompt);
+                etInput.setSelection(
+                        etInput.getText().length()
+                );
+
+                etInput.requestFocus();
+            }
+        };
+
+        if (welcomePromptOne != null) {
+            welcomePromptOne.setOnClickListener(listener);
+        }
+
+        if (welcomePromptTwo != null) {
+            welcomePromptTwo.setOnClickListener(listener);
+        }
+
+        if (welcomePromptThree != null) {
+            welcomePromptThree.setOnClickListener(listener);
+        }
+
+        if (welcomeNewChat != null) {
+            welcomeNewChat.setOnClickListener(v -> {
+                startNewDiscussion();
+
+                if (etInput != null) {
+                    etInput.requestFocus();
+                }
+            });
+        }
+    }
 
 }
