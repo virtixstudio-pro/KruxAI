@@ -1311,4 +1311,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     );
         }
     }
+    private int parseThemeColor(String hex, int fallback) {
+        if (hex == null || hex.trim().isEmpty()) return fallback;
+        try {
+            String cleaned = hex.trim();
+            if (!cleaned.startsWith("#")) cleaned = "#" + cleaned;
+            return android.graphics.Color.parseColor(cleaned);
+        } catch (IllegalArgumentException e) {
+            return fallback;
+        }
+    }
 }
