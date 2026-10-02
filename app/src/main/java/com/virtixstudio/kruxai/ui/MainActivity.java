@@ -237,9 +237,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         welcomeScene = findViewById(R.id.welcomeScene);
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
-                kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
-        tvKruxStatus = findViewById(R.id.tvKruxStatus);
-waveBar1 = findViewById(R.id.waveBar1);
+        waveBar1 = findViewById(R.id.waveBar1);
         waveBar2 = findViewById(R.id.waveBar2);
         waveBar3 = findViewById(R.id.waveBar3);
         waveBar4 = findViewById(R.id.waveBar4);
