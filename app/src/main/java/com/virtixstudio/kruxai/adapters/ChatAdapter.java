@@ -55,7 +55,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> feedbackStates = new HashMap<>();
 
     private Markwon markwon;
-        private int userBubbleColor = Color.parseColor("#120B24");
+    private Context adapterContext;
+    private int accentColor = Color.parseColor("#A855F7");
+    private int secondaryTextColor = Color.parseColor("#B9AFCB");
+    private int codeBackgroundColor = Color.parseColor("#171126");
+    private int codeTextColor = Color.parseColor("#78B7FF");
+    private int codeBorderColor = Color.parseColor("#43245E");
+    private int userBubbleColor = Color.parseColor("#120B24");
         private int userTextColor = Color.parseColor("#FAF7FF");
         private int aiBubbleColor = Color.TRANSPARENT;
         private int aiTextColor = Color.parseColor("#FAF7FF");
@@ -130,12 +136,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 .usePlugin(new AbstractMarkwonPlugin() {
                     @Override
                     public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
-                        builder.codeBlockBackgroundColor(Color.parseColor("#1E1E2E"))
-                               .codeBlockTextColor(Color.parseColor("#E0DEF4"))
-                               .codeBackgroundColor(Color.parseColor("#2A2A3E"))
-                               .codeTextColor(Color.parseColor("#E0DEF4"))
-                               .blockQuoteColor(Color.parseColor("#9B59B6"))
-                               .linkColor(Color.parseColor("#BB86FC"));
+                        builder.codeBlockBackgroundColor(codeBackgroundColor)
+                               .codeBlockTextColor(codeTextColor)
+                               .codeBackgroundColor(codeBackgroundColor)
+                               .codeTextColor(codeTextColor)
+                               .blockQuoteColor(accentColor)
+                               .linkColor(accentColor);
                     }
                 })
                 .build();
@@ -363,9 +369,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         card.setPadding(0, 0, 0, 0);
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(Color.parseColor("#171126"));
+        background.setColor(codeBackgroundColor);
         background.setCornerRadius(22);
-        background.setStroke(1, Color.parseColor("#43245E"));
+        background.setStroke(1, codeBorderColor);
         card.setBackground(background);
 
         LinearLayout header = new LinearLayout(context);
@@ -378,7 +384,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         ? "CODE"
                         : language.toUpperCase(Locale.ROOT)
         );
-        languageView.setTextColor(Color.parseColor("#C084FC"));
+        languageView.setTextColor(accentColor);
         languageView.setTextSize(11);
         languageView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
 
@@ -393,7 +399,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (!fileName.isEmpty()) {
             TextView fileView = new TextView(context);
             fileView.setText(fileName);
-            fileView.setTextColor(Color.parseColor("#8E829F"));
+            fileView.setTextColor(secondaryTextColor);
             fileView.setTextSize(11);
             fileView.setSingleLine(true);
             fileView.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
@@ -444,7 +450,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         TextView codeView = new TextView(context);
         codeView.setText(code);
-        codeView.setTextColor(Color.parseColor("#78B7FF"));
+        codeView.setTextColor(codeTextColor);
         codeView.setTextSize(13);
         codeView.setTypeface(Typeface.MONOSPACE);
         codeView.setGravity(Gravity.TOP | Gravity.START);
@@ -523,7 +529,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     ) {
         ImageButton button = new ImageButton(context);
         button.setImageResource(icon);
-        button.setColorFilter(Color.parseColor("#B79BCB"));
+        button.setColorFilter(secondaryTextColor);
         button.setBackgroundColor(Color.TRANSPARENT);
         button.setContentDescription(description);
         button.setPadding(6, 6, 6, 6);
@@ -562,8 +568,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 tv.setText(cell.trim());
                 tv.setTextColor(
                         rowIndex == 0
-                                ? Color.parseColor("#E8DDF3")
-                                : Color.parseColor("#D2C5DE")
+                                ? Color.WHITE
+                                : secondaryTextColor
                 );
                 tv.setTextSize(rowIndex == 0 ? 13.5f : 13f);
                 tv.setTypeface(
@@ -581,15 +587,15 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(
                         rowIndex == 0
-                                ? Color.parseColor("#29163B")
-                                : Color.parseColor("#171126")
+                                ? darkenColor(userBubbleColor, 0.75f)
+                                : codeBackgroundColor
                 );
                 bg.setCornerRadius(14);
                 bg.setStroke(
                         1,
                         rowIndex == 0
-                                ? Color.parseColor("#5A3970")
-                                : Color.parseColor("#3B2748")
+                                ? accentColor
+                                : codeBorderColor
                 );
                 tv.setBackground(bg);
 
@@ -860,6 +866,89 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     Toast.LENGTH_SHORT
             ).show();
         }
+    }
+
+    private void loadThemePreferences(Context context) {
+        android.content.SharedPreferences preferences =
+                context.getSharedPreferences("krux_theme", Context.MODE_PRIVATE);
+
+        accentColor = parseThemeColor(
+                preferences.getString("accent", "#A855F7"),
+                Color.parseColor("#A855F7")
+        );
+
+        secondaryTextColor = Color.rgb(185, 175, 203);
+
+        codeBackgroundColor = parseThemeColor(
+                preferences.getString("aiBubble", "#171126"),
+                Color.parseColor("#171126")
+        );
+
+        codeTextColor = accentColor;
+        codeBorderColor = accentColor;
+    }
+
+    private Markwon buildMarkwon(Context context) {
+        return Markwon.builder(context)
+                .usePlugin(TablePlugin.create(context))
+                .usePlugin(new AbstractMarkwonPlugin() {
+                    @Override
+                    public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
+                        builder.codeBlockBackgroundColor(codeBackgroundColor)
+                                .codeBlockTextColor(codeTextColor)
+                                .codeBackgroundColor(codeBackgroundColor)
+                                .codeTextColor(codeTextColor)
+                                .blockQuoteColor(accentColor)
+                                .linkColor(accentColor);
+                    }
+                })
+                .build();
+    }
+
+    private void applyAiTheme(AiViewHolder holder) {
+        holder.layoutReasoning.setBackgroundColor(userBubbleColor);
+
+        holder.ivArrowReasoning.setColorFilter(accentColor);
+
+        View title = holder.btnToggleReasoning.getChildCount() > 1
+                ? holder.btnToggleReasoning.getChildAt(1)
+                : null;
+
+        if (title instanceof TextView) {
+            ((TextView) title).setTextColor(accentColor);
+        }
+
+        holder.tvReasoningContent.setTextColor(secondaryTextColor);
+
+        if (holder.layoutSources.getChildCount() > 0) {
+            View sourceTitle = holder.layoutSources.getChildAt(0);
+            if (sourceTitle instanceof TextView) {
+                ((TextView) sourceTitle).setTextColor(accentColor);
+            }
+        }
+
+        int[] actionIds = {
+                R.id.btnCopy,
+                R.id.btnShare,
+                R.id.btnDownload,
+                R.id.btnSpeak,
+                R.id.btnFeedbackPositive,
+                R.id.btnFeedbackNegative
+        };
+
+        for (int id : actionIds) {
+            View view = holder.itemView.findViewById(id);
+            if (view instanceof ImageButton) {
+                ((ImageButton) view).setColorFilter(secondaryTextColor);
+            }
+        }
+    }
+
+    private int darkenColor(int color, float factor) {
+        int r = Math.max(0, Math.min(255, Math.round(Color.red(color) * factor)));
+        int g = Math.max(0, Math.min(255, Math.round(Color.green(color) * factor)));
+        int b = Math.max(0, Math.min(255, Math.round(Color.blue(color) * factor)));
+        return Color.rgb(r, g, b);
     }
 
     private void setupSources(

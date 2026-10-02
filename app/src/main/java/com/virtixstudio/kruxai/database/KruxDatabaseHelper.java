@@ -234,11 +234,10 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.rawQuery(
-                "SELECT sender, message, MAX(timestamp) AS timestamp " +
+                "SELECT sender, message, timestamp " +
                 "FROM messages " +
                 "WHERE session_id = ? " +
-                "GROUP BY sender, message " +
-                "ORDER BY MIN(id) ASC",
+                "ORDER BY id ASC",
                 new String[]{sessionId}
         );
         if (cursor.moveToFirst()) {

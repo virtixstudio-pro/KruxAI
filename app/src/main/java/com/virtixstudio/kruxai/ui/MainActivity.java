@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
-    private ImageButton btnMenu, btnAccount, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
+    private ImageButton btnMenu, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
     private View navSearchChats, navStudio, navCustomize, navLogout;
     private TextView btnNewChat;
 
@@ -87,10 +87,6 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private RecyclerView rvChat, rvHistory;
     private View welcomePanel;
     private EditText etSearchHistory;
-    private TextView welcomePromptOne;
-    private TextView welcomePromptTwo;
-    private TextView welcomePromptThree;
-    private Button welcomeNewChat;
     private KruxWelcomeSceneView welcomeScene;
     private LinearLayout llVoiceVisualizer;
     private View waveBar1, waveBar2, waveBar3, waveBar4;
@@ -123,6 +119,7 @@ private String selectedFileContent = "";
     private KruxState kruxState = KruxState.IDLE;
     private View kruxStatusContainer;
     private TextView tvKruxStatus;
+    private TextView tvWelcomeTitle, tvWelcomeSubtitle;
 
 private final ActivityResultLauncher<String[]> filePicker =
         registerForActivityResult(
@@ -170,6 +167,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                         "Profil chargé : firstName=" + currentUserFirstName
                             + ", email=" + currentUserEmail
                     );
+
+                    runOnUiThread(() -> updateWelcomePanel());
                 })
                 .addOnFailureListener(e ->
                     android.util.Log.e("KRUX_PROFILE", "Échec chargement profil Firebase", e)
@@ -211,7 +210,6 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         drawerLayout = findViewById(R.id.drawerLayout);
         btnMenu = findViewById(R.id.btnMenu);
-        btnAccount = findViewById(R.id.btnAccount);
         btnPlus = findViewById(R.id.btnPlus);
         btnMic = findViewById(R.id.btnMic);
         btnStopMic = findViewById(R.id.btnStopMic);
@@ -232,10 +230,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         rvChat = findViewById(R.id.rvChat);
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
-        welcomeNewChat = findViewById(R.id.welcomeNewChat);
+        tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
+        tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
         welcomeScene = findViewById(R.id.welcomeScene);
-        setupWelcomePanel();
-        android.util.Log.e("KRUX_BOOT", "BOOT 08: setupWelcomePanel OK");
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
                 kruxStatusContainer = findViewById(R.id.kruxStatusContainer);
@@ -253,14 +250,10 @@ waveBar1 = findViewById(R.id.waveBar1);
         navLogout = findViewById(R.id.navLogout);
 
         etSearchHistory = findViewById(R.id.etSearchHistory);
-        welcomePromptOne = findViewById(R.id.welcomePromptOne);
-        welcomePromptTwo = findViewById(R.id.welcomePromptTwo);
-        welcomePromptThree = findViewById(R.id.welcomePromptThree);
 
         setupKruxSidebar();
         android.util.Log.e("KRUX_BOOT", "BOOT 09: setupKruxSidebar OK");
-        setupWelcomePrompts();
-        android.util.Log.e("KRUX_BOOT", "BOOT 10: setupWelcomePrompts OK");
+        android.util.Log.e("KRUX_BOOT", "BOOT 10: welcome UI OK");
 
         messageList = new ArrayList<>();
         chatAdapter = new ChatAdapter(
@@ -352,7 +345,6 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
 
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
-        btnAccount.setOnClickListener(v -> showAccountBottomSheet());
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
         btnSend.setOnClickListener(v -> {
             if (isGenerating) {
@@ -952,32 +944,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
-    private void setupWelcomePanel() {
-        int[] promptIds = {
-                R.id.welcomePromptOne,
-                R.id.welcomePromptTwo,
-                R.id.welcomePromptThree
-        };
 
-        for (int promptId : promptIds) {
-            TextView prompt = findViewById(promptId);
-            if (prompt != null) {
-                prompt.setOnClickListener(v -> {
-                    String promptText = ((TextView) v).getText().toString().trim();
-
-                    if (!promptText.isEmpty()) {
-                        etInput.setText(promptText);
-                        sendMessage();
-                    }
-                });
-            }
-        }
-
-        if (welcomeNewChat != null) {
-            welcomeNewChat.setOnClickListener(v -> startNewDiscussion());
-        }
-        updateWelcomePanel();
-    }
 
     private void startNewDiscussion() {
         if (currentUser == null) {
@@ -1006,13 +973,63 @@ waveBar1 = findViewById(R.id.waveBar1);
     }
 
     private void updateWelcomePanel() {
-        if (welcomePanel != null) {
-            welcomePanel.setVisibility(
-                    messageList == null || messageList.isEmpty()
-                            ? View.VISIBLE
-                            : View.GONE
-            );
+        if (welcomePanel == null) {
+            return;
         }
+
+        boolean empty = messageList == null || messageList.isEmpty();
+
+        welcomePanel.setVisibility(empty ? View.VISIBLE : View.GONE);
+
+        if (!empty && welcomeScene != null) {
+            welcomeScene.setAnimating(false);
+        }
+
+        if (tvWelcomeTitle == null || tvWelcomeSubtitle == null) {
+            return;
+        }
+
+        String name = currentUserFirstName != null
+                ? currentUserFirstName.trim()
+                : "";
+
+        if (name.isEmpty() && currentUserEmail != null) {
+            String email = currentUserEmail.trim();
+            int at = email.indexOf('@');
+
+            if (at > 0) {
+                name = email.substring(0, at).trim();
+            } else if (!email.isEmpty()) {
+                name = email;
+            }
+        }
+
+        if (name.isEmpty()) {
+            name = "toi";
+        }
+
+        int hour = java.util.Calendar.getInstance()
+                .get(java.util.Calendar.HOUR_OF_DAY);
+
+        String title;
+        String subtitle;
+
+        if (hour >= 5 && hour < 12) {
+            title = "Bonjour " + name;
+            subtitle = "Prêt à commencer quelque chose ?";
+        } else if (hour >= 12 && hour < 18) {
+            title = "Bon après-midi " + name;
+            subtitle = "On avance sur quoi aujourd’hui ?";
+        } else if (hour >= 18 && hour < 24) {
+            title = "Bonsoir " + name;
+            subtitle = "On fait quoi de beau ce soir ?";
+        } else {
+            title = "Bonne nuit " + name;
+            subtitle = "Encore debout ? On termine quelque chose ?";
+        }
+
+        tvWelcomeTitle.setText(title);
+        tvWelcomeSubtitle.setText(subtitle);
     }
 
     private void sendMessage() {
@@ -1825,9 +1842,6 @@ waveBar1 = findViewById(R.id.waveBar1);
         if (tvKruxStatus != null) {
             tvKruxStatus.setTextColor(accent);
         }
-        if (welcomeNewChat != null) {
-            welcomeNewChat.setBackgroundTintList(ColorStateList.valueOf(accent));
-        }
         if (chatAdapter != null) {
             chatAdapter.applyTheme(
                     userBubble,
@@ -1852,10 +1866,33 @@ waveBar1 = findViewById(R.id.waveBar1);
         private Uri selectedWallpaperUri = null;
 
     private void showCustomizationSheet() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.TRANSPARENT);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dpToPx(20), dpToPx(18), dpToPx(20), dpToPx(12));
+        content.setPadding(
+                dpToPx(20),
+                dpToPx(18),
+                dpToPx(20),
+                dpToPx(12)
+        );
         content.setBackgroundColor(Color.TRANSPARENT);
+
+        scrollView.addView(content);
+
+        root.addView(
+                scrollView,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0,
+                        1f
+                )
+        );
 
         TextView title = new TextView(this);
         title.setText("Personnaliser l’app");
@@ -2035,7 +2072,31 @@ waveBar1 = findViewById(R.id.waveBar1);
 
         Button apply = new Button(this);
         apply.setText("Appliquer");
-        content.addView(apply);
+
+        LinearLayout actionBar = new LinearLayout(this);
+        actionBar.setOrientation(LinearLayout.VERTICAL);
+        actionBar.setPadding(
+                dpToPx(20),
+                dpToPx(8),
+                dpToPx(20),
+                dpToPx(12)
+        );
+
+        actionBar.addView(
+                apply,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dpToPx(52)
+                )
+        );
+
+        root.addView(
+                actionBar,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+        );
 
         // Écouteurs pour mise à jour instantanée
         Runnable updatePreviewAction = () -> updateThemePreview(
@@ -2044,7 +2105,7 @@ waveBar1 = findViewById(R.id.waveBar1);
                 previewCodeBlock,
                 selectedChoice(userBubble, "#120B24"),
                 selectedChoice(aiBubble, "#00000000"),
-                selectedChoice(shape, "12"),
+                selectedChoice(shape, "16"),
                 selectedChoice(accent, "#A855F7"),
                 selectedChoice(font, "sans-serif"),
                 14f + size.getProgress()
@@ -2065,7 +2126,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         updatePreviewAction.run();
 
         BottomSheetDialog dialog = new BottomSheetDialog(this);
-        dialog.setContentView(content);
+        dialog.setContentView(root);
         View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
         if (bottomSheet != null) {
             bottomSheet.setBackgroundColor(Color.TRANSPARENT);
@@ -2074,7 +2135,7 @@ waveBar1 = findViewById(R.id.waveBar1);
         apply.setOnClickListener(v -> {
             String paletteValue = selectedChoice(palette, "midnight");
             String fontValue = selectedChoice(font, "sans-serif");
-            float radiusValue = Float.parseFloat(selectedChoice(shape, "12"));
+            float radiusValue = Float.parseFloat(selectedChoice(shape, "16"));
             float sizeValue = 14f + size.getProgress();
 
             SharedPreferences.Editor editor = getSharedPreferences("krux_theme", MODE_PRIVATE).edit();
@@ -2812,46 +2873,6 @@ waveBar1 = findViewById(R.id.waveBar1);
         }
     }
 
-    private void setupWelcomePrompts() {
-        View.OnClickListener listener = v -> {
-            if (etInput == null) {
-                return;
-            }
 
-            if (v instanceof TextView) {
-                String prompt =
-                        ((TextView) v).getText().toString();
-
-                etInput.setText(prompt);
-                etInput.setSelection(
-                        etInput.getText().length()
-                );
-
-                etInput.requestFocus();
-            }
-        };
-
-        if (welcomePromptOne != null) {
-            welcomePromptOne.setOnClickListener(listener);
-        }
-
-        if (welcomePromptTwo != null) {
-            welcomePromptTwo.setOnClickListener(listener);
-        }
-
-        if (welcomePromptThree != null) {
-            welcomePromptThree.setOnClickListener(listener);
-        }
-
-        if (welcomeNewChat != null) {
-            welcomeNewChat.setOnClickListener(v -> {
-                startNewDiscussion();
-
-                if (etInput != null) {
-                    etInput.requestFocus();
-                }
-            });
-        }
-    }
 
 }
