@@ -68,7 +68,7 @@
     <string name="login_timeout">The connection is taking too long. Check your Internet and try again.</string>
 
     <string name="account_created_title">Account created successfully</string>
-    <string name="welcome_user">Welcome %1$s.\n\nYour KRUX account is ready.</string>
+    <string name="welcome_user">Welcome %1$s. Your KRUX account is ready.</string>
     <string name="continue_button">Continue</string>
 
 </resources>

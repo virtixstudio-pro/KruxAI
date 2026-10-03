@@ -68,7 +68,7 @@
     <string name="login_timeout">La connexion prend trop de temps. Vérifie ton Internet et réessaie.</string>
 
     <string name="account_created_title">Compte créé avec succès</string>
-    <string name="welcome_user">Bienvenue %1$s.\n\nTon compte KRUX est prêt.</string>
+    <string name="welcome_user">Bienvenue %1$s. Ton compte KRUX est prêt.</string>
     <string name="continue_button">Continuer</string>
 
 </resources>
