@@ -1,41 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient">
+    android:background="#000000">
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
         android:gravity="center"
-        android:orientation="vertical">
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp">
+
+        <ImageView
+            android:id="@+id/kruxSplashHead"
+            android:layout_width="190dp"
+            android:layout_height="190dp"
+            android:contentDescription="KRUX"
+            android:src="@drawable/krux_splash_head"
+            android:scaleType="fitCenter" />
 
         <TextView
+            android:id="@+id/tvIntelligence"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="KRUX AI"
-            android:textColor="@color/text_white"
-            android:textSize="36sp"
-            android:textStyle="bold" />
+            android:layout_marginTop="22dp"
+            android:text="INTELLIGENCE"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
 
         <TextView
+            android:id="@+id/tvWithoutLimits"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="L'intelligence sans limites"
-            android:textColor="@color/text_gray"
-            android:textSize="14sp" />
+            android:layout_marginTop="6dp"
+            android:text="SANS LIMITE"
+            android:textColor="#5EBBFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.16" />
+
     </LinearLayout>
 
     <TextView
+        android:id="@+id/tvSplashCopyright"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="32dp"
-        android:text="Copyright Virtix Studio 2026"
-        android:textColor="@color/text_gray"
-        android:textSize="12sp" />
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="28dp"
+        android:text="© Virtix Studio · 2026"
+        android:textColor="#666666"
+        android:textSize="11sp" />
 
-</RelativeLayout>
+</FrameLayout>

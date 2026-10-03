@@ -31,6 +31,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
 import com.virtixstudio.kruxai.R;
+import com.virtixstudio.kruxai.utils.LanguageManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LanguageManager.applySavedLanguage(this);
         setContentView(R.layout.activity_login);
 
         auth = FirebaseAuth.getInstance();

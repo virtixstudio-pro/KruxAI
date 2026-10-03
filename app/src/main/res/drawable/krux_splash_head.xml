@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="190dp"
+    android:height="190dp"
+    android:viewportWidth="190"
+    android:viewportHeight="190">
+
+    <!-- Halo -->
+    <path
+        android:fillColor="#10283A"
+        android:pathData="M95,12
+            A83,83 0,1 0,95,178
+            A83,83 0,1 0,95,12" />
+
+    <!-- Tête -->
+    <path
+        android:fillColor="#2AAFFF"
+        android:pathData="M95,25
+            C55,25 30,52 30,91
+            C30,132 55,158 95,158
+            C135,158 160,132 160,91
+            C160,52 135,25 95,25 Z" />
+
+    <!-- Reflet -->
+    <path
+        android:fillColor="#8EDBFF"
+        android:pathData="M59,47
+            C69,37 84,32 98,33
+            C83,39 72,47 65,58
+            C61,64 56,61 54,57
+            C52,53 55,50 59,47 Z" />
+
+    <!-- Œil gauche -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M57,82
+            C57,76 62,72 68,72
+            C74,72 79,76 79,82
+            C79,88 74,92 68,92
+            C62,92 57,88 57,82 Z" />
+
+    <!-- Œil droit -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M111,82
+            C111,76 116,72 122,72
+            C128,72 133,76 133,82
+            C133,88 128,92 122,92
+            C116,92 111,88 111,82 Z" />
+
+    <!-- Petits reflets des yeux -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,77
+            A3,3 0,1 0,64,83
+            A3,3 0,1 0,64,77 Z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M118,77
+            A3,3 0,1 0,118,83
+            A3,3 0,1 0,118,77 Z" />
+
+    <!-- Sourire -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M73,108
+            C82,119 108,119 117,108
+            C112,126 78,126 73,108 Z" />
+
+</vector>

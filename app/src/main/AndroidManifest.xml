@@ -23,7 +23,17 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.LoginActivity" android:exported="false" />
+        <activity
+            android:name=".ui.AuthWelcomeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.LoginActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.SignupActivity"
+            android:exported="false" />
         <activity android:name=".ui.MainActivity" android:exported="false" />
         <activity android:name=".ui.StudioActivity" android:exported="false" />
 

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">KRUX AI</string>
+    <string name="language_french">Français</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_chinese">中文</string>
+    <string name="choose_language">Elegir idioma</string>
+    <string name="language_current">Español</string>
+
+    <string name="krux_tagline">Think. Build. Create.</string>
+    <string name="welcome_title">Bienvenido a KRUX AI</string>
+    <string name="welcome_description">Un espacio para pensar, crear y construir.</string>
+    <string name="login_with_email">Iniciar sesión con email</string>
+    <string name="continue_google">Continuar con Google</string>
+    <string name="terms">Al continuar, aceptas las condiciones de uso de KRUX AI.</string>
+    <string name="about_krux">Acerca de KRUX AI</string>
+
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_description">Entra en tu espacio Krux.</string>
+    <string name="first_name">Nombre</string>
+    <string name="email">Email</string>
+    <string name="password">Contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="repeat_password">Repetir contraseña</string>
+    <string name="sign_in">Iniciar sesión</string>
+    <string name="or">──────  o  ──────</string>
+    <string name="google_login">G   Continuar con Google</string>
+    <string name="no_account">¿Aún no tienes cuenta?  Crear una cuenta</string>
+    <string name="has_account">¿Ya tienes una cuenta? Iniciar sesión</string>
+
+    <string name="signup_title">Registro</string>
+    <string name="signup_description">Comienza tu experiencia con KRUX AI.</string>
+    <string name="create_space">Crear tu espacio</string>
+    <string name="sign_up">Registrarse</string>
+    <string name="creating">Creando...</string>
+    <string name="language_list">Français · English · Español · 中文</string>
+
+    <string name="email_required">Introduce tu dirección de email.</string>
+    <string name="password_required">Introduce tu contraseña.</string>
+    <string name="first_name_required">Introduce tu nombre.</string>
+    <string name="password_minimum">La contraseña debe tener al menos 6 caracteres.</string>
+    <string name="password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="account_not_retrieved">No se pudo recuperar la cuenta.</string>
+    <string name="account_created">Cuenta creada correctamente.</string>
+    <string name="profile_save_error">Cuenta creada, pero no se pudo guardar el perfil.</string>
+    <string name="signup_failed">No se pudo crear la cuenta.</string>
+    <string name="login_failed">No se pudo iniciar sesión.</string>
+    <string name="google_config_required">Inicio de sesión con Google: configuración de Firebase requerida.</string>
+    <string name="language_unavailable">El cambio de idioma estará disponible próximamente.</string>
+
+    <string name="reset_email_required">Introduce tu email para recibir el enlace.</string>
+    <string name="reset_email_sent">Se ha enviado un enlace de restablecimiento a tu email.</string>
+    <string name="reset_email_failed">No se pudo enviar el enlace de restablecimiento.</string>
+
+    <string name="firebase_generic_error">Ha ocurrido un error. Inténtalo de nuevo.</string>
+    <string name="email_already_used">Esta dirección de email ya está en uso.</string>
+    <string name="invalid_email">Esta dirección de email no es válida.</string>
+    <string name="weak_password">La contraseña es demasiado débil.</string>
+    <string name="invalid_credentials">Email o contraseña incorrectos.</string>
+    <string name="network_unavailable">No hay conexión a Internet.</string>
+    <string name="too_many_requests">Demasiados intentos. Inténtalo más tarde.</string>
+
+    <string name="loading">Espera...</string>
+    <string name="login_timeout">La conexión está tardando demasiado. Comprueba tu Internet e inténtalo de nuevo.</string>
+
+    <string name="account_created_title">Cuenta creada correctamente</string>
+    <string name="welcome_user">Bienvenido %1$s.\n\nTu cuenta KRUX está lista.</string>
+    <string name="continue_button">Continuar</string>
+
+</resources>
