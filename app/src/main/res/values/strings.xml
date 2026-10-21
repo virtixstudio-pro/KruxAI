@@ -16,7 +16,7 @@
     <string name="welcome_description">Un espace pour réfléchir, créer et construire.</string>
     <string name="login_with_email">Se connecter avec email</string>
     <string name="continue_google">Continuer avec Google</string>
-    <string name="terms">En continuant, tu acceptes les conditions d'utilisation de KRUX AI.</string>
+    <string name="terms">En continuant, tu acceptes les conditions d\'utilisation de KRUX AI.</string>
     <string name="about_krux">À propos de KRUX AI</string>
 
     <string name="login_title">Connexion</string>
@@ -35,7 +35,7 @@
     <string name="signup_title">Inscription</string>
     <string name="signup_description">Commence ton expérience KRUX AI.</string>
     <string name="create_space">Créer ton espace</string>
-    <string name="sign_up">S'inscrire</string>
+    <string name="sign_up">S\'inscrire</string>
     <string name="creating">Création...</string>
     <string name="language_list">Français · English · Español · 中文</string>
 
@@ -44,9 +44,9 @@
     <string name="first_name_required">Veuillez entrer votre prénom.</string>
     <string name="password_minimum">Le mot de passe doit contenir au moins 6 caractères.</string>
     <string name="password_mismatch">Les mots de passe ne correspondent pas.</string>
-    <string name="account_not_retrieved">Le compte n'a pas pu être récupéré.</string>
+    <string name="account_not_retrieved">Le compte n\'a pas pu être récupéré.</string>
     <string name="account_created">Compte créé avec succès.</string>
-    <string name="profile_save_error">Compte créé, mais le profil n'a pas pu être enregistré.</string>
+    <string name="profile_save_error">Compte créé, mais le profil n\'a pas pu être enregistré.</string>
     <string name="signup_failed">Impossible de créer le compte.</string>
     <string name="login_failed">Impossible de se connecter.</string>
     <string name="google_config_required">Connexion Google : configuration Firebase requise.</string>
@@ -54,11 +54,11 @@
 
     <string name="reset_email_required">Entre ton adresse email pour recevoir le lien.</string>
     <string name="reset_email_sent">Un lien de réinitialisation a été envoyé à ton adresse email.</string>
-    <string name="reset_email_failed">Impossible d'envoyer le lien de réinitialisation.</string>
+    <string name="reset_email_failed">Impossible d\'envoyer le lien de réinitialisation.</string>
 
     <string name="firebase_generic_error">Une erreur est survenue. Réessaie.</string>
     <string name="email_already_used">Cette adresse email est déjà utilisée.</string>
-    <string name="invalid_email">Cette adresse email n'est pas valide.</string>
+    <string name="invalid_email">Cette adresse email n\'est pas valide.</string>
     <string name="weak_password">Le mot de passe est trop faible.</string>
     <string name="invalid_credentials">Email ou mot de passe incorrect.</string>
     <string name="network_unavailable">Connexion Internet indisponible.</string>

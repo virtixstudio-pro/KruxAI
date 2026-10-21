@@ -122,7 +122,7 @@ public class LoginActivity extends AppCompatActivity {
 
         TextView tvLanguage = findViewById(R.id.tvLanguage);
         tvLanguage.setOnClickListener(v ->
-                showMessage("Le changement de langue sera disponible prochainement.")
+                LanguageManager.showLanguageDialog(this)
         );
 
         Button btnGoogle = findViewById(R.id.btnGoogle);
