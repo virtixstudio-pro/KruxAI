@@ -1,0 +1,75 @@
+name: KRUX Android Builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Depot GitHub public (owner/repo)"
+        required: true
+        type: string
+      source_ref:
+        description: "Branche ou tag"
+        required: true
+        default: "main"
+        type: string
+      gradle_task:
+        description: "Tache Gradle"
+        required: true
+        default: "assembleDebug"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repo }}
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.13"
+
+      - name: Build Android application
+        env:
+          GRADLE_TASK: ${{ inputs.gradle_task }}
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+            ./gradlew "$GRADLE_TASK" --no-daemon
+          else
+            gradle "$GRADLE_TASK" --no-daemon
+          fi
+
+      - name: Upload APK and AAB
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: KRUX-Android-Build
+          path: |
+            **/build/outputs/**/*.apk
+            **/build/outputs/**/*.aab
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish download information
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          echo "## KRUX Android Builder" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Open and download the build artifact]($ARTIFACT_URL)" >> "$GITHUB_STEP_SUMMARY"
