@@ -1,5 +1,6 @@
 package com.virtixstudio.kruxai.ui;
 
+import com.virtixstudio.kruxai.AppBuilder;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.graphics.Color;
@@ -1265,6 +1266,21 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 String cleanResponse = rawResponse;
 
+                java.util.regex.Matcher kruxCreate = java.util.regex.Pattern
+                        .compile("<KRUX_TOOL>\\s*create_app\\s*(.*?)\\s*</KRUX_TOOL>",
+                                java.util.regex.Pattern.DOTALL)
+                        .matcher(cleanResponse);
+                if (kruxCreate.find()) {
+                    final String appDesc = kruxCreate.group(1).trim();
+                    cleanResponse = cleanResponse.replace(kruxCreate.group(0), "").trim();
+                    if (cleanResponse.isEmpty()) {
+                        cleanResponse = "Je lance la création de ton application.";
+                    }
+                    if (!appDesc.isEmpty()) {
+                        runOnUiThread(() -> autoCreateApp(appDesc));
+                    }
+                }
+
                 boolean memoryUpdateStarted = false;
 
                 if (cleanResponse.contains("<REMEMBER>")
@@ -1401,6 +1417,123 @@ private final ActivityResultLauncher<String[]> filePicker =
                 });
             }
         });
+    }
+
+    private void autoCreateApp(String desc) {
+        final android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+        String saved = sp.getString("gh_token", "");
+        if (!saved.isEmpty()) {
+            startAppBuild(saved, desc);
+            return;
+        }
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        int pad = dpToPx(20);
+        box.setPadding(pad, pad, pad, 0);
+        final android.widget.EditText et = new android.widget.EditText(this);
+        et.setHint("Token GitHub (repo + workflow)");
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        et.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+        box.addView(et);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Une seule fois : token GitHub")
+                .setMessage("KRUX en a besoin pour créer et compiler ton application.")
+                .setView(box)
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Valider", (d, w) -> {
+                    String t = et.getText().toString().trim();
+                    if (t.isEmpty()) return;
+                    sp.edit().putString("gh_token", t).apply();
+                    startAppBuild(t, desc);
+                })
+                .show();
+    }
+
+    private void startAppBuild(String token, String desc) {
+        final androidx.appcompat.app.AlertDialog progress =
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("KRUX crée ton application")
+                        .setMessage("Démarrage…")
+                        .setCancelable(false)
+                        .setPositiveButton("Fermer", null)
+                        .create();
+        progress.show();
+        progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+
+        java.io.File outDir = getExternalFilesDir("generated");
+
+        AppBuilder.run(token, desc, outDir,
+                (system, prompt) -> {
+                    final String[] out = new String[2];
+                    final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+                    ApiClient.sendRequest(
+                            selectedKruxModel,
+                            system,
+                            prompt,
+                            new ApiClient.ApiCallback() {
+                                @Override
+                                public void onSuccess(String response, String modelBrand) {
+                                    out[0] = response;
+                                    latch.countDown();
+                                }
+
+                                @Override
+                                public void onError(String friendlyMessage) {
+                                    out[1] = friendlyMessage;
+                                    latch.countDown();
+                                }
+
+                                @Override
+                                public void onCancelled() {
+                                    out[1] = "Requête annulée";
+                                    latch.countDown();
+                                }
+                            });
+                    if (!latch.await(240, java.util.concurrent.TimeUnit.SECONDS)) {
+                        throw new Exception("L'IA a mis trop de temps à répondre");
+                    }
+                    if (out[0] == null) throw new Exception(out[1]);
+                    return out[0];
+                },
+                new AppBuilder.Listener() {
+                    @Override
+                    public void onStatus(String status) {
+                        runOnUiThread(() -> progress.setMessage(status));
+                    }
+
+                    @Override
+                    public void onDone(java.io.File apk, String repoUrl) {
+                        runOnUiThread(() -> {
+                            progress.setMessage("Terminé.\n" + repoUrl);
+                            progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+                            installApk(apk);
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        runOnUiThread(() -> {
+                            progress.setMessage("Erreur : " + message);
+                            progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+                        });
+                    }
+                });
+    }
+
+    private void installApk(java.io.File apk) {
+        try {
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", apk);
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            Toast.makeText(this, "Installation impossible : " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showPlusBottomSheet() {
