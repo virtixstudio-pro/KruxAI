@@ -1098,7 +1098,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         java.util.Set<String> queryWords = new java.util.HashSet<>();
         java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile("[\\\\p{L}\\\\p{N}]{3,}")
+                .compile("[\\p{L}\\p{N}]{3,}")
                 .matcher(userPrompt == null ? "" : userPrompt.toLowerCase(java.util.Locale.ROOT));
 
         while (matcher.find()) {
@@ -1202,9 +1202,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         List<String> memoryFacts = dbHelper.getAllMemoryFacts();
         List<String> relevantMemories = selectRelevantMemories(userPrompt, memoryFacts);
         if (!relevantMemories.isEmpty()) {
-            historyBuilder.append("\\nSouvenirs pertinents sur l'utilisateur :\\n");
+            historyBuilder.append("\nSouvenirs pertinents sur l'utilisateur :\n");
             for (String fact : relevantMemories) {
-                historyBuilder.append("- ").append(fact).append("\\n");
+                historyBuilder.append("- ").append(fact).append("\n");
             }
         }
 
