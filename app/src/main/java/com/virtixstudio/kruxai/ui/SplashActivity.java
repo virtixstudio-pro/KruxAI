@@ -24,6 +24,7 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        KruxTheme.apply(this);
 
         View head = findViewById(R.id.kruxSplashHead);
         View intelligence = findViewById(R.id.tvIntelligence);

@@ -9,3 +9,4 @@ local.properties
 .backup/
 *.before-*
 app/src/main/assets/krux_builder.json
+*.bak

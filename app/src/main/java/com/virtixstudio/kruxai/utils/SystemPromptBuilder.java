@@ -88,6 +88,17 @@ public class SystemPromptBuilder {
         return this;
     }
 
+    private boolean thinking = false;
+    private static final String THINKING_ON =
+        "\n\nMODE RÉFLEXION ACTIF : commence TOUJOURS ta réponse par un bloc <REFLEXION>…</REFLEXION> de 5 lignes maximum, puis ta réponse normale juste après. Dans ce bloc, en phrases courtes : 1) ce que l'utilisateur demande vraiment ; 2) ce que tu sais avec certitude ; 3) ce dont tu n'es pas sûr ; 4) une question que tu te poses à toi-même, avec ta réponse ; 5) si une recherche web_search est nécessaire avant de répondre. Si une information est incertaine ou récente, demande l'outil web_search au lieu de deviner. Si tu demandes un outil avec <KRUX_TOOL>, écris uniquement l'outil, sans bloc <REFLEXION>. ";
+    private static final String THINKING_OFF =
+        "\n\nMODE RÉFLEXION DÉSACTIVÉ : réponds directement. Si la question est complexe, ambiguë ou demande de vérifier plusieurs choses, dis-le franchement en une phrase et propose d'activer le Mode Réflexion (menu +) pour aller plus loin. ";
+
+    public SystemPromptBuilder withThinking(boolean enabled) {
+        this.thinking = enabled;
+        return this;
+    }
+
     public String build() {
         StringBuilder profileContext = new StringBuilder();
 
@@ -112,6 +123,6 @@ public class SystemPromptBuilder {
             + kruxModelName
             + "\n";
 
-        return BASE_SYSTEM_PROMPT + modelContext + profileContext + history;
+        return BASE_SYSTEM_PROMPT + modelContext + profileContext + history + (thinking ? THINKING_ON : THINKING_OFF);
     }
 }

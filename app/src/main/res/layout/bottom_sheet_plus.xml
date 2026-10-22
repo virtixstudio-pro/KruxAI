@@ -51,6 +51,17 @@
         android:background="?attr/selectableItemBackground" />
 
     <TextView
+        android:id="@+id/optColors"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:text="Couleurs…"
+        android:textColor="#F8FAFC"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView
         android:id="@+id/optFiles"
         android:layout_width="match_parent"
         android:layout_height="52dp"

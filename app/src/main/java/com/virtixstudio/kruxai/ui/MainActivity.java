@@ -140,6 +140,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         super.onCreate(savedInstanceState);
         android.util.Log.e("KRUX_BOOT", "BOOT 01: super.onCreate");
         setContentView(R.layout.activity_main);
+        KruxTheme.apply(this);
         android.util.Log.e("KRUX_BOOT", "BOOT 02: setContentView OK");
 
         ChatMessage.initializeContext(this);
@@ -1209,7 +1210,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             }
         }
 
-        String systemPrompt = new SystemPromptBuilder()
+        String systemPrompt = new SystemPromptBuilder().withThinking(isThinkingMode)
                 .withKruxModel(
                     selectedKruxModel != null
                         ? selectedKruxModel.getDisplayName()
@@ -1264,7 +1265,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setKruxState(KruxState.IDLE);
                 });
 
-                String cleanResponse = rawResponse;
+                String cleanResponse = stripReflexion(rawResponse);
 
                 java.util.regex.Matcher kruxCreate = java.util.regex.Pattern
                         .compile("<KRUX_TOOL>\\s*create_app\\s*(.*?)\\s*</KRUX_TOOL>",
@@ -1374,7 +1375,9 @@ private final ActivityResultLauncher<String[]> filePicker =
             @Override
             public void onPartialResponse(String partialResponse, String modelBrand) {
                 runOnUiThread(() -> {
-                    aiMessage.setText(partialResponse);
+                    aiMessage.setText(hideTool(stripReflexion(partialResponse)));
+                    KruxState wantState = isReflecting(partialResponse) ? KruxState.THINKING : KruxState.GENERATING;
+                    if (kruxState != wantState) setKruxState(wantState);
                     aiMessage.setModel(modelBrand);
                     int position = messageList.indexOf(aiMessage);
                     if (position >= 0) {
@@ -1548,6 +1551,12 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
+
+        TextView optColors = view.findViewById(R.id.optColors);
+        optColors.setOnClickListener(v -> {
+            dialog.dismiss();
+            KruxTheme.showEditor(this, () -> applySavedTheme());
+        });
 
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
@@ -1988,7 +1997,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 "krux_theme",
                 MODE_PRIVATE
         );
-        String palette = preferences.getString("palette", "midnight");
+        String palette = preferences.getString("palette", "noir");
         String font = preferences.getString("font", "sans-serif");
         String scene = preferences.getString("scene", "blackhole");
         float radius = getThemeFloat(preferences, "radius", 12f);
@@ -2024,6 +2033,30 @@ private final ActivityResultLauncher<String[]> filePicker =
             }
             userText = Color.rgb(232, 248, 255);
             aiText = Color.rgb(225, 240, 248);
+        }
+
+        if ("noir".equals(palette)) {
+            background = Color.BLACK;
+            if (!preferences.contains("userBubble")) {
+                userBubble = Color.rgb(34, 34, 34);
+            }
+            userText = Color.WHITE;
+            aiText = Color.WHITE;
+        } else if ("blanc".equals(palette)) {
+            background = Color.WHITE;
+            if (!preferences.contains("userBubble")) {
+                userBubble = Color.rgb(226, 226, 226);
+            }
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "bg")) background = KruxTheme.get(this, "bg");
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "bubble_user")) userBubble = KruxTheme.get(this, "bubble_user");
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "text")) {
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb    userText = KruxTheme.get(this, "text");
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb    aiText = KruxTheme.get(this, "text");
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb}
+
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubble) > 0.5 ? Color.BLACK : Color.WHITE;
+            boolean aiDark = Color.alpha(aiBubble) >= 128 && androidx.core.graphics.ColorUtils.calculateLuminance(aiBubble) <= 0.5;
+            aiText = aiDark ? Color.WHITE : Color.BLACK;
         }
 
         if (drawerLayout != null) {
@@ -2216,6 +2249,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         addChoice(palette, "Midnight violet", "midnight");
         addChoice(palette, "Graphite premium", "graphite");
         addChoice(palette, "Ocean focus", "ocean");
+        addChoice(palette, "Noir pur", "noir");
+        addChoice(palette, "Blanc clair", "blanc");
         content.addView(sectionLabel("Palette"));
         content.addView(palette);
 
@@ -2237,6 +2272,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         addChoice(userBubble, "Violet profond", "#120B24");
         addChoice(userBubble, "Bleu océan", "#0A344C");
         addChoice(userBubble, "Graphite", "#262B34");
+        addChoice(userBubble, "Gris clair", "#E2E2E2");
         content.addView(sectionLabel("Bulle utilisateur"));
         content.addView(userBubble);
 
@@ -2251,6 +2287,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         addChoice(accent, "Violet", "#A855F7");
         addChoice(accent, "Cyan", "#22D3EE");
         addChoice(accent, "Rose", "#FB7185");
+        addChoice(accent, "Blanc", "#FFFFFF");
         content.addView(sectionLabel("Couleur d’accent"));
         content.addView(accent);
 
@@ -2284,7 +2321,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         selectChoice(
                 palette,
-                savedTheme.getString("palette", "midnight")
+                savedTheme.getString("palette", "noir")
         );
 
         selectChoice(
@@ -2384,7 +2421,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         apply.setOnClickListener(v -> {
-            String paletteValue = selectedChoice(palette, "midnight");
+            String paletteValue = selectedChoice(palette, "noir");
             String fontValue = selectedChoice(font, "sans-serif");
             float radiusValue = Float.parseFloat(selectedChoice(shape, "16"));
             float sizeValue = 14f + size.getProgress();
@@ -2615,6 +2652,25 @@ private final ActivityResultLauncher<String[]> filePicker =
                 startNewDiscussion();
             });
         }
+    }
+
+    private String hideTool(String s) {
+        if (s == null) return "";
+        int a = s.indexOf("<KRUX_TOOL>");
+        return a < 0 ? s : s.substring(0, a).trim();
+    }
+
+    private String stripReflexion(String s) {
+        if (s == null) return "";
+        int a = s.indexOf("<REFLEXION>");
+        if (a < 0) return s;
+        int b = s.indexOf("</REFLEXION>", a);
+        if (b < 0) return s.substring(0, a).trim();
+        return (s.substring(0, a) + s.substring(b + 12)).trim();
+    }
+
+    private boolean isReflecting(String s) {
+        return s != null && s.contains("<REFLEXION>") && !s.contains("</REFLEXION>");
     }
 
     private void setKruxState(KruxState state) {

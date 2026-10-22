@@ -17,6 +17,7 @@ public class AuthWelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         LanguageManager.applySavedLanguage(this);
         setContentView(R.layout.activity_auth_welcome);
+        KruxTheme.apply(this);
 
         Button btnEmail = findViewById(R.id.btnAuthEmail);
         Button btnGoogle = findViewById(R.id.btnAuthGoogle);

@@ -64,6 +64,7 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         LanguageManager.applySavedLanguage(this);
         setContentView(R.layout.activity_login);
+        KruxTheme.apply(this);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
