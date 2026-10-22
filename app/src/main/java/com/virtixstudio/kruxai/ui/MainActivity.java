@@ -1087,6 +1087,96 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
     }
 
+    private List<String> selectRelevantMemories(
+            String userPrompt,
+            List<String> memoryFacts
+    ) {
+        List<String> selected = new java.util.ArrayList<>();
+        if (memoryFacts == null || memoryFacts.isEmpty()) {
+            return selected;
+        }
+
+        java.util.Set<String> queryWords = new java.util.HashSet<>();
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("[\\\\p{L}\\\\p{N}]{3,}")
+                .matcher(userPrompt == null ? "" : userPrompt.toLowerCase(java.util.Locale.ROOT));
+
+        while (matcher.find()) {
+            queryWords.add(matcher.group());
+        }
+
+        java.util.Set<String> stopWords = new java.util.HashSet<>(
+                java.util.Arrays.asList(
+                        "avec", "dans", "pour", "mais", "donc", "cette",
+                        "cela", "quel", "quelle", "quels", "quelles",
+                        "comment", "pourquoi", "faire", "être", "avoir",
+                        "est-ce", "plus", "moins", "peux", "peut",
+                        "vous", "nous", "the", "and", "for", "with"
+                )
+        );
+        queryWords.removeAll(stopWords);
+
+        class ScoredMemory {
+            final String fact;
+            final int score;
+            ScoredMemory(String fact, int score) {
+                this.fact = fact;
+                this.score = score;
+            }
+        }
+
+        List<ScoredMemory> ranked = new java.util.ArrayList<>();
+        for (String fact : memoryFacts) {
+            if (fact == null || fact.trim().isEmpty()) {
+                continue;
+            }
+
+            String normalized = fact.toLowerCase(java.util.Locale.ROOT);
+            int score = 0;
+            for (String word : queryWords) {
+                if (normalized.contains(word)) {
+                    score++;
+                }
+            }
+            if (score > 0) {
+                ranked.add(new ScoredMemory(fact.trim(), score));
+            }
+        }
+
+        java.util.Collections.sort(ranked, (a, b) ->
+                Integer.compare(b.score, a.score));
+
+        // En cas de correspondance, garder au plus six souvenirs.
+        for (ScoredMemory item : ranked) {
+            if (selected.size() >= 6) {
+                break;
+            }
+            String fact = item.fact;
+            if (fact.length() > 350) {
+                fact = fact.substring(0, 347) + "...";
+            }
+            selected.add(fact);
+        }
+
+        // Sans correspondance lexicale, garder seulement trois souvenirs
+        // récents au sens de l'ordre renvoyé par la base.
+        if (selected.isEmpty()) {
+            for (int i = memoryFacts.size() - 1;
+                    i >= 0 && selected.size() < 3; i--) {
+                String fact = memoryFacts.get(i);
+                if (fact != null && !fact.trim().isEmpty()) {
+                    fact = fact.trim();
+                    if (fact.length() > 350) {
+                        fact = fact.substring(0, 347) + "...";
+                    }
+                    selected.add(fact);
+                }
+            }
+        }
+
+        return selected;
+    }
+
     private void executeAiQuery(
             String userPrompt,
             String webContext,
@@ -1110,10 +1200,11 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         List<String> memoryFacts = dbHelper.getAllMemoryFacts();
-        if (memoryFacts != null && !memoryFacts.isEmpty()) {
-            historyBuilder.append("\nFaits mémorisés sur l'utilisateur:\n");
-            for (String fact : memoryFacts) {
-                historyBuilder.append("- ").append(fact).append("\n");
+        List<String> relevantMemories = selectRelevantMemories(userPrompt, memoryFacts);
+        if (!relevantMemories.isEmpty()) {
+            historyBuilder.append("\\nSouvenirs pertinents sur l'utilisateur :\\n");
+            for (String fact : relevantMemories) {
+                historyBuilder.append("- ").append(fact).append("\\n");
             }
         }
 
@@ -1281,7 +1372,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             public void onError(String errorMessage) {
                 runOnUiThread(() -> {
                     setGeneratingState(false);
-                    setKruxState(KruxState.IDLE);
+                    setKruxState(KruxState.ERROR);
                 });
                 aiMessage.setStreaming(false);
                 aiMessage.setText("Erreur : " + errorMessage);
@@ -1764,8 +1855,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         String palette = preferences.getString("palette", "midnight");
         String font = preferences.getString("font", "sans-serif");
         String scene = preferences.getString("scene", "blackhole");
-        float radius = preferences.getFloat("radius", 12f);
-        float size = preferences.getFloat("size", 15f);
+        float radius = getThemeFloat(preferences, "radius", 12f);
+        float size = getThemeFloat(preferences, "size", 15f);
         int userBubble = parseThemeColor(
             preferences.getString("userBubble", "#120B24"),
             Color.rgb(18, 11, 36)
@@ -1854,6 +1945,29 @@ private final ActivityResultLauncher<String[]> filePicker =
                     font
             );
         }
+    }
+
+    private float getThemeFloat(
+            SharedPreferences preferences,
+            String key,
+            float fallback
+    ) {
+        try {
+            Object value = preferences.getAll().get(key);
+            if (value instanceof Number) {
+                return ((Number) value).floatValue();
+            }
+            if (value instanceof String) {
+                return Float.parseFloat(((String) value).trim());
+            }
+        } catch (RuntimeException error) {
+            android.util.Log.w(
+                    "KRUX_THEME",
+                    "Préférence numérique invalide : " + key,
+                    error
+            );
+        }
+        return fallback;
     }
 
     private int parseThemeColor(String value, int fallback) {
@@ -2044,7 +2158,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         selectChoice(
                 shape,
-                savedTheme.getString("radius", "16")
+                String.valueOf(savedTheme.getAll().containsKey("radius") ? savedTheme.getAll().get("radius") : 16f)
         );
 
         selectChoice(
@@ -2067,7 +2181,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 savedTheme.getString("scene", "blackhole")
         );
 
-        float savedSize = savedTheme.getFloat("size", 15f);
+        float savedSize = getThemeFloat(savedTheme, "size", 15f);
         int savedProgress = Math.round(savedSize - 14f);
         size.setProgress(Math.max(0, Math.min(5, savedProgress)));
 
