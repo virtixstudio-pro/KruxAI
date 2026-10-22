@@ -1421,34 +1421,29 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void autoCreateApp(String desc) {
         final android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
-        String saved = sp.getString("gh_token", "");
-        if (!saved.isEmpty()) {
-            startAppBuild(saved, desc);
+        String token = "";
+        int quota = 3;
+        try {
+            java.io.InputStream is = getAssets().open("krux_builder.json");
+            byte[] buf = new byte[is.available()];
+            is.read(buf);
+            is.close();
+            org.json.JSONObject cfg = new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8));
+            token = cfg.optString("token", "").trim();
+            quota = cfg.optInt("daily_quota", 3);
+        } catch (Exception ignored) { }
+        if (token.isEmpty()) {
+            Toast.makeText(this, "La création d'apps n'est pas configurée dans cette version de KRUX.", Toast.LENGTH_LONG).show();
             return;
         }
-        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
-        int pad = dpToPx(20);
-        box.setPadding(pad, pad, pad, 0);
-        final android.widget.EditText et = new android.widget.EditText(this);
-        et.setHint("Token GitHub (repo + workflow)");
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT
-                | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        et.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
-        box.addView(et);
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Une seule fois : token GitHub")
-                .setMessage("KRUX en a besoin pour créer et compiler ton application.")
-                .setView(box)
-                .setNegativeButton("Annuler", null)
-                .setPositiveButton("Valider", (d, w) -> {
-                    String t = et.getText().toString().trim();
-                    if (t.isEmpty()) return;
-                    sp.edit().putString("gh_token", t).apply();
-                    startAppBuild(t, desc);
-                })
-                .show();
+        String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
+        int used = today.equals(sp.getString("quota_day", "")) ? sp.getInt("quota_used", 0) : 0;
+        if (used >= quota) {
+            Toast.makeText(this, "Limite atteinte : " + quota + " apps par jour. Reviens demain.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        sp.edit().putString("quota_day", today).putInt("quota_used", used + 1).apply();
+        startAppBuild(token, desc);
     }
 
     private void startAppBuild(String token, String desc) {
@@ -1515,11 +1510,19 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onError(String message) {
                         runOnUiThread(() -> {
-                            progress.setMessage("Erreur : " + message);
+                            android.util.Log.e("KRUX_BUILD", String.valueOf(message));
+                            progress.setMessage(friendlyBuildError(message));
                             progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(true);
                         });
                     }
                 });
+    }
+
+    private String friendlyBuildError(String m) {
+        if (m == null) return "Erreur inconnue.";
+        if (m.contains("GitHub 401")) return "Le service de création d'apps de KRUX est momentanément indisponible. Réessaie plus tard.";
+        if (m.contains("GitHub 403") || m.contains("GitHub 429")) return "Le quota de création d'apps de KRUX est atteint pour le moment. Réessaie plus tard.";
+        return "Erreur : " + m;
     }
 
     private void installApk(java.io.File apk) {

@@ -8,3 +8,4 @@ local.properties
 .DS_Store
 .backup/
 *.before-*
+app/src/main/assets/krux_builder.json

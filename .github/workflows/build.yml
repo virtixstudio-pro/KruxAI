@@ -25,6 +25,13 @@ jobs:
       with:
         gradle-version: '8.13'
 
+    - name: Write KRUX builder config
+      env:
+        KRUX_BUILDER_TOKEN: ${{ secrets.KRUX_BUILDER_TOKEN }}
+      run: |
+        mkdir -p app/src/main/assets
+        printf '{"token":"%s","daily_quota":3}' "$KRUX_BUILDER_TOKEN" > app/src/main/assets/krux_builder.json
+
     - name: Build Debug APK
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

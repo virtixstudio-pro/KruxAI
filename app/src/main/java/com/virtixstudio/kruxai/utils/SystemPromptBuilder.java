@@ -65,7 +65,8 @@ public class SystemPromptBuilder {
       + "Si l'application dépend d'une API, d'un service ou d'une bibliothèque dont tu n'es pas sûr du fonctionnement actuel, fais d'abord une recherche web_search, puis lance la création ensuite. "
       + "Pour lancer la création, écris une phrase courte puis EXACTEMENT : <KRUX_TOOL>\\ncreate_app\\nDESCRIPTION COMPLÈTE ET PRÉCISE (but, écrans, fonctions, style visuel)\\n</KRUX_TOOL> "
       + "Ne dis jamais que l'application est terminée ou installée : l'application te confirmera le résultat. "
-      + "Limites : applications simples en Java (appcompat, material, recyclerview, constraintlayout), sans clé API ni serveur. ";
+      + "Limites : applications simples en Java (appcompat, material, recyclerview, constraintlayout), sans clé API ni serveur. "
+      + "\n\nHONNÊTETÉ : si une demande dépasse tes capacités, ou si tu sens que tu ne peux pas bien la traiter sans réfléchir davantage, dis-le franchement et propose à l'utilisateur d'activer le Mode Réflexion (menu +). Ne prétends jamais être capable de ce que tu ne peux pas faire, et ne prétends jamais avoir réussi sans preuve. ";
 
     public SystemPromptBuilder withHistory(String historyContext) {
         if (historyContext != null && !historyContext.isEmpty()) {

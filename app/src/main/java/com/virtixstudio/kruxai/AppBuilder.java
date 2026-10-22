@@ -94,7 +94,8 @@ public class AppBuilder {
         + "      - uses: gradle/actions/setup-gradle@v4\n        with:\n          gradle-version: 8.7\n"
         + "      - run: gradle assembleDebug --no-daemon\n"
         + "      - uses: actions/upload-artifact@v4\n        with:\n          name: app-debug\n"
-        + "          path: app/build/outputs/apk/debug/app-debug.apk\n";
+        + "          path: app/build/outputs/apk/debug/app-debug.apk\n"
+        + "          retention-days: 1\n";
 
     static String buildFixPrompt(String description, Map<String, String> current, String log) {
         StringBuilder sb = new StringBuilder();
