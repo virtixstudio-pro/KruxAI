@@ -34,6 +34,15 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: gradle assembleDebug --no-daemon
 
+    - name: Print Debug Certificate Fingerprints
+      continue-on-error: true
+      run: |
+        mkdir -p "$HOME/.android"
+        if [ ! -f "$HOME/.android/debug.keystore" ]; then
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        fi
+        keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep -E 'SHA1:|SHA256:'
+
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
