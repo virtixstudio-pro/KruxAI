@@ -974,6 +974,89 @@ private final ActivityResultLauncher<String[]> filePicker =
         etInput.requestFocus();
     }
 
+    private void exportConversation() {
+        if (messageList == null || messageList.isEmpty()) {
+            Toast.makeText(this, "Rien à exporter : la discussion est vide.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
+                java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT);
+        StringBuilder sb = new StringBuilder("# Discussion KRUX AI\n");
+        sb.append("Exportée le ").append(df.format(new java.util.Date())).append("\n\n");
+        for (ChatMessage m : messageList) {
+            String text = m.getText();
+            if (text == null || text.trim().isEmpty()) continue;
+            sb.append(m.isUser() ? "**Moi**" : "**KRUX**");
+            long ts = m.getTimestamp();
+            if (ts > 100000000000L) sb.append(" · ").append(df.format(new java.util.Date(ts)));
+            else if (ts > 1000000000L) sb.append(" · ").append(df.format(new java.util.Date(ts * 1000L)));
+            sb.append("\n\n").append(text.trim()).append("\n\n---\n\n");
+        }
+        String out = sb.toString();
+        if (out.length() > 100000) {
+            out = "(début de la discussion tronqué)\n\n" + out.substring(out.length() - 100000);
+        }
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion KRUX AI");
+        i.putExtra(Intent.EXTRA_TEXT, out);
+        startActivity(Intent.createChooser(i, "Exporter la discussion"));
+    }
+
+    private void setupStartCards() {
+        if (tvWelcomeSubtitle == null || !(tvWelcomeSubtitle.getParent() instanceof android.widget.LinearLayout)) return;
+        final android.widget.LinearLayout parent = (android.widget.LinearLayout) tvWelcomeSubtitle.getParent();
+        for (int i = parent.getChildCount() - 1; i >= 0; i--) {
+            if ("krux_cards".equals(parent.getChildAt(i).getTag())) parent.removeViewAt(i);
+        }
+        android.widget.LinearLayout cards = new android.widget.LinearLayout(this);
+        cards.setTag("krux_cards");
+        cards.setOrientation(android.widget.LinearLayout.VERTICAL);
+        cards.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        cards.setPadding(0, dpToPx(18), 0, 0);
+
+        final String[] labels = {
+                "Fais-moi une app de liste de courses",
+                "Explique-moi un concept simplement",
+                "Aide-moi à corriger mon code",
+                "Cherche sur internet…"};
+        final String[] fills = {
+                "Fais-moi une app de liste de courses",
+                "Explique-moi simplement : ",
+                "Aide-moi à corriger ce code : ",
+                "Cherche sur internet : "};
+
+        for (int i = 0; i < labels.length; i++) {
+            final String fill = fills[i];
+            TextView chip = new TextView(this);
+            chip.setText(labels[i]);
+            chip.setTextSize(13);
+            chip.setTextColor(KruxTheme.get(this, "text"));
+            chip.setPadding(dpToPx(16), dpToPx(10), dpToPx(16), dpToPx(10));
+            android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+            gd.setColor(KruxTheme.get(this, "input"));
+            gd.setCornerRadius(dpToPx(20));
+            chip.setBackground(gd);
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = dpToPx(8);
+            chip.setLayoutParams(lp);
+            chip.setOnClickListener(v -> {
+                android.widget.EditText in = findViewById(R.id.etInput);
+                if (in == null) return;
+                in.setText(fill);
+                in.setSelection(in.getText().length());
+                in.requestFocus();
+                android.view.inputmethod.InputMethodManager imm =
+                        (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(in, 0);
+            });
+            cards.addView(chip);
+        }
+        parent.addView(cards, parent.indexOfChild(tvWelcomeSubtitle) + 1);
+    }
+
     private void updateWelcomePanel() {
         if (welcomePanel == null) {
             return;
@@ -1030,6 +1113,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             subtitle = "Encore debout ? On termine quelque chose ?";
         }
 
+        setupStartCards();
         tvWelcomeTitle.setText(title);
         tvWelcomeSubtitle.setText(subtitle);
     }
@@ -1422,10 +1506,24 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
     }
 
-    private void autoCreateApp(String desc) {
-        final android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+    private String quotaWeek() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        return c.getWeekYear() + "-W" + c.get(java.util.Calendar.WEEK_OF_YEAR);
+    }
+
+    private int quotaUsed() {
+        android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+        return quotaWeek().equals(sp.getString("quota_week", "")) ? sp.getInt("quota_used", 0) : 0;
+    }
+
+    private void consumeQuota() {
+        android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+        sp.edit().putString("quota_week", quotaWeek()).putInt("quota_used", quotaUsed() + 1).apply();
+    }
+
+    private void autoCreateApp(final String desc) {
         String token = "";
-        int quota = 3;
+        int quota = 2;
         try {
             java.io.InputStream is = getAssets().open("krux_builder.json");
             byte[] buf = new byte[is.available()];
@@ -1433,33 +1531,105 @@ private final ActivityResultLauncher<String[]> filePicker =
             is.close();
             org.json.JSONObject cfg = new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8));
             token = cfg.optString("token", "").trim();
-            quota = cfg.optInt("daily_quota", 3);
+            quota = cfg.optInt("weekly_quota", 2);
         } catch (Exception ignored) { }
         if (token.isEmpty()) {
             Toast.makeText(this, "La création d'apps n'est pas configurée dans cette version de KRUX.", Toast.LENGTH_LONG).show();
             return;
         }
-        String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(new java.util.Date());
-        int used = today.equals(sp.getString("quota_day", "")) ? sp.getInt("quota_used", 0) : 0;
+        int used = quotaUsed();
         if (used >= quota) {
-            Toast.makeText(this, "Limite atteinte : " + quota + " apps par jour. Reviens demain.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Limite atteinte : " + quota + " créations par semaine. Elles reviennent la semaine prochaine.", Toast.LENGTH_LONG).show();
             return;
         }
-        sp.edit().putString("quota_day", today).putInt("quota_used", used + 1).apply();
-        startAppBuild(token, desc);
+        final String fToken = token;
+        String shown = desc.length() > 300 ? desc.substring(0, 300) + "…" : desc;
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Créer cette application ?")
+                .setMessage(shown + "\n\nCréations restantes cette semaine : " + (quota - used) + "/" + quota
+                        + "\nApplication simple : 25 fichiers maximum.")
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Lancer", (d, w) -> startAppBuild(fToken, desc))
+                .show();
+    }
+
+    private void saveBuiltApp(java.io.File apk, String repoUrl) {
+        try {
+            android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+            org.json.JSONArray old = new org.json.JSONArray(sp.getString("apps", "[]"));
+            org.json.JSONArray arr = new org.json.JSONArray();
+            arr.put(new org.json.JSONObject().put("repo", repoUrl).put("apk", apk.getAbsolutePath())
+                    .put("time", System.currentTimeMillis()));
+            for (int i = 0; i < old.length(); i++) {
+                org.json.JSONObject o = old.getJSONObject(i);
+                if (arr.length() < 10) arr.put(o);
+                else new java.io.File(o.optString("apk")).delete();
+            }
+            sp.edit().putString("apps", arr.toString()).apply();
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_BUILD", "saveBuiltApp", e);
+        }
     }
 
     private void startAppBuild(String token, String desc) {
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        int pad = dpToPx(24);
+        box.setPadding(pad, pad, pad, dpToPx(8));
+        box.setBackgroundColor(KruxTheme.get(this, "bg"));
+
+        final KruxStatusView anim = new KruxStatusView(this);
+        anim.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dpToPx(72), dpToPx(72)));
+        anim.setActive(true);
+        box.addView(anim);
+
+        final TextView title = new TextView(this);
+        title.setText("J'écris et je compile ton app");
+        title.setTextSize(17);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setTextColor(KruxTheme.get(this, "text"));
+        title.setGravity(android.view.Gravity.CENTER);
+        title.setPadding(0, dpToPx(14), 0, dpToPx(6));
+        box.addView(title);
+
+        final TextView step = new TextView(this);
+        step.setText("Démarrage…");
+        step.setTextSize(13);
+        step.setTextColor(KruxTheme.get(this, "text2"));
+        step.setGravity(android.view.Gravity.CENTER);
+        box.addView(step);
+
+        final TextView hint = new TextView(this);
+        hint.setText("Ça prend 2 à 5 minutes. Attends, et ne ferme pas KRUX.");
+        hint.setTextSize(11);
+        hint.setTextColor(KruxTheme.get(this, "text2"));
+        hint.setGravity(android.view.Gravity.CENTER);
+        hint.setPadding(0, dpToPx(12), 0, 0);
+        box.addView(hint);
+
+        final android.animation.ObjectAnimator pulse =
+                android.animation.ObjectAnimator.ofFloat(title, "alpha", 1f, 0.45f);
+        pulse.setDuration(900);
+        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+
         final androidx.appcompat.app.AlertDialog progress =
                 new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("KRUX crée ton application")
-                        .setMessage("Démarrage…")
+                        .setView(box)
                         .setCancelable(false)
                         .setPositiveButton("Fermer", null)
                         .create();
+        if (progress.getWindow() != null) {
+            progress.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(KruxTheme.get(this, "bg")));
+        }
         progress.show();
-        progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+        final android.widget.Button closeBtn = progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
+        closeBtn.setEnabled(false);
+        closeBtn.setTextColor(KruxTheme.get(this, "accent"));
+        pulse.start();
 
+        final boolean[] consumed = {false};
         java.io.File outDir = getExternalFilesDir("generated");
 
         AppBuilder.run(token, desc, outDir,
@@ -1497,25 +1667,49 @@ private final ActivityResultLauncher<String[]> filePicker =
                 },
                 new AppBuilder.Listener() {
                     @Override
-                    public void onStatus(String status) {
-                        runOnUiThread(() -> progress.setMessage(status));
+                    public void onStatus(final String status) {
+                        if (!consumed[0] && status.startsWith("Création du repo")) {
+                            consumed[0] = true;
+                            consumeQuota();
+                        }
+                        runOnUiThread(() -> {
+                            String t = null;
+                            if (status.startsWith("Génération")) t = "J'écris ton application…";
+                            else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur GitHub…";
+                            else if (status.startsWith("Build échoué") || status.startsWith("Correction")) t = "Je corrige les erreurs…";
+                            else if (status.contains("ompilation")) t = "Je compile ton application…";
+                            else if (status.startsWith("Téléchargement")) t = "Je récupère ton APK…";
+                            if (t != null) title.setText(t);
+                            step.setText(status.startsWith("Création du repo") ? "Création du projet…" : status);
+                        });
                     }
 
                     @Override
-                    public void onDone(java.io.File apk, String repoUrl) {
+                    public void onDone(final java.io.File apk, final String repoUrl) {
                         runOnUiThread(() -> {
-                            progress.setMessage("Terminé.\n" + repoUrl);
-                            progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+                            pulse.cancel();
+                            title.setAlpha(1f);
+                            anim.setActive(false);
+                            title.setText("Ton application est prête");
+                            step.setText("Android va te proposer de l'installer.");
+                            hint.setText("Retrouve-la plus tard dans le menu + puis Mes apps.");
+                            closeBtn.setEnabled(true);
+                            saveBuiltApp(apk, repoUrl);
                             installApk(apk);
                         });
                     }
 
                     @Override
-                    public void onError(String message) {
+                    public void onError(final String message) {
+                        android.util.Log.e("KRUX_BUILD", String.valueOf(message));
                         runOnUiThread(() -> {
-                            android.util.Log.e("KRUX_BUILD", String.valueOf(message));
-                            progress.setMessage(friendlyBuildError(message));
-                            progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+                            pulse.cancel();
+                            title.setAlpha(1f);
+                            anim.setActive(false);
+                            title.setText("Je n'ai pas pu finir");
+                            step.setText(friendlyBuildError(message));
+                            hint.setText("");
+                            closeBtn.setEnabled(true);
                         });
                     }
                 });
@@ -1551,6 +1745,18 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
+
+        TextView optExport = view.findViewById(R.id.optExport);
+        optExport.setOnClickListener(v -> {
+            dialog.dismiss();
+            exportConversation();
+        });
+
+        TextView optMyApps = view.findViewById(R.id.optMyApps);
+        optMyApps.setOnClickListener(v -> {
+            dialog.dismiss();
+            startActivity(new Intent(MainActivity.this, MyAppsActivity.class));
+        });
 
         TextView optColors = view.findViewById(R.id.optColors);
         optColors.setOnClickListener(v -> {

@@ -48,6 +48,8 @@
                 android:resource="@xml/krux_builder_paths" />
         </provider>
 
+            <activity android:name=".ui.MyAppsActivity" android:exported="false" />
+
     </application>
 
 </manifest>
