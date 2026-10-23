@@ -10,3 +10,4 @@ local.properties
 *.before-*
 app/src/main/assets/krux_builder.json
 *.bak
+app/src/main/assets/krux_media.json

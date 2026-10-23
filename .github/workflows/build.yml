@@ -25,6 +25,13 @@ jobs:
       with:
         gradle-version: '8.13'
 
+    - name: Write KRUX media config
+      env:
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      run: |
+        mkdir -p app/src/main/assets
+        printf '{"pexels_key":"%s"}' "$PEXELS_API_KEY" > app/src/main/assets/krux_media.json
+
     - name: Write KRUX builder config
       env:
         KRUX_BUILDER_TOKEN: ${{ secrets.KRUX_BUILDER_TOKEN }}

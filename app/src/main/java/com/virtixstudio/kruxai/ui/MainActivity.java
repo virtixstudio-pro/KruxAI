@@ -1351,12 +1351,28 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 String cleanResponse = stripReflexion(rawResponse);
 
+                java.util.regex.Matcher kruxMedia = java.util.regex.Pattern
+                        .compile("<KRUX_TOOL>(?:\\s|\\\\n)*(image_search|video_search)(?:\\s|\\\\n)*(.*?)(?:\\s|\\\\n)*</KRUX_TOOL>",
+                                java.util.regex.Pattern.DOTALL)
+                        .matcher(cleanResponse);
+                if (kruxMedia.find()) {
+                    final boolean wantVideo = "video_search".equals(kruxMedia.group(1));
+                    final String mediaQuery = kruxMedia.group(2).replace("\\n", " ").trim();
+                    cleanResponse = cleanResponse.replace(kruxMedia.group(0), "").trim();
+                    if (cleanResponse.isEmpty()) {
+                        cleanResponse = wantVideo ? "Je cherche des vidéos libres de droits." : "Je cherche des images libres de droits.";
+                    }
+                    if (!mediaQuery.isEmpty()) {
+                        runOnUiThread(() -> MediaGallery.show(MainActivity.this, wantVideo, mediaQuery));
+                    }
+                }
+
                 java.util.regex.Matcher kruxCreate = java.util.regex.Pattern
-                        .compile("<KRUX_TOOL>\\s*create_app\\s*(.*?)\\s*</KRUX_TOOL>",
+                        .compile("<KRUX_TOOL>(?:\\s|\\\\n)*create_app(?:\\s|\\\\n)*(.*?)(?:\\s|\\\\n)*</KRUX_TOOL>",
                                 java.util.regex.Pattern.DOTALL)
                         .matcher(cleanResponse);
                 if (kruxCreate.find()) {
-                    final String appDesc = kruxCreate.group(1).trim();
+                    final String appDesc = kruxCreate.group(1).replace("\\n", " ").trim();
                     cleanResponse = cleanResponse.replace(kruxCreate.group(0), "").trim();
                     if (cleanResponse.isEmpty()) {
                         cleanResponse = "Je lance la création de ton application.";
@@ -1579,8 +1595,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         box.setPadding(pad, pad, pad, dpToPx(8));
         box.setBackgroundColor(KruxTheme.get(this, "bg"));
 
-        final KruxStatusView anim = new KruxStatusView(this);
-        anim.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dpToPx(72), dpToPx(72)));
+        final KruxDotsView anim = new KruxDotsView(this);
+        anim.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dpToPx(120), dpToPx(44)));
+        anim.setColor(KruxTheme.get(this, "accent"));
         anim.setActive(true);
         box.addView(anim);
 
@@ -2358,7 +2375,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void showCustomizationSheet() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.TRANSPARENT);
+        root.setBackgroundColor(Color.rgb(17, 19, 24));
 
         ScrollView scrollView = new ScrollView(this);
         scrollView.setFillViewport(true);
@@ -2371,7 +2388,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 dpToPx(20),
                 dpToPx(12)
         );
-        content.setBackgroundColor(Color.TRANSPARENT);
+        content.setBackgroundColor(Color.rgb(17, 19, 24));
 
         scrollView.addView(content);
 
@@ -2408,6 +2425,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         cardBg.setCornerRadius(dpToPx(16));
         cardBg.setStroke(dpToPx(1), Color.parseColor("#2A2634"));
         previewCard.setBackground(cardBg);
+        previewCard.setVisibility(View.GONE);
 
         // Mini Bulle Utilisateur
         TextView previewUserBubble = new TextView(this);
