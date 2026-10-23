@@ -2270,16 +2270,21 @@ private final ActivityResultLauncher<String[]> filePicker =
             if (!preferences.contains("userBubble")) {
                 userBubble = Color.rgb(226, 226, 226);
             }
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "bg")) background = KruxTheme.get(this, "bg");
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "bubble_user")) userBubble = KruxTheme.get(this, "bubble_user");
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubbif (KruxTheme.hasOverride(this, "text")) {
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb    userText = KruxTheme.get(this, "text");
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb    aiText = KruxTheme.get(this, "text");
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubb}
-
             userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubble) > 0.5 ? Color.BLACK : Color.WHITE;
             boolean aiDark = Color.alpha(aiBubble) >= 128 && androidx.core.graphics.ColorUtils.calculateLuminance(aiBubble) <= 0.5;
             aiText = aiDark ? Color.WHITE : Color.BLACK;
+        }
+
+        if (KruxTheme.hasOverride(this, "bg")) {
+            background = KruxTheme.get(this, "bg");
+        }
+        if (KruxTheme.hasOverride(this, "bubble_user")) {
+            userBubble = KruxTheme.get(this, "bubble_user");
+            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubble) > 0.5 ? Color.BLACK : Color.WHITE;
+        }
+        if (KruxTheme.hasOverride(this, "text")) {
+            userText = KruxTheme.get(this, "text");
+            aiText = KruxTheme.get(this, "text");
         }
 
         if (drawerLayout != null) {

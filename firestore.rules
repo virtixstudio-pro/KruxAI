@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function today() {
+      return string(request.time.year()) + '-' + string(request.time.month()) + '-' + string(request.time.day());
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /chats/{id}  { allow read, write: if isOwner(uid); }
+      match /memory/{id} { allow read, write: if isOwner(uid); }
+
+      match /usage/{day} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && day == today()
+          && request.resource.data.keys().hasOnly(['count'])
+          && request.resource.data.count == 1;
+        allow update: if isOwner(uid) && day == today()
+          && request.resource.data.keys().hasOnly(['count'])
+          && request.resource.data.count == resource.data.count + 1
+          && request.resource.data.count <= 20;
+        allow delete: if false;
+      }
+    }
+
+    match /feedbacks/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if false;
+    }
+  }
+}
