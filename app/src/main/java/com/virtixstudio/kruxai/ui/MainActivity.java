@@ -1142,6 +1142,12 @@ private final ActivityResultLauncher<String[]> filePicker =
             welcomeScene.setAnimating(false);
         }
         etInput.setText("");
+        // L'état ("Réflexion…", "Génération…") appartient à la NOUVELLE réponse : on détache l'ancienne
+        // avant le premier changement d'état, sinon il s'afficherait au-dessus de la réponse précédente.
+        if (activeAiMessage != null && chatAdapter != null) {
+            chatAdapter.clearKruxAnswerStatus(activeAiMessage.getId());
+        }
+        activeAiMessage = null;
         setKruxState(KruxState.THINKING);
 
         ToolRouter.Tool tool = ToolRouter.decide(prompt, isDeepSearchEnabled);
@@ -1280,6 +1286,11 @@ private final ActivityResultLauncher<String[]> filePicker =
             String fileName,
             String fileContent
     ) {
+        // Autre point d'entrée possible (régénération...) : l'ancienne réponse ne doit pas recevoir l'état.
+        if (activeAiMessage != null && !activeAiMessage.isStreaming() && chatAdapter != null) {
+            chatAdapter.clearKruxAnswerStatus(activeAiMessage.getId());
+            activeAiMessage = null;
+        }
         setKruxState(KruxState.GENERATING);
 
         StringBuilder historyBuilder = new StringBuilder();
@@ -1346,6 +1357,8 @@ private final ActivityResultLauncher<String[]> filePicker =
             chatAdapter.notifyItemInserted(messageList.size() - 1);
             rvChat.smoothScrollToPosition(messageList.size() - 1);
         });
+        // La nouvelle réponse existe maintenant : l'état s'affiche enfin dessus.
+        setKruxState(KruxState.GENERATING);
 
         ApiClient.sendRequest(
                 selectedKruxModel,
