@@ -1649,6 +1649,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         final boolean[] consumed = {false};
         java.io.File outDir = getExternalFilesDir("generated");
 
+        com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
         AppBuilder.run(token, desc, outDir,
                 (system, prompt) -> {
                     final String[] out = new String[2];
