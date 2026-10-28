@@ -108,6 +108,16 @@ private String selectedFileContent = "";
 
     private SpeechRecognizer speechRecognizer;
     private TextToSpeech textToSpeech;
+
+    /** Écran Paramètres : renvoie une action (export, personnalisation) à exécuter ici, car elle dépend de la discussion en cours. */
+    private final androidx.activity.result.ActivityResultLauncher<Intent> settingsLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), r -> {
+                applySavedTheme();
+                Intent data = r.getData();
+                String action = data == null ? null : data.getStringExtra(SettingsActivity.EXTRA_ACTION);
+                if (SettingsActivity.ACTION_EXPORT.equals(action)) exportConversation();
+                else if (SettingsActivity.ACTION_CUSTOMIZE.equals(action)) showCustomizationSheet();
+            });
     private boolean isListening = false;
     private String voiceBaseText = "";
     private boolean isTtsSpeaking = false;
@@ -1710,7 +1720,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                             anim.setActive(false);
                             title.setText("Ton application est prête");
                             step.setText("Android va te proposer de l'installer.");
-                            hint.setText("Retrouve-la plus tard dans le menu + puis Mes apps.");
+                            hint.setText("Retrouve-la plus tard dans Paramètres puis Mes apps.");
                             closeBtn.setEnabled(true);
                             saveBuiltApp(apk, repoUrl);
                             installApk(apk);
@@ -1763,24 +1773,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
-
-        TextView optExport = view.findViewById(R.id.optExport);
-        optExport.setOnClickListener(v -> {
-            dialog.dismiss();
-            exportConversation();
-        });
-
-        TextView optMyApps = view.findViewById(R.id.optMyApps);
-        optMyApps.setOnClickListener(v -> {
-            dialog.dismiss();
-            startActivity(new Intent(MainActivity.this, MyAppsActivity.class));
-        });
-
-        TextView optColors = view.findViewById(R.id.optColors);
-        optColors.setOnClickListener(v -> {
-            dialog.dismiss();
-            KruxTheme.showEditor(this, () -> applySavedTheme());
-        });
 
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
@@ -2865,15 +2857,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         if (navCustomize != null) {
             navCustomize.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);
-                showCustomizationSheet();
-            });
-        }
-        if (navLogout != null) {
-            navLogout.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(GravityCompat.START);
-                mAuth.signOut();
-                startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                finish();
+                settingsLauncher.launch(new Intent(MainActivity.this, SettingsActivity.class));
             });
         }
         if (btnNewChat != null) {
