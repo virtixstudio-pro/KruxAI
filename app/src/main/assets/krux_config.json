@@ -1,0 +1,90 @@
+{
+  "_lisez_moi": "Configuration universelle de KRUX. Aucune clé d'API ici, jamais. Seules les sections build, limits et retries sont lues par le code ; sources, latest_verified et models sont de la documentation vérifiable.",
+  "config_version": 1,
+  "verified_on": "2026-10-25",
+
+  "build": {
+    "agp": "8.13.0",
+    "gradle": "8.13",
+    "jdk": 17,
+    "compile_sdk": 36,
+    "target_sdk": 36,
+    "min_sdk": 24,
+    "build_tools": "35.0.0",
+    "libs": {
+      "appcompat": "1.7.0",
+      "material": "1.12.0",
+      "recyclerview": "1.3.2",
+      "constraintlayout": "2.1.4"
+    }
+  },
+
+  "limits": {
+    "max_fixes": 2,
+    "max_local_fixes": 2,
+    "max_files": 25,
+    "max_file_chars": 15000,
+    "max_total_chars": 60000
+  },
+
+  "retries": {
+    "generate": 2,
+    "github": 4
+  },
+
+  "latest_verified": {
+    "_note": "Dernières versions stables relevées sur les pages officielles le 2026-10-25. NON utilisées par défaut : on ne monte une version qu'après un build GitHub réussi avec elle.",
+    "agp": "9.4.0 (septembre 2026) : Gradle 9.6.0 minimum, JDK 17, API 37, build tools 36.0.0",
+    "appcompat": "1.8.0 (2026-08-12)",
+    "recyclerview": "1.4.0 (2025-01-15)",
+    "constraintlayout": "2.2.2 (2026-07-29)",
+    "core": "1.19.1 (2026-09-23)",
+    "material": "1.14.0 (page GitHub des versions, année non indiquée)"
+  },
+
+  "sources": [
+    {
+      "sujet": "AGP 8.13.0 : Gradle minimum 8.13, JDK 17, API max 36.1, build tools par défaut 35.0.0",
+      "url": "https://developer.android.com/build/releases/agp-8-13-0-release-notes",
+      "verifie_le": "2026-10-25"
+    },
+    {
+      "sujet": "AGP 9.4.0 : Gradle 9.6.0, JDK 17, API 37, build tools 36.0.0 (non adopté : migration non testée)",
+      "url": "https://developer.android.com/build/releases/agp-9-4-0-release-notes",
+      "verifie_le": "2026-10-25"
+    },
+    {
+      "sujet": "AGP 9.0 : changements incompatibles (Gradle 9.1 minimum, R non constants, ...)",
+      "url": "https://developer.android.com/build/releases/agp-9-0-0-release-notes",
+      "verifie_le": "2026-10-25"
+    },
+    {
+      "sujet": "Google Play : nouvelles apps et mises à jour doivent cibler Android 16 (API 36) depuis le 2026-08-31",
+      "url": "https://support.google.com/googleplay/android-developer/answer/11926878",
+      "verifie_le": "2026-10-25"
+    },
+    {
+      "sujet": "Versions stables AndroidX",
+      "url": "https://developer.android.com/jetpack/androidx/versions/stable-channel",
+      "verifie_le": "2026-10-25"
+    },
+    {
+      "sujet": "Versions de Material Components",
+      "url": "https://github.com/material-components/material-components-android/releases",
+      "verifie_le": "2026-10-25"
+    }
+  ],
+
+  "models": {
+    "_note": "Noms de modèles tels qu'écrits dans ModelRouter. NON vérifiés auprès des fournisseurs : à contrôler avant de s'y fier.",
+    "gemini_flash": { "provider": "GEMINI", "id": "gemini-3.6-flash", "verifie": false },
+    "hf_qwen_coder": { "provider": "HUGGINGFACE", "id": "Qwen/Qwen2.5-Coder-32B-Instruct:fastest", "verifie": false },
+    "groq_oss": { "provider": "GROQ", "id": "openai/gpt-oss-120b", "verifie": false },
+    "mistral_codestral": { "provider": "MISTRAL", "id": "codestral-latest", "verifie": false }
+  },
+
+  "api_keys": {
+    "_note": "Noms des variables d'environnement seulement. Les valeurs restent dans .env ou dans les secrets GitHub.",
+    "noms": ["GROQ_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "HF_API_KEY", "GEMINI_API_KEY"]
+  }
+}

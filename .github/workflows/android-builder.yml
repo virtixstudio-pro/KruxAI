@@ -40,8 +40,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Prepare Android SDK
+        run: |
+          SDKM="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDKM" ]; then
+            yes | "$SDKM" --licenses > /dev/null || true
+            "$SDKM" "platforms;android-36" "build-tools;35.0.0" > /dev/null || true
+          fi
+
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
 
@@ -49,11 +57,15 @@ jobs:
         env:
           GRADLE_TASK: ${{ inputs.gradle_task }}
         run: |
+          case "$GRADLE_TASK" in
+            assembleDebug|assembleRelease|bundleRelease|bundleDebug) ;;
+            *) echo "Tache Gradle non autorisee : $GRADLE_TASK"; exit 1 ;;
+          esac
           if [ -f ./gradlew ]; then
             chmod +x ./gradlew
-            ./gradlew "$GRADLE_TASK" --no-daemon
+            ./gradlew "$GRADLE_TASK" --no-daemon --console=plain
           else
-            gradle "$GRADLE_TASK" --no-daemon
+            gradle "$GRADLE_TASK" --no-daemon --console=plain
           fi
 
       - name: Upload APK and AAB
