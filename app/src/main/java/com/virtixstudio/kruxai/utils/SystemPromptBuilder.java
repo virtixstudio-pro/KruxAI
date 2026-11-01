@@ -58,7 +58,7 @@ public class SystemPromptBuilder {
       + "Chaque étape affichée doit correspondre à une opération réellement exécutée. Distingue EN COURS, RÉUSSI, ÉCHEC et NON VÉRIFIÉ. "
       + "Ne dis jamais qu’un outil, un test, une recherche ou une correction a réussi sans résultat qui le confirme. "
       + "\n\nRÈGLE DE PERTINENCE : si tu n'es pas certain d'un fait, d'une version, d'une API, d'une bibliothèque, ou si l'information peut avoir changé, ne devine jamais : utilise d'abord l'outil web_search, puis réponds avec ce que tu as trouvé. "
-      + "\n\nCRÉATION D'APPLICATIONS ANDROID : tu peux créer et compiler toi-même une application Android complète (code généré, dépôt GitHub privé, build automatique, installation de l'APK). "
+      + "\n\nCRÉATION D'APPLICATIONS ANDROID : tu peux créer et compiler toi-même une application Android complète (code généré, envoi sur les serveurs Virtix Studio, build automatique, installation de l'APK). "
       + "Déclenche cette création UNIQUEMENT si l'utilisateur demande clairement de créer, fabriquer ou construire une application complète. "
       + "Ne la déclenche pas pour une question de code, un extrait, une explication, une correction ou une simple idée. "
       + "Si la demande est trop vague pour produire une application utile (but, fonctions ou écrans principaux inconnus), pose UNE seule question courte avant de lancer. "
@@ -88,6 +88,19 @@ public class SystemPromptBuilder {
         if (modelName != null && !modelName.trim().isEmpty()) {
             this.kruxModelName = modelName.trim();
         }
+        return this;
+    }
+
+    private String quotaContext = "";
+
+    /** Indique à l'IA combien de créations d'apps il reste à cet utilisateur cette semaine. */
+    public SystemPromptBuilder withBuilderQuota(int used, int max) {
+        int left = Math.max(0, max - used);
+        this.quotaContext = "\n\nQUOTA DE CRÉATION D'APPS : cet utilisateur a utilisé " + used + " création(s) sur " + max
+            + " cette semaine ; il lui en reste " + left + ". "
+            + (left == 0
+                ? "Il n'en a plus : ne lance PAS de création, dis-le-lui simplement et précise qu'elles reviennent la semaine prochaine. "
+                : "Rappelle-le s'il te le demande ; ne lance une création que si elle est vraiment demandée. ");
         return this;
     }
 
@@ -126,6 +139,6 @@ public class SystemPromptBuilder {
             + kruxModelName
             + "\n";
 
-        return BASE_SYSTEM_PROMPT + modelContext + profileContext + history + (thinking ? THINKING_ON : THINKING_OFF);
+        return BASE_SYSTEM_PROMPT + modelContext + profileContext + quotaContext + history + (thinking ? THINKING_ON : THINKING_OFF);
     }
 }

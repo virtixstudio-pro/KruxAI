@@ -159,6 +159,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
         currentUser = mAuth.getCurrentUser();
+        refreshCloudQuota();
         android.util.Log.e("KRUX_BOOT", "BOOT 04: FirebaseAuth OK, user=" + (currentUser != null));
 
         if (currentUser != null) {
@@ -1322,6 +1323,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                         : "KRUX Prime"
                 )
                 .withUserProfile(currentUserFirstName, currentUserEmail)
+                .withBuilderQuota(quotaUsed(), weeklyQuota())
                 .withHistory(historyBuilder.toString())
                 .build();
 
@@ -1550,14 +1552,45 @@ private final ActivityResultLauncher<String[]> filePicker =
         return c.getWeekYear() + "-W" + c.get(java.util.Calendar.WEEK_OF_YEAR);
     }
 
+    private int cloudQuotaUsed = -1;
+    private String cloudQuotaWeek = "";
+
+    private int weeklyQuota() {
+        try {
+            java.io.InputStream is = getAssets().open("krux_builder.json");
+            byte[] buf = new byte[is.available()];
+            is.read(buf);
+            is.close();
+            return new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8)).optInt("weekly_quota", 2);
+        } catch (Exception e) {
+            return 2;
+        }
+    }
+
+    /** Quota utilisé cette semaine : le plus grand entre le compteur local et celui du serveur (Firestore). */
     private int quotaUsed() {
         android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
-        return quotaWeek().equals(sp.getString("quota_week", "")) ? sp.getInt("quota_used", 0) : 0;
+        int local = quotaWeek().equals(sp.getString("quota_week", "")) ? sp.getInt("quota_used", 0) : 0;
+        int cloud = quotaWeek().equals(cloudQuotaWeek) ? cloudQuotaUsed : -1;
+        return Math.max(local, cloud);
+    }
+
+    private void refreshCloudQuota() {
+        if (currentUser == null) return;
+        final String week = quotaWeek();
+        com.virtixstudio.kruxai.core.QuotaStore.fetch(currentUser.getUid(), week, used -> {
+            cloudQuotaUsed = used;
+            cloudQuotaWeek = week;
+        });
     }
 
     private void consumeQuota() {
         android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
-        sp.edit().putString("quota_week", quotaWeek()).putInt("quota_used", quotaUsed() + 1).apply();
+        int next = quotaUsed() + 1;
+        sp.edit().putString("quota_week", quotaWeek()).putInt("quota_used", next).apply();
+        cloudQuotaUsed = next;
+        cloudQuotaWeek = quotaWeek();
+        if (currentUser != null) com.virtixstudio.kruxai.core.QuotaStore.consume(currentUser.getUid(), quotaWeek());
     }
 
     private void autoCreateApp(final String desc) {
@@ -1590,6 +1623,31 @@ private final ActivityResultLauncher<String[]> filePicker =
                 .setNegativeButton("Annuler", null)
                 .setPositiveButton("Lancer", (d, w) -> startAppBuild(fToken, desc))
                 .show();
+    }
+
+    /** Copie l'APK sur Cloudinary (si configuré) pour le retrouver même après changement de téléphone. */
+    private void uploadAppToCloud(final java.io.File apk, final String repoUrl) {
+        if (!com.virtixstudio.kruxai.core.KruxConfig.cloudEnabled() || currentUser == null) return;
+        final String uid = currentUser.getUid().replaceAll("[^A-Za-z0-9_-]", "");
+        final String name = "app-" + System.currentTimeMillis() / 1000 + ".apk";
+        new Thread(() -> {
+            try {
+                String url = com.virtixstudio.kruxai.core.CloudinaryStore.upload(apk, "krux_apps/" + uid, name);
+                android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+                org.json.JSONArray arr = new org.json.JSONArray(sp.getString("apps", "[]"));
+                for (int i = 0; i < arr.length(); i++) {
+                    org.json.JSONObject o = arr.getJSONObject(i);
+                    if (repoUrl.equals(o.optString("repo"))) { o.put("cloud_url", url); break; }
+                }
+                sp.edit().putString("apps", arr.toString()).apply();
+                db.collection("users").document(currentUser.getUid()).collection("apps")
+                        .add(new java.util.HashMap<String, Object>() {{
+                            put("url", url); put("time", System.currentTimeMillis());
+                        }});
+            } catch (Exception e) {
+                android.util.Log.e("KRUX_BUILD", "cloudinary", e);
+            }
+        }).start();
     }
 
     private void saveBuiltApp(java.io.File apk, String repoUrl) {
@@ -1716,12 +1774,12 @@ private final ActivityResultLauncher<String[]> filePicker =
                         runOnUiThread(() -> {
                             String t = null;
                             if (status.startsWith("Génération")) t = "J'écris ton application…";
-                            else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur GitHub…";
+                            else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur les serveurs Virtix Studio…";
                             else if (status.startsWith("Build échoué") || status.startsWith("Correction")) t = "Je corrige les erreurs…";
                             else if (status.contains("ompilation")) t = "Je compile ton application…";
                             else if (status.startsWith("Téléchargement")) t = "Je récupère ton APK…";
                             if (t != null) title.setText(t);
-                            step.setText(status.startsWith("Création du repo") ? "Création du projet…" : status);
+                            step.setText(status.startsWith("Création du repo") ? "Création du projet…" : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
                         });
                     }
 
@@ -1736,6 +1794,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                             hint.setText("Retrouve-la plus tard dans Paramètres puis Mes apps.");
                             closeBtn.setEnabled(true);
                             saveBuiltApp(apk, repoUrl);
+                            uploadAppToCloud(apk, repoUrl);
                             installApk(apk);
                         });
                     }

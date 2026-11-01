@@ -318,7 +318,7 @@ public class AppBuilder {
                     }
                     String conclusion = run.optString("conclusion");
                     if ("cancelled".equals(conclusion) || "timed_out".equals(conclusion))
-                        throw new Exception("Le build GitHub a été interrompu (" + conclusion + "). Réessaie dans un instant.");
+                        throw new Exception("Le build a été interrompu (" + conclusion + "). Réessaie dans un instant.");
                     if (fixes >= s.maxFixes)
                         throw new Exception("Build toujours en échec après " + s.maxFixes + " corrections. Dernière erreur : "
                             + shorten(lastLog, 400));

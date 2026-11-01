@@ -32,6 +32,12 @@
     "github": 4
   },
 
+  "cloudinary": {
+    "_note": "Stockage des apps créées. Laisser vide pour désactiver. Jamais de api_secret ici : seulement le nom du cloud et le preset NON SIGNÉ (restreint dans Cloudinary : dossier krux_apps, 10 Mo, formats apk).",
+    "cloud_name": "",
+    "upload_preset": ""
+  },
+
   "latest_verified": {
     "_note": "Dernières versions stables relevées sur les pages officielles le 2026-10-25. NON utilisées par défaut : on ne monte une version qu'après un build GitHub réussi avec elle.",
     "agp": "9.4.0 (septembre 2026) : Gradle 9.6.0 minimum, JDK 17, API 37, build tools 36.0.0",

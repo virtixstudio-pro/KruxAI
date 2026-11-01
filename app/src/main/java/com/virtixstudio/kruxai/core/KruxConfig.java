@@ -24,7 +24,17 @@ public final class KruxConfig {
     private static volatile BuildSpec build = new BuildSpec();
     private static volatile String loadedFrom = "valeurs par défaut";
 
+    private static volatile String cloudName = "";
+    private static volatile String uploadPreset = "";
+
     private KruxConfig() { }
+
+    /** Nom du cloud Cloudinary, ou "" si le stockage des apps n'est pas configuré. */
+    public static String cloudName() { return cloudName; }
+
+    public static String uploadPreset() { return uploadPreset; }
+
+    public static boolean cloudEnabled() { return !cloudName.isEmpty() && !uploadPreset.isEmpty(); }
 
     public static BuildSpec build() { return build; }
 
@@ -38,7 +48,14 @@ public final class KruxConfig {
             int n;
             while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
             String text = new String(bo.toByteArray(), StandardCharsets.UTF_8);
-            BuildSpec s = parse(new JSONObject(text));
+            JSONObject root = new JSONObject(text);
+            BuildSpec s = parse(root);
+            JSONObject c = root.optJSONObject("cloudinary");
+            String cn = c == null ? "" : c.optString("cloud_name", "").trim();
+            String up = c == null ? "" : c.optString("upload_preset", "").trim();
+            boolean ok = cn.matches("[a-z0-9_-]{2,40}") && up.matches("[A-Za-z0-9_-]{2,60}");
+            cloudName = ok ? cn : "";
+            uploadPreset = ok ? up : "";
             build = s;
             loadedFrom = "assets/krux_config.json";
         } catch (Exception e) {
