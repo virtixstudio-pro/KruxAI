@@ -5,3 +5,5 @@ D="$(cd "$(dirname "$0")/../.." && pwd)"
 O="$(mktemp -d)"
 javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/*.java "$D"/tools/builder-tests/BuilderTests.java
 java -cp "$O" BuilderTests
+javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/live/LiveMotion.java "$D"/tools/builder-tests/LiveMotionTests.java
+java -cp "$O" LiveMotionTests

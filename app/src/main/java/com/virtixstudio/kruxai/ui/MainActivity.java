@@ -1846,6 +1846,14 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
 
+        TextView optLive = view.findViewById(R.id.optLive);
+        optLive.setOnClickListener(v -> {
+            dialog.dismiss();
+            Intent live = new Intent(MainActivity.this, com.virtixstudio.kruxai.live.LiveActivity.class);
+            if (selectedKruxModel != null) live.putExtra(com.virtixstudio.kruxai.live.LiveActivity.EXTRA_MODEL, selectedKruxModel.name());
+            startActivity(live);
+        });
+
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
         if (isThinkingMode) optThinking.setText(" Mode Réflexion [ACTIF]");
