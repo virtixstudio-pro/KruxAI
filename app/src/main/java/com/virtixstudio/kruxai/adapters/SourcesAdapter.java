@@ -52,6 +52,7 @@ public class SourcesAdapter
     ) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_source_card, parent, false);
+        com.virtixstudio.kruxai.ui.KruxTheme.applyTo(view, parent.getContext());
 
         return new SourceViewHolder(view);
     }

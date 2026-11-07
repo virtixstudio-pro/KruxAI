@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <View
+    <View android:tag="krux:input"
         android:layout_width="110dp"
         android:layout_height="110dp"
         android:layout_gravity="end|center_vertical"
@@ -27,7 +27,7 @@
             android:paddingEnd="30dp"
             android:paddingBottom="30dp">
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/app_name"
@@ -36,7 +36,7 @@
                 android:textStyle="bold"
                 android:letterSpacing="0.24" />
 
-            <TextView
+            <TextView android:tag="krux:text2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -44,7 +44,7 @@
                 android:textColor="#8A8A8A"
                 android:textSize="14sp" />
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="52dp"
@@ -53,7 +53,7 @@
                 android:textSize="29sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <TextView android:tag="krux:text2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -61,7 +61,7 @@
                 android:textColor="#8A8A8A"
                 android:textSize="14sp" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etSignupFirstName"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -74,7 +74,7 @@
                 android:textColor="#FFFFFF"
                 android:textColorHint="#777777" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etSignupEmail"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -87,7 +87,7 @@
                 android:textColor="#FFFFFF"
                 android:textColorHint="#777777" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etSignupPassword"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -100,7 +100,7 @@
                 android:textColor="#FFFFFF"
                 android:textColorHint="#777777" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etSignupRepeatPassword"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -113,7 +113,7 @@
                 android:textColor="#FFFFFF"
                 android:textColorHint="#777777" />
 
-            <Button
+            <Button android:tag="krux:button,buttontext"
                 android:id="@+id/btnSignup"
                 android:layout_width="match_parent"
                 android:layout_height="54dp"
@@ -125,7 +125,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:id="@+id/tvGoLogin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -135,7 +135,7 @@
                 android:textColor="#FFFFFF"
                 android:textSize="14sp" />
 
-            <TextView
+            <TextView android:tag="krux:text2"
                 android:id="@+id/tvSignupLanguage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

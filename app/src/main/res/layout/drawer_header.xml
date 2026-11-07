@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="160dp"
     android:background="#07050F"
@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
+    <TextView android:tag="krux:accent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="KRUX AI"
@@ -15,7 +15,7 @@
         android:textSize="22sp"
         android:textStyle="bold" />
 
-    <TextView
+    <TextView android:tag="krux:text2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Virtix Studio 2026"

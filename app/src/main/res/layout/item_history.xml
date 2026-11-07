@@ -6,7 +6,7 @@
     android:padding="12dp"
     android:background="?attr/selectableItemBackground">
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/tvHistoryTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

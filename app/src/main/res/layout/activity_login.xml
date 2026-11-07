@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main_gradient"
@@ -21,7 +21,7 @@
             android:layout_height="125dp"
             android:layout_marginBottom="2dp" />
 
-        <TextView
+        <TextView android:tag="krux:text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -31,7 +31,7 @@
             android:textSize="25sp"
             android:textStyle="bold" />
 
-        <TextView
+        <TextView android:tag="krux:text2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
@@ -39,7 +39,7 @@
             android:textColor="@color/text_gray"
             android:textSize="13sp" />
 
-        <TextView
+        <TextView android:tag="krux:text"
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -49,7 +49,7 @@
             android:textSize="28sp"
             android:textStyle="bold" />
 
-        <TextView
+        <TextView android:tag="krux:text2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
@@ -57,7 +57,7 @@
             android:textColor="@color/text_gray"
             android:textSize="14sp" />
 
-        <EditText
+        <EditText android:tag="krux:input,text,hint"
             android:id="@+id/etFirstName"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -70,7 +70,7 @@
             android:textColorHint="@color/text_gray"
             android:visibility="gone" />
 
-        <EditText
+        <EditText android:tag="krux:input,text,hint"
             android:id="@+id/etEmail"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -82,7 +82,7 @@
             android:textColor="@color/text_white"
             android:textColorHint="@color/text_gray" />
 
-        <EditText
+        <EditText android:tag="krux:input,text,hint"
             android:id="@+id/etPassword"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -96,7 +96,7 @@
             android:textColor="@color/text_white"
             android:textColorHint="@color/text_gray" />
 
-        <TextView
+        <TextView android:tag="krux:accent"
             android:id="@+id/tvForgotPassword"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -107,7 +107,7 @@
             android:textColor="@color/accent_blue"
             android:textSize="13sp" />
 
-        <EditText
+        <EditText android:tag="krux:input,text,hint"
             android:id="@+id/etRepeatPassword"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -120,7 +120,7 @@
             android:textColorHint="@color/text_gray"
             android:visibility="gone" />
 
-        <Button
+        <Button android:tag="krux:button,buttontext"
             android:id="@+id/btnSubmit"
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -132,7 +132,7 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <TextView
+        <TextView android:tag="krux:text2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="22dp"
@@ -141,7 +141,7 @@
             android:textColor="@color/text_gray"
             android:textSize="12sp" />
 
-        <Button
+        <Button android:tag="krux:input,text"
             android:id="@+id/btnGoogle"
             android:layout_width="match_parent"
             android:layout_height="54dp"
@@ -152,7 +152,7 @@
             android:textColor="@color/text_white"
             android:textSize="15sp" />
 
-        <TextView
+        <TextView android:tag="krux:accent"
             android:id="@+id/tvToggleMode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -162,7 +162,7 @@
             android:textColor="@color/accent_blue"
             android:textSize="14sp" />
 
-        <TextView
+        <TextView android:tag="krux:text2"
             android:id="@+id/tvLanguage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

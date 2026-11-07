@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/bg_main_gradient"
     android:padding="12dp">
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="🤝 KRUX STUDIO"
@@ -16,7 +16,7 @@
         android:textStyle="bold"
         android:padding="8dp" />
 
-    <TextView
+    <TextView android:tag="krux:accent"
         android:id="@+id/tvStudioStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etStudioName"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -47,7 +47,7 @@
                 android:textColorHint="#94A3B8"
                 android:padding="12dp" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etStudioObjective"
                 android:layout_width="match_parent"
                 android:layout_height="90dp"
@@ -59,7 +59,7 @@
                 android:textColorHint="#94A3B8"
                 android:padding="12dp" />
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Ajouter un agent"
@@ -68,7 +68,7 @@
                 android:textStyle="bold"
                 android:padding="8dp" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etAgentName"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -79,7 +79,7 @@
                 android:textColorHint="#94A3B8"
                 android:padding="12dp" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etAgentRole"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -90,7 +90,7 @@
                 android:textColorHint="#94A3B8"
                 android:padding="12dp" />
 
-            <EditText
+            <EditText android:tag="krux:input,text,hint"
                 android:id="@+id/etAgentObjective"
                 android:layout_width="match_parent"
                 android:layout_height="70dp"
@@ -102,7 +102,7 @@
                 android:textColorHint="#94A3B8"
                 android:padding="12dp" />
 
-            <TextView
+            <TextView android:tag="krux:input,text"
                 android:id="@+id/tvSelectedModel"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -114,7 +114,7 @@
                 android:clickable="true"
                 android:focusable="true" />
 
-            <Button
+            <Button android:tag="krux:button,buttontext"
                 android:id="@+id/btnAddAgent"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
@@ -124,7 +124,7 @@
                 android:textColor="#38BDF8"
                 android:background="@drawable/bg_rounded_button" />
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:id="@+id/tvAgentsList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -132,7 +132,7 @@
                 android:textSize="14sp"
                 android:padding="8dp" />
 
-                    <EditText
+                    <EditText android:tag="krux:text,hint"
             android:id="@+id/etStudioTask"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -144,7 +144,7 @@
             android:textColor="#F8FAFC"
             android:textColorHint="#94A3B8" />
 
-<Button
+<Button android:tag="krux:button,buttontext"
                 android:id="@+id/btnRunStudio"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -153,7 +153,7 @@
                 android:textColor="#FFFFFF"
                 android:background="@drawable/bg_rounded_button" />
 
-            <Button
+            <Button android:tag="krux:button,buttontext"
                 android:id="@+id/btnOpenStudioChat"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
@@ -163,7 +163,7 @@
                 android:background="@drawable/bg_rounded_button"
                 android:visibility="gone" />
 
-            <TextView
+            <TextView android:tag="krux:text"
                 android:id="@+id/tvStudioOutput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

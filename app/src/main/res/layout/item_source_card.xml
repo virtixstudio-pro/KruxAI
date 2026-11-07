@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<LinearLayout android:tag="krux:input"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="250dp"
     android:layout_height="wrap_content"
@@ -13,7 +13,7 @@
     android:orientation="vertical"
     android:padding="11dp">
 
-    <TextView
+    <TextView android:tag="krux:text2"
         android:id="@+id/tvDomain"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -23,7 +23,7 @@
         android:maxLines="1"
         android:ellipsize="end" />
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/tvTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -34,7 +34,7 @@
         android:maxLines="2"
         android:ellipsize="end" />
 
-    <TextView
+    <TextView android:tag="krux:text2"
         android:id="@+id/tvSnippet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -46,7 +46,7 @@
         android:ellipsize="end" />
 
     <!-- La preview visuelle est volontairement EN BAS -->
-    <ImageView
+    <ImageView android:tag="krux:bg,text2"
         android:id="@+id/ivPreview"
         android:layout_width="match_parent"
         android:layout_height="78dp"

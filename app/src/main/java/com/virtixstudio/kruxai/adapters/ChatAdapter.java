@@ -99,6 +99,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.userActionListener = userActionListener;
     }
 
+    /** Accent (langue des blocs de code, liens) et texte secondaire, issus du thème. */
+    public void setAccentColors(int accent, int secondaryText) {
+        this.accentColor = accent;
+        this.secondaryTextColor = secondaryText;
+    }
+
         public void applyTheme(
                         int userBubbleColor,
                         int userTextColor,

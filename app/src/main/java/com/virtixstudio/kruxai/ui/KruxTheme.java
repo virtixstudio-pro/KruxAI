@@ -100,7 +100,7 @@ public final class KruxTheme {
         walk(content, a);
         if (content instanceof ViewGroup && ((ViewGroup) content).getChildCount() > 0) {
             View root = ((ViewGroup) content).getChildAt(0);
-            if (root != null && "krux:bg".equals(root.getTag())) {
+            if (root != null && hasKey(root, "bg")) {
                 int bg = get(a, "bg");
                 Window w = a.getWindow();
                 w.setStatusBarColor(bg);
@@ -113,11 +113,26 @@ public final class KruxTheme {
         }
     }
 
+    /** Colore une vue créée à la main (feuille du bas, boîte de dialogue, élément de liste). */
+    public static void applyTo(View root, Context c) {
+        if (root != null) walk(root, c);
+    }
+
+    /** Une étiquette peut porter plusieurs clés : "krux:input,text,hint". */
+    private static boolean hasKey(View v, String key) {
+        Object t = v.getTag();
+        if (!(t instanceof String) || !((String) t).startsWith("krux:")) return false;
+        for (String k : ((String) t).substring(5).split(",")) if (k.trim().equals(key)) return true;
+        return false;
+    }
+
     private static void walk(View v, Context c) {
         Object t = v.getTag();
         if (t instanceof String) {
             String s = (String) t;
-            if (s.startsWith("krux:")) style(v, s.substring(5), c);
+            if (s.startsWith("krux:")) {
+                for (String k : s.substring(5).split(",")) style(v, k.trim(), c);
+            }
         }
         if (v instanceof ViewGroup) {
             ViewGroup g = (ViewGroup) v;

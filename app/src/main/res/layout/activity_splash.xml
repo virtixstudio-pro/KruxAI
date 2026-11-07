@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -21,7 +21,7 @@
             android:src="@drawable/krux_splash_head"
             android:scaleType="fitCenter" />
 
-        <TextView
+        <TextView android:tag="krux:text"
             android:id="@+id/tvIntelligence"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -32,7 +32,7 @@
             android:textStyle="bold"
             android:letterSpacing="0.18" />
 
-        <TextView
+        <TextView android:tag="krux:accent"
             android:id="@+id/tvWithoutLimits"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -45,7 +45,7 @@
 
     </LinearLayout>
 
-    <TextView
+    <TextView android:tag="krux:text2"
         android:id="@+id/tvSplashCopyright"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

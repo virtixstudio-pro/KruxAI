@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<LinearLayout android:tag="krux:bg"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -8,7 +8,7 @@
     android:padding="20dp"
     android:background="#111318">
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Options"
@@ -17,7 +17,7 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/optLearning"
         android:layout_width="match_parent"
         android:layout_height="52dp"
@@ -28,7 +28,7 @@
         android:textSize="15sp"
         android:background="?attr/selectableItemBackground" />
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/optDeepSearch"
         android:layout_width="match_parent"
         android:layout_height="52dp"
@@ -39,7 +39,7 @@
         android:textSize="15sp"
         android:background="?attr/selectableItemBackground" />
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/optThinking"
         android:layout_width="match_parent"
         android:layout_height="52dp"
@@ -53,7 +53,7 @@
 
 
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/optLive"
         android:layout_width="match_parent"
         android:layout_height="52dp"
@@ -64,7 +64,7 @@
         android:textSize="15sp"
         android:background="?attr/selectableItemBackground" />
 
-    <TextView
+    <TextView android:tag="krux:text"
         android:id="@+id/optFiles"
         android:layout_width="match_parent"
         android:layout_height="52dp"

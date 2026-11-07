@@ -64,6 +64,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_history, parent, false);
+        com.virtixstudio.kruxai.ui.KruxTheme.applyTo(view, parent.getContext());
         return new ViewHolder(view);
     }
 

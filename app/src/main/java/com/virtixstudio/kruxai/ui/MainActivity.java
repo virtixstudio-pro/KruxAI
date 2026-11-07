@@ -1867,6 +1867,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_plus, null);
         dialog.setContentView(view);
+        KruxTheme.applyTo(view, this);
 
         TextView optLearning = view.findViewById(R.id.optLearning);
         TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
@@ -2164,6 +2165,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_account, null);
         dialog.setContentView(view);
+        KruxTheme.applyTo(view, this);
 
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
         Button btnLogout = view.findViewById(R.id.btnLogout);
@@ -2338,54 +2340,21 @@ private final ActivityResultLauncher<String[]> filePicker =
             Color.rgb(168, 85, 247)
         );
 
-        int background = Color.rgb(7, 5, 15);
-        int userText = Color.rgb(250, 247, 255);
-        int aiText = Color.rgb(250, 247, 255);
-
-        if ("graphite".equals(palette)) {
-            background = Color.rgb(16, 18, 22);
-            if (!preferences.contains("userBubble")) {
-                userBubble = Color.rgb(38, 43, 52);
-            }
-            userText = Color.WHITE;
-            aiText = Color.rgb(235, 239, 245);
-        } else if ("ocean".equals(palette)) {
-            background = Color.rgb(5, 16, 28);
-            if (!preferences.contains("userBubble")) {
-                userBubble = Color.rgb(10, 52, 76);
-            }
-            userText = Color.rgb(232, 248, 255);
-            aiText = Color.rgb(225, 240, 248);
-        }
-
-        if ("noir".equals(palette)) {
-            background = Color.BLACK;
-            if (!preferences.contains("userBubble")) {
-                userBubble = Color.rgb(34, 34, 34);
-            }
-            userText = Color.WHITE;
-            aiText = Color.WHITE;
-        } else if ("blanc".equals(palette)) {
-            background = Color.WHITE;
-            if (!preferences.contains("userBubble")) {
-                userBubble = Color.rgb(226, 226, 226);
-            }
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubble) > 0.5 ? Color.BLACK : Color.WHITE;
-            boolean aiDark = Color.alpha(aiBubble) >= 128 && androidx.core.graphics.ColorUtils.calculateLuminance(aiBubble) <= 0.5;
-            aiText = aiDark ? Color.WHITE : Color.BLACK;
-        }
-
-        if (KruxTheme.hasOverride(this, "bg")) {
-            background = KruxTheme.get(this, "bg");
-        }
-        if (KruxTheme.hasOverride(this, "bubble_user")) {
+        // KruxTheme est la source unique (palette + couleurs modifiées dans "Couleurs et thème").
+        // Les anciens réglages de "Personnaliser l'app" ne servent que si KruxTheme n'a rien de plus précis.
+        int background = KruxTheme.get(this, "bg");
+        if (KruxTheme.hasOverride(this, "bubble_user") || !preferences.contains("userBubble")) {
             userBubble = KruxTheme.get(this, "bubble_user");
-            userText = androidx.core.graphics.ColorUtils.calculateLuminance(userBubble) > 0.5 ? Color.BLACK : Color.WHITE;
         }
-        if (KruxTheme.hasOverride(this, "text")) {
-            userText = KruxTheme.get(this, "text");
-            aiText = KruxTheme.get(this, "text");
+        if (KruxTheme.hasOverride(this, "bubble_ai") || !preferences.contains("aiBubble")) {
+            aiBubble = KruxTheme.get(this, "bubble_ai");
         }
+        if (KruxTheme.hasOverride(this, "accent") || !preferences.contains("accent")) {
+            accent = KruxTheme.get(this, "accent");
+        }
+        int mainText = KruxTheme.get(this, "text");
+        int userText = readableOn(userBubble, mainText);
+        int aiText = readableOn(Color.alpha(aiBubble) >= 128 ? aiBubble : background, mainText);
 
         if (drawerLayout != null) {
             String wallpaperValue = preferences.getString("custom_wallpaper", null);
@@ -2426,12 +2395,13 @@ private final ActivityResultLauncher<String[]> filePicker =
             welcomeScene.setScene(scene);
         }
         if (btnSend != null) {
-            btnSend.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+            btnSend.setImageTintList(ColorStateList.valueOf(KruxTheme.get(this, "buttontext")));
         }
         if (tvKruxStatus != null) {
             tvKruxStatus.setTextColor(accent);
         }
         if (chatAdapter != null) {
+            chatAdapter.setAccentColors(accent, KruxTheme.get(this, "text2"));
             chatAdapter.applyTheme(
                     userBubble,
                     userText,
@@ -2442,6 +2412,13 @@ private final ActivityResultLauncher<String[]> filePicker =
                     font
             );
         }
+    }
+
+    /** Garde la couleur voulue si elle se lit bien sur ce fond, sinon noir ou blanc. */
+    private int readableOn(int surface, int preferred) {
+        int opaque = androidx.core.graphics.ColorUtils.setAlphaComponent(surface, 255);
+        if (androidx.core.graphics.ColorUtils.calculateContrast(preferred, opaque) >= 4.5) return preferred;
+        return androidx.core.graphics.ColorUtils.calculateLuminance(opaque) > 0.5 ? Color.BLACK : Color.WHITE;
     }
 
     private float getThemeFloat(
@@ -3241,6 +3218,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 R.layout.dialog_feedback,
                 null
         );
+        KruxTheme.applyTo(view, this);
 
         androidx.appcompat.app.AlertDialog dialog =
                 new androidx.appcompat.app.AlertDialog.Builder(this)
