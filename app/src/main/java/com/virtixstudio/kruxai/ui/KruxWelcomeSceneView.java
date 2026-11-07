@@ -41,6 +41,40 @@ public class KruxWelcomeSceneView extends View {
         init();
     }
 
+
+    // ---- Palette (suit le thème de l'app)
+    private int bg = Color.rgb(5, 3, 14);
+    private int accent = Color.rgb(168, 85, 247);
+    private int warm = Color.rgb(255, 108, 88);
+
+    /** Fond et accent du thème : la scène en dérive toutes ses couleurs. */
+    public void setPalette(int background, int accentColor) {
+        this.bg = Color.rgb(Color.red(background), Color.green(background), Color.blue(background));
+        this.accent = Color.rgb(Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor));
+        float[] hsv = new float[3];
+        Color.colorToHSV(this.accent, hsv);
+        hsv[0] = (hsv[0] + 95f) % 360f; // violet d'origine -> corail d'origine
+        hsv[1] = 0.65f;
+        hsv[2] = 1f;
+        this.warm = Color.HSVToColor(hsv);
+        invalidate();
+    }
+
+    private static int withA(int c, int a) {
+        return Color.argb(Math.max(0, Math.min(255, a)), Color.red(c), Color.green(c), Color.blue(c));
+    }
+
+    private static int shade(int c, float f) {
+        return Color.rgb((int) (Color.red(c) * f), (int) (Color.green(c) * f), (int) (Color.blue(c) * f));
+    }
+
+    private static int tint(int c, float t) {
+        return Color.rgb(
+                (int) (Color.red(c) + (255 - Color.red(c)) * t),
+                (int) (Color.green(c) + (255 - Color.green(c)) * t),
+                (int) (Color.blue(c) + (255 - Color.blue(c)) * t));
+    }
+
     private void init() {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
@@ -80,7 +114,7 @@ public class KruxWelcomeSceneView extends View {
             return;
         }
 
-        canvas.drawColor(Color.rgb(5, 3, 14));
+        canvas.drawColor(bg);
 
         float t =
                 (System.currentTimeMillis() - animationStart)
@@ -107,9 +141,9 @@ public class KruxWelcomeSceneView extends View {
                 height * 0.43f,
                 Math.max(width, height) * 0.55f,
                 new int[]{
-                        Color.argb(72, 123, 64, 255),
-                        Color.argb(36, 80, 37, 170),
-                        Color.argb(0, 5, 3, 14)
+                        withA(shade(accent, 0.92f), 72),
+                        withA(shade(accent, 0.65f), 36),
+                        withA(bg, 0)
                 },
                 new float[]{
                         0f,
@@ -133,8 +167,8 @@ public class KruxWelcomeSceneView extends View {
                 height * 0.82f,
                 width * 0.48f,
                 new int[]{
-                        Color.argb(27, 255, 108, 88),
-                        Color.argb(0, 255, 108, 88)
+                        withA(warm, 27),
+                        withA(warm, 0)
                 },
                 null,
                 Shader.TileMode.CLAMP
@@ -154,8 +188,8 @@ public class KruxWelcomeSceneView extends View {
                 height * 0.72f,
                 width * 0.44f,
                 new int[]{
-                        Color.argb(32, 156, 69, 255),
-                        Color.argb(0, 156, 69, 255)
+                        withA(accent, 32),
+                        withA(accent, 0)
                 },
                 null,
                 Shader.TileMode.CLAMP
@@ -202,9 +236,9 @@ public class KruxWelcomeSceneView extends View {
                 cy,
                 radius * 1.8f,
                 new int[]{
-                        Color.argb(65, 168, 85, 247),
-                        Color.argb(22, 120, 60, 190),
-                        Color.argb(0, 5, 3, 14)
+                        withA(accent, 65),
+                        withA(shade(accent, 0.76f), 22),
+                        withA(bg, 0)
                 },
                 new float[]{
                         0f,
@@ -230,10 +264,10 @@ public class KruxWelcomeSceneView extends View {
                 radius * 1.15f,
                 new int[]{
                         Color.WHITE,
-                        Color.rgb(255, 183, 216),
-                        Color.rgb(181, 102, 255),
-                        Color.rgb(65, 28, 150),
-                        Color.argb(0, 14, 5, 38)
+                        tint(warm, 0.55f),
+                        tint(accent, 0.10f),
+                        shade(accent, 0.55f),
+                        withA(bg, 0)
                 },
                 new float[]{
                         0f,
@@ -297,12 +331,7 @@ public class KruxWelcomeSceneView extends View {
 
             paint.setStrokeWidth(1.15f);
 
-            paint.setColor(Color.argb(
-                    i == 2 ? 70 : 92,
-                    190,
-                    137,
-                    255
-            ));
+            paint.setColor(withA(tint(accent, 0.30f), i == 2 ? 70 : 92));
 
             android.graphics.RectF oval =
                     new android.graphics.RectF(
@@ -373,12 +402,7 @@ public class KruxWelcomeSceneView extends View {
                                             * .5f
                                     );
 
-            paint.setColor(Color.argb(
-                    (int) alpha,
-                    220,
-                    193,
-                    255
-            ));
+            paint.setColor(withA(tint(accent, 0.60f), (int) alpha));
 
             canvas.drawCircle(
                     px,
@@ -397,24 +421,9 @@ public class KruxWelcomeSceneView extends View {
                 cx,
                 cy,
                 new int[]{
-                        Color.argb(
-                                0,
-                                255,
-                                150,
-                                190
-                        ),
-                        Color.argb(
-                                65,
-                                178,
-                                92,
-                                255
-                        ),
-                        Color.argb(
-                                0,
-                                255,
-                                150,
-                                190
-                        )
+                        withA(tint(warm, 0.35f), 0),
+                        withA(accent, 65),
+                        withA(tint(warm, 0.35f), 0)
                 },
                 null
         ));

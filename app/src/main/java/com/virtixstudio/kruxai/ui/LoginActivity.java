@@ -81,6 +81,7 @@ public class LoginActivity extends AppCompatActivity {
         loginWelcomeScene = findViewById(R.id.loginWelcomeScene);
 
         if (loginWelcomeScene != null) {
+            loginWelcomeScene.setPalette(KruxTheme.get(this, "bg"), KruxTheme.get(this, "accent"));
             loginWelcomeScene.setScene("blackhole");
             loginWelcomeScene.setAnimating(true);
         }

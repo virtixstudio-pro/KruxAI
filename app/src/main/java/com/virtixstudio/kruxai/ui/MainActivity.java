@@ -1774,6 +1774,53 @@ private final ActivityResultLauncher<String[]> filePicker =
                     }
 
                     @Override
+                    public boolean confirmPreview(final String html) {
+                        progress.setTitle("Voici l'aperçu de ton app");
+                        progress.setStep("Vérifie la maquette, puis valide pour continuer.");
+                        refresh.run();
+                        final boolean[] accepted = {false};
+                        final androidx.appcompat.app.AlertDialog[] shown = {null};
+                        final java.util.concurrent.CountDownLatch decided = new java.util.concurrent.CountDownLatch(1);
+                        runOnUiThread(() -> {
+                            android.webkit.WebView web = new android.webkit.WebView(MainActivity.this);
+                            android.webkit.WebSettings ws = web.getSettings();
+                            ws.setJavaScriptEnabled(false);
+                            ws.setBlockNetworkLoads(true);
+                            ws.setAllowFileAccess(false);
+                            ws.setAllowContentAccess(false);
+                            web.setBackgroundColor(android.graphics.Color.WHITE);
+                            web.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+                            android.widget.FrameLayout holder = new android.widget.FrameLayout(MainActivity.this);
+                            holder.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), 0);
+                            holder.addView(web, new android.widget.FrameLayout.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(460)));
+                            shown[0] = new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("Aperçu de ton application")
+                                    .setView(holder)
+                                    .setCancelable(false)
+                                    .setPositiveButton("Créer l'app", (d, w) -> { accepted[0] = true; decided.countDown(); })
+                                    .setNegativeButton("Annuler", (d, w) -> decided.countDown())
+                                    .create();
+                            shown[0].show();
+                        });
+                        try {
+                            if (!decided.await(10, java.util.concurrent.TimeUnit.MINUTES)) {
+                                runOnUiThread(() -> { if (shown[0] != null) shown[0].dismiss(); });
+                                return false;
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return false;
+                        }
+                        if (accepted[0]) {
+                            progress.setTitle("J'envoie le code sur les serveurs Virtix Studio…");
+                            progress.setStep("Création du projet…");
+                            refresh.run();
+                        }
+                        return accepted[0];
+                    }
+
+                    @Override
                     public void onFile(final String path, final int bytes, final boolean fixed) {
                         progress.addFile(path, bytes, fixed);
                         refresh.run();
@@ -1802,6 +1849,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private String friendlyBuildError(String m) {
         if (m == null) return "Erreur inconnue.";
+        if (m.startsWith("Création annulée")) return m;
         if (m.contains("GitHub 401")) return "Le service de création d'apps de KRUX est momentanément indisponible. Réessaie plus tard.";
         if (m.contains("GitHub 403") || m.contains("GitHub 429")) return "Le quota de création d'apps de KRUX est atteint pour le moment. Réessaie plus tard.";
         return "Erreur : " + m;
@@ -2350,6 +2398,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             }
         }
         if (welcomeScene != null) {
+            welcomeScene.setPalette(background, accent);
             welcomeScene.setScene(scene);
         }
         if (btnSend != null) {

@@ -1,6 +1,7 @@
 package com.virtixstudio.kruxai;
 
 import com.virtixstudio.kruxai.builder.BuildCheckpoint;
+import com.virtixstudio.kruxai.builder.PreviewHtml;
 import com.virtixstudio.kruxai.builder.BuildSpec;
 import com.virtixstudio.kruxai.builder.BuildTemplates;
 import com.virtixstudio.kruxai.builder.BuildValidator;
@@ -37,6 +38,8 @@ public class AppBuilder {
         void onError(String message);
         /** Un fichier vient d'être envoyé (corrigé = vrai s'il a été réécrit après une erreur). */
         default void onFile(String path, int bytes, boolean fixed) {}
+        /** Montre la maquette (HTML déjà nettoyé) ; vrai = continuer la création, faux = annuler. */
+        default boolean confirmPreview(String html) { return true; }
     }
 
     /** Refus volontaire de l'IA ou de la politique : inutile de réessayer. */
@@ -49,7 +52,9 @@ public class AppBuilder {
     static String systemPrompt(BuildSpec s) {
         return "Tu génères une application Android native (Java, vues XML, AppCompat). "
             + "Réponds UNIQUEMENT avec un objet JSON, sans texte autour ni balises markdown, au format : "
-            + "{\"name\":\"nom-court-en-minuscules\",\"files\":[{\"path\":\"app/src/main/...\",\"content\":\"...\"}]}. "
+            + "{\"name\":\"nom-court-en-minuscules\",\"preview\":\"<maquette HTML>\",\"files\":[{\"path\":\"app/src/main/...\",\"content\":\"...\"}]}. "
+            + "MAQUETTE (champ preview) : une page HTML qui montre l'écran principal tel qu'il sera (mêmes textes, mêmes couleurs, 360 px de large), "
+            + "3500 caractères maximum, CSS dans une balise <style>, AUCUN script, AUCUNE image, AUCUN lien externe. "
             + "RÈGLES DU PROJET : package obligatoire " + BuildSpec.NAMESPACE + " (ligne package en première instruction de chaque .java, "
             + "TOUS les .java dans app/src/main/java/com/krux/generated/, aucun sous-dossier) ; "
             + "chemins uniquement sous app/src/main/ (AndroidManifest.xml, java/com/krux/generated/*.java, res/<dossier>/<fichier>.xml, assets/) ; "
@@ -141,7 +146,7 @@ public class AppBuilder {
 
     // ------------------------------------------------------------------ lecture de la réponse IA
 
-    static class Parsed { String name = "app"; Map<String, String> files = new LinkedHashMap<>(); }
+    static class Parsed { String name = "app"; String preview = ""; Map<String, String> files = new LinkedHashMap<>(); }
 
     /** Extrait l'objet JSON même entouré de texte ou de balises ```json. */
     static String extractJson(String raw) throws Exception {
@@ -163,6 +168,7 @@ public class AppBuilder {
             p.name = p.name.replaceAll("^-|-$", "");
             if (p.name.isEmpty()) p.name = "app";
         }
+        if (full) p.preview = o.optString("preview", "");
         Object fo = o.get("files");
         if (fo instanceof JSONArray) {
             JSONArray arr = (JSONArray) fo;
@@ -295,6 +301,11 @@ public class AppBuilder {
                     }
                     name = p.name;
                     BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
+                    String previewHtml = PreviewHtml.prepare(p.preview);
+                    if (!previewHtml.isEmpty() && !l.confirmPreview(previewHtml)) {
+                        BuildCheckpoint.clear(outDir);
+                        throw new Refusal("Création annulée après l'aperçu. Rien n'a été envoyé et ton quota n'est pas utilisé.");
+                    }
                 }
 
                 GithubClient gh = new GithubClient(githubToken, s.githubRetries);

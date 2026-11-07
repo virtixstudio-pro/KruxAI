@@ -13,3 +13,5 @@ javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/*.java "$D"
 java -cp "$O" CheckpointEstimatorTests
 javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/BuildProgress.java "$D"/tools/builder-tests/BuildProgressTests.java
 java -Dfile.encoding=UTF-8 -cp "$O" BuildProgressTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/PreviewHtml.java "$D"/tools/builder-tests/PreviewHtmlTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" PreviewHtmlTests
