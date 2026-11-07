@@ -35,6 +35,8 @@ public class AppBuilder {
         void onStatus(String status);
         void onDone(File apk, String repoUrl);
         void onError(String message);
+        /** Un fichier vient d'être envoyé (corrigé = vrai s'il a été réécrit après une erreur). */
+        default void onFile(String path, int bytes, boolean fixed) {}
     }
 
     /** Refus volontaire de l'IA ou de la politique : inutile de réessayer. */
@@ -310,6 +312,7 @@ public class AppBuilder {
                 for (Map.Entry<String, String> e : all.entrySet()) {
                     l.onStatus("Envoi " + (++n) + "/" + all.size() + " : " + e.getKey());
                     gh.putFile(repo, e.getKey(), e.getValue());
+                    l.onFile(e.getKey(), e.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8).length, false);
                 }
 
                 int fixes = 0;
@@ -345,6 +348,7 @@ public class AppBuilder {
                     for (Map.Entry<String, String> e : changed.entrySet()) {
                         l.onStatus("Correction : " + e.getKey());
                         gh.putFile(repo, e.getKey(), e.getValue());
+                        l.onFile(e.getKey(), e.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8).length, true);
                     }
                 }
             } catch (Exception e) {

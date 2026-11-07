@@ -11,3 +11,5 @@ javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/core/ModelCooldown.
 java -cp "$O" ModelCooldownTests
 javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/*.java "$D"/tools/builder-tests/CheckpointEstimatorTests.java
 java -cp "$O" CheckpointEstimatorTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/BuildProgress.java "$D"/tools/builder-tests/BuildProgressTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" BuildProgressTests

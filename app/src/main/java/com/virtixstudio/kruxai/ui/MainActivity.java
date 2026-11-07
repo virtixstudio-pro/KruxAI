@@ -1685,64 +1685,23 @@ private final ActivityResultLauncher<String[]> filePicker =
                 .show();
     }
 
+    /** La progression s'affiche dans une bulle de KRUX, avec la liste des fichiers au fur et à mesure. */
     private void runAppBuild(String token, String desc) {
-        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
-        box.setOrientation(android.widget.LinearLayout.VERTICAL);
-        box.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        int pad = dpToPx(24);
-        box.setPadding(pad, pad, pad, dpToPx(8));
-        box.setBackgroundColor(KruxTheme.get(this, "bg"));
-
-        final KruxDotsView anim = new KruxDotsView(this);
-        anim.setLayoutParams(new android.widget.LinearLayout.LayoutParams(dpToPx(120), dpToPx(44)));
-        anim.setColor(KruxTheme.get(this, "accent"));
-        anim.setActive(true);
-        box.addView(anim);
-
-        final TextView title = new TextView(this);
-        title.setText("J'écris et je compile ton app");
-        title.setTextSize(17);
-        title.setTypeface(null, android.graphics.Typeface.BOLD);
-        title.setTextColor(KruxTheme.get(this, "text"));
-        title.setGravity(android.view.Gravity.CENTER);
-        title.setPadding(0, dpToPx(14), 0, dpToPx(6));
-        box.addView(title);
-
-        final TextView step = new TextView(this);
-        step.setText("Démarrage…");
-        step.setTextSize(13);
-        step.setTextColor(KruxTheme.get(this, "text2"));
-        step.setGravity(android.view.Gravity.CENTER);
-        box.addView(step);
-
-        final TextView hint = new TextView(this);
-        hint.setText("Ça prend 2 à 5 minutes. Attends, et ne ferme pas KRUX.");
-        hint.setTextSize(11);
-        hint.setTextColor(KruxTheme.get(this, "text2"));
-        hint.setGravity(android.view.Gravity.CENTER);
-        hint.setPadding(0, dpToPx(12), 0, 0);
-        box.addView(hint);
-
-        final android.animation.ObjectAnimator pulse =
-                android.animation.ObjectAnimator.ofFloat(title, "alpha", 1f, 0.45f);
-        pulse.setDuration(900);
-        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-        pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-
-        final androidx.appcompat.app.AlertDialog progress =
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setView(box)
-                        .setCancelable(false)
-                        .setPositiveButton("Fermer", null)
-                        .create();
-        if (progress.getWindow() != null) {
-            progress.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(KruxTheme.get(this, "bg")));
-        }
-        progress.show();
-        final android.widget.Button closeBtn = progress.getButton(android.content.DialogInterface.BUTTON_POSITIVE);
-        closeBtn.setEnabled(false);
-        closeBtn.setTextColor(KruxTheme.get(this, "accent"));
-        pulse.start();
+        final com.virtixstudio.kruxai.builder.BuildProgress progress = new com.virtixstudio.kruxai.builder.BuildProgress();
+        final ChatMessage bubble = new ChatMessage(progress.render(), false);
+        runOnUiThread(() -> {
+            messageList.add(bubble);
+            chatAdapter.notifyItemInserted(messageList.size() - 1);
+            rvChat.smoothScrollToPosition(messageList.size() - 1);
+        });
+        final Runnable refresh = () -> runOnUiThread(() -> {
+            bubble.setText(progress.render());
+            int pos = messageList.indexOf(bubble);
+            if (pos >= 0) {
+                chatAdapter.notifyItemChanged(pos);
+                rvChat.scrollToPosition(messageList.size() - 1);
+            }
+        });
 
         final boolean[] consumed = {false};
         java.io.File outDir = getExternalFilesDir("generated");
@@ -1777,12 +1736,14 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                                 @Override
                                 public void onFallback() {
-                                    runOnUiThread(() -> step.setText("Ce moteur est saturé, je passe sur un autre…"));
+                                    progress.setStep("Ce moteur est saturé, je passe sur un autre…");
+                                    refresh.run();
                                 }
 
                                 @Override
                                 public void onWaiting(final int seconds) {
-                                    runOnUiThread(() -> step.setText("Les moteurs sont saturés, je reprends dans " + seconds + " s…"));
+                                    progress.setStep("Les moteurs sont saturés, je reprends dans " + seconds + " s…");
+                                    refresh.run();
                                 }
                             });
                     if (!latch.await(240, java.util.concurrent.TimeUnit.SECONDS)) {
@@ -1798,28 +1759,32 @@ private final ActivityResultLauncher<String[]> filePicker =
                             consumed[0] = true;
                             consumeQuota();
                         }
-                        runOnUiThread(() -> {
-                            String t = null;
-                            if (status.startsWith("Génération")) t = "J'écris ton application…";
-                            else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur les serveurs Virtix Studio…";
-                            else if (status.startsWith("Build échoué") || status.startsWith("Correction")) t = "Je corrige les erreurs…";
-                            else if (status.contains("ompilation")) t = "Je compile ton application…";
-                            else if (status.startsWith("Téléchargement")) t = "Je récupère ton APK…";
-                            if (t != null) title.setText(t);
-                            step.setText(status.startsWith("Création du repo") ? "Création du projet…" : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
-                        });
+                        String t = null;
+                        if (status.startsWith("Génération")) t = "J'écris ton application…";
+                        else if (status.startsWith("Vérification")) t = "Je vérifie le code…";
+                        else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur les serveurs Virtix Studio…";
+                        else if (status.startsWith("Build échoué") || status.startsWith("Correction")) t = "Je corrige les erreurs…";
+                        else if (status.contains("ompilation")) t = "Je compile ton application…";
+                        else if (status.startsWith("Téléchargement")) t = "Je récupère ton APK…";
+                        if (t != null) progress.setTitle(t);
+                        progress.setStep(status.startsWith("Création du repo")
+                                ? "Création du projet…"
+                                : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
+                        refresh.run();
+                    }
+
+                    @Override
+                    public void onFile(final String path, final int bytes, final boolean fixed) {
+                        progress.addFile(path, bytes, fixed);
+                        refresh.run();
                     }
 
                     @Override
                     public void onDone(final java.io.File apk, final String repoUrl) {
+                        progress.finish("Ton application est prête",
+                                "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
+                        refresh.run();
                         runOnUiThread(() -> {
-                            pulse.cancel();
-                            title.setAlpha(1f);
-                            anim.setActive(false);
-                            title.setText("Ton application est prête");
-                            step.setText("Android va te proposer de l'installer.");
-                            hint.setText("Retrouve-la plus tard dans Paramètres puis Mes apps.");
-                            closeBtn.setEnabled(true);
                             saveBuiltApp(apk, repoUrl);
                             uploadAppToCloud(apk, repoUrl);
                             installApk(apk);
@@ -1829,15 +1794,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onError(final String message) {
                         android.util.Log.e("KRUX_BUILD", String.valueOf(message));
-                        runOnUiThread(() -> {
-                            pulse.cancel();
-                            title.setAlpha(1f);
-                            anim.setActive(false);
-                            title.setText("Je n'ai pas pu finir");
-                            step.setText(friendlyBuildError(message));
-                            hint.setText("");
-                            closeBtn.setEnabled(true);
-                        });
+                        progress.fail(friendlyBuildError(message));
+                        refresh.run();
                     }
                 });
     }
