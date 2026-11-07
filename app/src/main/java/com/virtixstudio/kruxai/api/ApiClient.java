@@ -3,6 +3,7 @@ package com.virtixstudio.kruxai.api;
 import android.util.Log;
 
 import com.virtixstudio.kruxai.BuildConfig;
+import com.virtixstudio.kruxai.core.ModelCooldown;
 import com.virtixstudio.kruxai.models.KruxModel;
 import com.virtixstudio.kruxai.models.SearchResult;
 
@@ -31,6 +32,10 @@ public class ApiClient {
         void onError(String friendlyMessage);
         default void onCancelled() {}
         default void onPartialResponse(String response, String modelBrand) {}
+        /** Un moteur est saturé (quota par minute) : KRUX passe sur un autre. */
+        default void onFallback() {}
+        /** Tous les moteurs sont saturés : KRUX attend la fin de la limite puis reprend. */
+        default void onWaiting(int seconds) {}
         default void onWebSearchStarted(String query) {}
         default void onWebSearchFinished(List<SearchResult> results) {}
     }
@@ -47,93 +52,20 @@ public class ApiClient {
             String userMessage,
             ApiCallback callback
     ) {
-        new Thread(() -> {
-            activeRequestThread = Thread.currentThread();
-            activeCallback = callback;
-            cancellationNotified = false;
-
-            /*
-             * Fallback global utilisé lorsqu'aucun modèle précis
-             * n'est imposé par l'appelant.
-             */
-            KruxModel[] fallbackModels = {
-                    KruxModel.GEMINI_FLASH_LITE,
-                    KruxModel.GROQ_GPT_OSS_20B,
-                    KruxModel.MISTRAL_MINISTRAL_3B,
-                    KruxModel.MISTRAL_MINISTRAL_8B,
-                    KruxModel.HF_QWEN_CODER_7B,
-                    KruxModel.GEMINI_36_FLASH,
-                    KruxModel.GROQ_GPT_OSS_120B,
-                    KruxModel.CEREBRAS_GPT_OSS_120B,
-                    KruxModel.MISTRAL_CODESTRAL,
-                    KruxModel.HF_QWEN_CODER_32B
+        /* Fallback global utilisé lorsqu'aucun modèle précis n'est imposé. */
+        KruxModel[] fallbackModels = {
+            KruxModel.GEMINI_FLASH_LITE,
+            KruxModel.GROQ_GPT_OSS_20B,
+            KruxModel.MISTRAL_MINISTRAL_3B,
+            KruxModel.MISTRAL_MINISTRAL_8B,
+            KruxModel.HF_QWEN_CODER_7B,
+            KruxModel.GEMINI_36_FLASH,
+            KruxModel.GROQ_GPT_OSS_120B,
+            KruxModel.CEREBRAS_GPT_OSS_120B,
+            KruxModel.MISTRAL_CODESTRAL,
+            KruxModel.HF_QWEN_CODER_32B
             };
-
-            Exception lastError = null;
-
-            for (KruxModel model : fallbackModels) {
-                try {
-
-                    Log.d(
-                            TAG,
-                            "Tentative avec " + model.getDisplayName()
-                    );
-
-                    String response = sendWithWebLoop(
-                            model,
-                            systemPrompt,
-                            userMessage,
-                            callback
-                    );
-
-                    if (Thread.currentThread().isInterrupted()) {
-                        notifyCancelled(callback);
-                        return;
-                    }
-
-                    if (response != null
-                            && !response.trim().isEmpty()) {
-
-                        Log.d(
-                                TAG,
-                                "Réponse obtenue avec "
-                                        + model.getDisplayName()
-                        );
-
-                        callback.onSuccess(
-                                response,
-                                model.getDisplayName()
-                        );
-
-                        return;
-                    }
-
-                    lastError = new Exception("Réponse vide.");
-
-                } catch (Exception e) {
-
-                    if (Thread.currentThread().isInterrupted()) {
-                        notifyCancelled(callback);
-                        return;
-                    }
-
-                    lastError = e;
-
-                    Log.w(
-                            TAG,
-                            model.getDisplayName()
-                                    + " indisponible : "
-                                    + e.getMessage(),
-                            e
-                    );
-                }
-            }
-
-            callback.onError(
-                    buildFriendlyError(lastError)
-            );
-
-        }).start();
+        runChain(fallbackModels, systemPrompt, userMessage, callback);
     }
 
     /*
@@ -153,79 +85,106 @@ public class ApiClient {
             String userMessage,
             ApiCallback callback
     ) {
+        runChain(buildFallbackModels(selectedModel), systemPrompt, userMessage, callback);
+    }
+
+    private static final long MAX_WAIT_MS = 75_000L;
+    private static final int MAX_ROUNDS = 4;
+
+    /*
+     * Essaie les moteurs dans l'ordre. Un moteur limité (429) est mis de côté pour la durée
+     * demandée par le fournisseur (par défaut une minute) et KRUX passe sur un autre.
+     * Si tous les moteurs sont limités, KRUX attend la fin de la limite (au plus 75 s)
+     * puis reprend, au lieu d'interrompre la création.
+     */
+    private static void runChain(
+            final KruxModel[] models,
+            final String systemPrompt,
+            final String userMessage,
+            final ApiCallback callback
+    ) {
         new Thread(() -> {
             activeRequestThread = Thread.currentThread();
             activeCallback = callback;
             cancellationNotified = false;
 
-            KruxModel[] fallbackModels =
-                    buildFallbackModels(selectedModel);
-
             Exception lastError = null;
+            java.util.HashSet<KruxModel> failedHard = new java.util.HashSet<>();
 
-            for (KruxModel model : fallbackModels) {
-                try {
-
-                    Log.d(
-                            TAG,
-                            "Tentative avec "
-                                    + model.getDisplayName()
-                    );
-
-                    String response = sendWithWebLoop(
-                            model,
-                            systemPrompt,
-                            userMessage,
-                            callback
-                    );
-
-                    if (Thread.currentThread().isInterrupted()) {
-                        notifyCancelled(callback);
-                        return;
-                    }
-
-                    if (response != null
-                            && !response.trim().isEmpty()) {
-
-                        Log.d(
-                                TAG,
-                                "Réponse obtenue avec "
-                                        + model.getDisplayName()
-                        );
-
-                        callback.onSuccess(
-                                response,
-                                model.getDisplayName()
-                        );
-
-                        return;
-                    }
-
-                    lastError = new Exception("Réponse vide.");
-
-                } catch (Exception e) {
-
-                    if (Thread.currentThread().isInterrupted()) {
-                        notifyCancelled(callback);
-                        return;
-                    }
-
-                    lastError = e;
-
-                    Log.w(
-                            TAG,
-                            model.getDisplayName()
-                                    + " indisponible : "
-                                    + e.getMessage(),
-                            e
-                    );
+            for (int round = 0; round < MAX_ROUNDS; round++) {
+                long now = System.currentTimeMillis();
+                java.util.ArrayList<KruxModel> candidates = new java.util.ArrayList<>();
+                java.util.ArrayList<KruxModel> ready = new java.util.ArrayList<>();
+                java.util.ArrayList<String> keys = new java.util.ArrayList<>();
+                for (KruxModel m : models) {
+                    if (failedHard.contains(m)) continue;
+                    candidates.add(m);
+                    keys.add(m.name());
+                    if (!ModelCooldown.isCooling(m.name(), now)) ready.add(m);
                 }
+                if (candidates.isEmpty()) break;
+
+                if (ready.isEmpty()) {
+                    long wait = ModelCooldown.soonestReadyMs(keys, now);
+                    if (wait > MAX_WAIT_MS) break;
+                    Log.w(TAG, "Tous les moteurs sont limités, attente " + wait + " ms");
+                    callback.onWaiting((int) ((wait + 999) / 1000));
+                    try {
+                        Thread.sleep(wait + 500);
+                    } catch (InterruptedException e) {
+                        notifyCancelled(callback);
+                        return;
+                    }
+                    continue;
+                }
+
+                boolean limitedNow = false;
+                for (KruxModel model : ready) {
+                    try {
+                        Log.d(TAG, "Tentative avec " + model.getDisplayName());
+
+                        String response = sendWithWebLoop(model, systemPrompt, userMessage, callback);
+
+                        if (Thread.currentThread().isInterrupted()) {
+                            notifyCancelled(callback);
+                            return;
+                        }
+
+                        if (response != null && !response.trim().isEmpty()) {
+                            Log.d(TAG, "Réponse obtenue avec " + model.getDisplayName());
+                            callback.onSuccess(response, model.getDisplayName());
+                            return;
+                        }
+
+                        lastError = new Exception("Réponse vide.");
+                        failedHard.add(model);
+
+                    } catch (Exception e) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            notifyCancelled(callback);
+                            return;
+                        }
+                        lastError = e;
+                        Log.w(TAG, model.getDisplayName() + " indisponible : " + e.getMessage(), e);
+
+                        if (ModelCooldown.isRateLimit(e.getMessage())) {
+                            ModelCooldown.markLimited(
+                                    model.name(),
+                                    System.currentTimeMillis(),
+                                    ModelCooldown.parseRetryAfterMs(e.getMessage()));
+                            limitedNow = true;
+                            callback.onFallback();
+                        } else {
+                            failedHard.add(model);
+                        }
+                    }
+                }
+
+                /* Échec sans rapport avec le quota : inutile d'attendre. */
+                if (!limitedNow) break;
             }
 
-            callback.onError(
-                    buildFriendlyError(lastError)
-            );
-
+            callback.onError(buildFriendlyError(lastError));
         }).start();
     }
 
@@ -248,6 +207,11 @@ public class ApiClient {
             cancellationNotified = true;
             callback.onCancelled();
         }
+    }
+
+    private static String retryAfterSuffix(HttpURLConnection c) {
+        String v = c.getHeaderField("Retry-After");
+        return v == null ? "" : " retry-after=" + v.trim();
     }
 
     private static KruxModel[] buildFallbackModels(
@@ -636,7 +600,7 @@ public class ApiClient {
 
         if (responseCode < 200 || responseCode >= 300) {
             throw new Exception(
-                    "HTTP " + responseCode
+                    "HTTP " + responseCode + retryAfterSuffix(conn)
             );
         }
 
@@ -758,7 +722,7 @@ public class ApiClient {
 
         if (responseCode < 200 || responseCode >= 300) {
             throw new Exception(
-                    "HTTP " + responseCode
+                    "HTTP " + responseCode + retryAfterSuffix(conn)
             );
         }
 

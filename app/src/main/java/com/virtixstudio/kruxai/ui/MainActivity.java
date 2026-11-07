@@ -1757,6 +1757,16 @@ private final ActivityResultLauncher<String[]> filePicker =
                                     out[1] = "Requête annulée";
                                     latch.countDown();
                                 }
+
+                                @Override
+                                public void onFallback() {
+                                    runOnUiThread(() -> step.setText("Ce moteur est saturé, je passe sur un autre…"));
+                                }
+
+                                @Override
+                                public void onWaiting(final int seconds) {
+                                    runOnUiThread(() -> step.setText("Les moteurs sont saturés, je reprends dans " + seconds + " s…"));
+                                }
                             });
                     if (!latch.await(240, java.util.concurrent.TimeUnit.SECONDS)) {
                         throw new Exception("L'IA a mis trop de temps à répondre");

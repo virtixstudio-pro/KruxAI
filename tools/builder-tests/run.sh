@@ -7,3 +7,5 @@ javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/*.java "$D"
 java -cp "$O" BuilderTests
 javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/live/LiveMotion.java "$D"/tools/builder-tests/LiveMotionTests.java
 java -cp "$O" LiveMotionTests
+javac -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/core/ModelCooldown.java "$D"/tools/builder-tests/ModelCooldownTests.java
+java -cp "$O" ModelCooldownTests
