@@ -1668,7 +1668,24 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
     }
 
-    private void startAppBuild(String token, String desc) {
+    /** Estime d'abord l'ampleur de l'app : si elle est ambitieuse, propose une version simplifiée. */
+    private void startAppBuild(final String token, final String desc) {
+        final com.virtixstudio.kruxai.builder.BuildEstimator.Estimate est =
+                com.virtixstudio.kruxai.builder.BuildEstimator.estimate(desc);
+        if (!est.large) {
+            runAppBuild(token, desc);
+            return;
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Application ambitieuse")
+                .setMessage(est.message())
+                .setPositiveButton("Version simplifiée", (d, w) ->
+                        runAppBuild(token, com.virtixstudio.kruxai.builder.BuildEstimator.simplified(desc)))
+                .setNegativeButton("Tout créer", (d, w) -> runAppBuild(token, desc))
+                .show();
+    }
+
+    private void runAppBuild(String token, String desc) {
         android.widget.LinearLayout box = new android.widget.LinearLayout(this);
         box.setOrientation(android.widget.LinearLayout.VERTICAL);
         box.setGravity(android.view.Gravity.CENTER_HORIZONTAL);

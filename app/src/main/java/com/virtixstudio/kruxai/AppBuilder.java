@@ -1,5 +1,6 @@
 package com.virtixstudio.kruxai;
 
+import com.virtixstudio.kruxai.builder.BuildCheckpoint;
 import com.virtixstudio.kruxai.builder.BuildSpec;
 import com.virtixstudio.kruxai.builder.BuildTemplates;
 import com.virtixstudio.kruxai.builder.BuildValidator;
@@ -261,31 +262,42 @@ public class AppBuilder {
             try {
                 final BuildSpec s = KruxConfig.build();
 
-                l.onStatus("Génération du code…");
-                Parsed p = generateParsed(gen, systemPrompt(s), description, true, s, l);
+                String name;
+                Map<String, String> current;
+                BuildCheckpoint.Saved saved = BuildCheckpoint.load(outDir, description, System.currentTimeMillis());
+                if (saved != null) {
+                    l.onStatus("Reprise : le code déjà écrit est retrouvé…");
+                    name = saved.name;
+                    current = new LinkedHashMap<>(saved.files);
+                } else {
+                    l.onStatus("Génération du code…");
+                    Parsed p = generateParsed(gen, systemPrompt(s), description, true, s, l);
 
-                // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
-                l.onStatus("Vérification du code…");
-                Map<String, String> current = BuildValidator.normalize(p.files, new ArrayList<String>());
-                checkPolicy(current, s);
-                for (int round = 0; round < s.maxLocalFixes; round++) {
-                    List<String> problems = BuildValidator.validate(current);
-                    if (problems.isEmpty()) break;
-                    l.onStatus("Vérification du code : correction " + (round + 1) + "/" + s.maxLocalFixes + "…");
-                    try {
-                        Parsed fx = generateParsed(gen, fixSystemPrompt(s),
-                            buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l);
-                        applyFix(current, fx.files, s);
-                    } catch (Refusal r) {
-                        throw r;
-                    } catch (Exception e) {
-                        break; // vérification locale = aide, pas un blocage : le build GitHub tranchera
+                    // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
+                    l.onStatus("Vérification du code…");
+                    current = BuildValidator.normalize(p.files, new ArrayList<String>());
+                    checkPolicy(current, s);
+                    for (int round = 0; round < s.maxLocalFixes; round++) {
+                        List<String> problems = BuildValidator.validate(current);
+                        if (problems.isEmpty()) break;
+                        l.onStatus("Vérification du code : correction " + (round + 1) + "/" + s.maxLocalFixes + "…");
+                        try {
+                            Parsed fx = generateParsed(gen, fixSystemPrompt(s),
+                                buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l);
+                            applyFix(current, fx.files, s);
+                        } catch (Refusal r) {
+                            throw r;
+                        } catch (Exception e) {
+                            break; // vérification locale = aide, pas un blocage : le build GitHub tranchera
+                        }
                     }
+                    name = p.name;
+                    BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
                 }
 
                 GithubClient gh = new GithubClient(githubToken, s.githubRetries);
                 gh.init();
-                String repo = "krux-" + p.name + "-" + (System.currentTimeMillis() / 1000 % 100000);
+                String repo = "krux-" + name + "-" + (System.currentTimeMillis() / 1000 % 100000);
                 l.onStatus("Création du repo " + repo + "…");
                 gh.createRepo(repo);
                 String branch = gh.defaultBranch(repo);
@@ -313,6 +325,7 @@ public class AppBuilder {
                     if ("success".equals(run.optString("conclusion"))) {
                         l.onStatus("Téléchargement de l'APK…");
                         File apk = gh.downloadApk(repo, run.getLong("id"), new File(outDir, repo));
+                        BuildCheckpoint.clear(outDir);
                         l.onDone(apk, url);
                         return;
                     }
