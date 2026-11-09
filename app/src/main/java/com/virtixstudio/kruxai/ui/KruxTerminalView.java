@@ -84,7 +84,7 @@ public class KruxTerminalView extends LinearLayout {
         scroll.setVerticalScrollBarEnabled(false);
         body = new TextView(c);
         body.setTypeface(Typeface.MONOSPACE);
-        body.setTextSize(11.5f);
+        body.setTextSize(10.5f);
         body.setLineSpacing(0, 1.12f);
         body.setPadding(Math.round(12 * d), Math.round(2 * d), Math.round(12 * d), Math.round(10 * d));
         scroll.addView(body);
@@ -119,11 +119,11 @@ public class KruxTerminalView extends LinearLayout {
         }
     }
 
-    /** Petit en vertical (environ 130 dp), grand en horizontal (environ la moitié de l'écran). */
+    /** Petit en vertical (environ 88 dp, 4 lignes), un peu plus grand en horizontal (un tiers de l'écran). */
     public void applyOrientation() {
         float d = getResources().getDisplayMetrics().density;
         boolean land = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        int h = land ? Math.round(getResources().getDisplayMetrics().heightPixels * 0.5f) : Math.round(130 * d);
+        int h = land ? Math.round(getResources().getDisplayMetrics().heightPixels * 0.34f) : Math.round(88 * d);
         ViewGroup.LayoutParams lp = getLayoutParams();
         if (lp != null) { lp.height = h; setLayoutParams(lp); }
         else setMinimumHeight(h);
