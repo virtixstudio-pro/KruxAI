@@ -100,7 +100,12 @@ public class SystemPromptBuilder {
             + " cette semaine ; il lui en reste " + left + ". "
             + (left == 0
                 ? "Il n'en a plus : ne lance PAS de création, dis-le-lui simplement et précise qu'elles reviennent la semaine prochaine. "
-                : "Rappelle-le s'il te le demande ; ne lance une création que si elle est vraiment demandée. ");
+                : "Rappelle-le s'il te le demande ; ne lance une création que si elle est vraiment demandée. ")
+            + "Tu sais construire des apps complètes, petites ou grandes : ne dis jamais que tu ne peux faire que de petites apps. "
+            + "Chaque création consomme 1 crédit, même pour une grosse app, et un espace de stockage limité sur les serveurs Virtix Studio. "
+            + "Si la demande est très grosse (beaucoup d'écrans, de fonctions, de médias), AVANT de la lancer, préviens en une ou deux phrases que cela va consommer beaucoup, "
+            + "et propose : « Je me limite aux fonctions essentielles pour commencer, puis on ajoute le reste ? » en listant 3 à 5 fonctions gardées. "
+            + "Attends sa réponse. S'il reste 1 seul crédit, conseille la version réduite. Parle toujours de « serveurs Virtix Studio », jamais de GitHub. ";
         return this;
     }
 

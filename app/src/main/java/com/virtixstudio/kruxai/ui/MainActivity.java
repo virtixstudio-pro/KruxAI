@@ -362,10 +362,18 @@ private final ActivityResultLauncher<String[]> filePicker =
         btnSend.setOnClickListener(v -> {
             if (isGenerating) {
                 ApiClient.cancelCurrentRequest();
+            } else if (etInput.getText().toString().trim().isEmpty()) {
+                launchLive();
             } else {
                 sendMessage();
             }
         });
+        etInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(android.text.Editable e) { refreshSendIcon(); }
+        });
+        refreshSendIcon();
         btnMic.setOnClickListener(v -> toggleVoiceRecognition());
         if (btnStopMic != null) btnStopMic.setOnClickListener(v -> toggleVoiceRecognition());
         if (btnTtsControl != null) btnTtsControl.setOnClickListener(v -> toggleTtsPlayback());
@@ -1883,9 +1891,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optLive = view.findViewById(R.id.optLive);
         optLive.setOnClickListener(v -> {
             dialog.dismiss();
-            Intent live = new Intent(MainActivity.this, com.virtixstudio.kruxai.live.LiveActivity.class);
-            if (selectedKruxModel != null) live.putExtra(com.virtixstudio.kruxai.live.LiveActivity.EXTRA_MODEL, selectedKruxModel.name());
-            startActivity(live);
+            launchLive();
         });
 
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
@@ -3055,12 +3061,30 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
     }
 
+    private int sendOrLiveIcon() {
+        boolean empty = etInput == null || etInput.getText().toString().trim().isEmpty();
+        return empty ? R.drawable.ic_live : R.drawable.ic_send;
+    }
+
+    private void refreshSendIcon() {
+        if (btnSend == null || isGenerating) return;
+        btnSend.setImageResource(sendOrLiveIcon());
+        btnSend.setContentDescription(
+                sendOrLiveIcon() == R.drawable.ic_live ? "Mode Live" : "Envoyer");
+    }
+
+    private void launchLive() {
+        Intent live = new Intent(MainActivity.this, com.virtixstudio.kruxai.live.LiveActivity.class);
+        if (selectedKruxModel != null) live.putExtra(com.virtixstudio.kruxai.live.LiveActivity.EXTRA_MODEL, selectedKruxModel.name());
+        startActivity(live);
+    }
+
     private void setGeneratingState(boolean generating) {
         isGenerating = generating;
 
         if (btnSend != null) {
             btnSend.setImageResource(
-                generating ? R.drawable.ic_stop : R.drawable.ic_send
+                generating ? R.drawable.ic_stop : sendOrLiveIcon()
             );
             btnSend.setBackgroundResource(
                     generating
