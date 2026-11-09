@@ -24,6 +24,8 @@ public class KruxLiveView extends View implements Choreographer.FrameCallback {
     private final RectF rect = new RectF();
     private long lastNanos;
     private boolean running;
+    private boolean transparent;
+    private long minFrameNanos;
 
     public KruxLiveView(Context c) {
         super(c);
@@ -36,6 +38,16 @@ public class KruxLiveView extends View implements Choreographer.FrameCallback {
     }
 
     public LiveMotion motion() { return motion; }
+
+    /** Fond totalement transparent (visage flottant sur l'écran) au lieu du noir du mode Live. */
+    public void setTransparent(boolean t) {
+        transparent = t;
+        setBackgroundColor(t ? Color.TRANSPARENT : Color.BLACK);
+        invalidate();
+    }
+
+    /** Limite les images par seconde (économie de batterie pour le visage flottant) ; 0 = pas de limite. */
+    public void setMaxFps(int fps) { minFrameNanos = fps > 0 ? 1_000_000_000L / fps - 2_000_000L : 0; }
 
     @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); start(); }
     @Override protected void onDetachedFromWindow() { stop(); super.onDetachedFromWindow(); }
@@ -55,6 +67,10 @@ public class KruxLiveView extends View implements Choreographer.FrameCallback {
     @Override
     public void doFrame(long frameTimeNanos) {
         if (!running) return;
+        if (minFrameNanos > 0 && lastNanos != 0 && frameTimeNanos - lastNanos < minFrameNanos) {
+            Choreographer.getInstance().postFrameCallback(this);
+            return;
+        }
         float dt = lastNanos == 0 ? 1f / 60f : (frameTimeNanos - lastNanos) / 1_000_000_000f;
         lastNanos = frameTimeNanos;
         motion.update(dt);
@@ -77,7 +93,8 @@ public class KruxLiveView extends View implements Choreographer.FrameCallback {
 
     @Override
     protected void onDraw(Canvas c) {
-        c.drawColor(Color.BLACK);
+        if (transparent) c.drawColor(Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR);
+        else c.drawColor(Color.BLACK);
         final LiveMotion m = motion;
         float side = Math.min(getWidth(), getHeight()) * 0.94f;
         float s = side / 512f;

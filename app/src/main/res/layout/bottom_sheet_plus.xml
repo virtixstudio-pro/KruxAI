@@ -65,6 +65,17 @@
         android:background="?attr/selectableItemBackground" />
 
     <TextView android:tag="krux:text"
+        android:id="@+id/optFloat"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:text="Visage de Krux sur l'écran"
+        android:textColor="#F8FAFC"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView android:tag="krux:text"
         android:id="@+id/optFiles"
         android:layout_width="match_parent"
         android:layout_height="52dp"

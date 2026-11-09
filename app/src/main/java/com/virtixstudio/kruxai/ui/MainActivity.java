@@ -1925,6 +1925,19 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
 
+        TextView optFloat = view.findViewById(R.id.optFloat);
+        if (optFloat != null) {
+            optFloat.setText(com.virtixstudio.kruxai.live.FloatingKruxService.isRunning()
+                    ? "Masquer le visage de Krux" : "Visage de Krux sur l'écran");
+            optFloat.setOnClickListener(v -> {
+                dialog.dismiss();
+                boolean ok = com.virtixstudio.kruxai.live.FloatingKruxService.toggle(MainActivity.this);
+                if (!ok) Toast.makeText(MainActivity.this,
+                        "Autorise « Afficher par-dessus les autres apps » pour KRUX, puis reviens et réessaie.",
+                        Toast.LENGTH_LONG).show();
+            });
+        }
+
         TextView optLive = view.findViewById(R.id.optLive);
         optLive.setOnClickListener(v -> {
             dialog.dismiss();

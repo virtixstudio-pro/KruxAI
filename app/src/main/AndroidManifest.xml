@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -50,6 +54,14 @@
 
         <activity android:name=".ui.MyAppsActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
+        <service
+            android:name=".live.FloatingKruxService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Visage animé de KRUX affiché par-dessus les autres apps, à la demande de l'utilisateur" />
+        </service>
         <activity android:name=".live.LiveActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.AppCompat.NoActionBar" />
 
     </application>
