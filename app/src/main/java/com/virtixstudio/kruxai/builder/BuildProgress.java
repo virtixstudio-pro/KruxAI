@@ -21,9 +21,16 @@ public final class BuildProgress {
     private String step = "Démarrage…";
     private String note = "";
     private boolean done, failed;
+    private int tick = -1;
+    private int elapsed = -1;
 
     public synchronized void setTitle(String t) { if (!done && !failed && t != null) title = t; }
     public synchronized void setStep(String s) { if (!done && !failed && s != null) step = s; }
+
+    /** Animation « vivante » : points qui avancent (tick) et temps écoulé en secondes. Sans appel, rien ne change. */
+    public synchronized void setPulse(int tickCount, int elapsedSeconds) { tick = Math.max(0, tickCount); elapsed = Math.max(0, elapsedSeconds); }
+
+    static String clock(int s) { return (s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); }
 
     /** Ajoute un fichier, ou met à jour sa taille s'il a été corrigé. */
     public synchronized void addFile(String path, int bytes, boolean fixed) {
@@ -48,7 +55,12 @@ public final class BuildProgress {
     public synchronized String render() {
         StringBuilder sb = new StringBuilder();
         sb.append("**").append(title).append("**\n\n");
-        if (!done && !failed) sb.append(step).append("\n\n");
+        if (!done && !failed) {
+            sb.append(step);
+            if (tick >= 0) sb.append(" ").append(".".repeat(1 + tick % 3));
+            if (elapsed >= 0) sb.append("  ·  ⏱ ").append(clock(elapsed));
+            sb.append("\n\n");
+        }
         else if (!note.isEmpty()) sb.append(note).append("\n\n");
 
         int total = files.size(), skip = Math.max(0, total - MAX_LINES), i = 0;

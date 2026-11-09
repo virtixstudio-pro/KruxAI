@@ -53,6 +53,16 @@ public class BuildProgressTests {
         check(e.fileCount() == 1 && e.render().contains("0 o"), "entrées invalides");
         check(new BuildProgress().render().length() > 0, "rendu jamais vide");
 
+                BuildProgress pu = new BuildProgress();
+        pu.setStep("Je génère");
+        check(!pu.render().contains("⏱"), "sans pulse : pas d'horloge");
+        pu.setPulse(0, 5);
+        check(pu.render().contains("Je génère .  ·  ⏱ 0:05"), "pulse 0 : un point et 0:05");
+        pu.setPulse(2, 75);
+        check(pu.render().contains("Je génère ...  ·  ⏱ 1:15"), "pulse 2 : trois points et 1:15");
+        pu.finish("Fini", "ok");
+        check(!pu.render().contains("⏱"), "fini : plus d'horloge");
+
         System.out.println("Progression : " + ok + "/" + (ok + bad) + (bad == 0 ? " OK" : " ÉCHECS"));
         if (bad > 0) System.exit(1);
     }

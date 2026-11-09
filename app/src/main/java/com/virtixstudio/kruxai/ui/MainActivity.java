@@ -1750,6 +1750,26 @@ private final ActivityResultLauncher<String[]> filePicker =
         final boolean[] consumed = {false};
         java.io.File outDir = getExternalFilesDir("generated");
 
+        // Pendant la création : options du bas masquées, bouton carré (stop), et une bulle « vivante »
+        final android.os.Handler pulse = new android.os.Handler(android.os.Looper.getMainLooper());
+        final long started = System.currentTimeMillis();
+        final int[] ticks = {0};
+        final boolean[] building = {true};
+        pulse.post(new Runnable() {
+            @Override public void run() {
+                if (!building[0]) return;
+                progress.setPulse(ticks[0]++, (int) ((System.currentTimeMillis() - started) / 1000));
+                refresh.run();
+                pulse.postDelayed(this, 700);
+            }
+        });
+        final Runnable endBuild = () -> {
+            building[0] = false;
+            progress.setPulse(0, (int) ((System.currentTimeMillis() - started) / 1000));
+            runOnUiThread(() -> setBuildMode(false));
+        };
+        runOnUiThread(() -> setBuildMode(true));
+
         com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
         AppBuilder.run(token, desc, outDir,
                 (system, prompt) -> {
@@ -1873,6 +1893,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                     @Override
                     public void onDone(final java.io.File apk, final String repoUrl) {
+                        endBuild.run();
                         progress.finish("Ton application est prête",
                                 "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
                         refresh.run();
@@ -1886,6 +1907,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onError(final String message) {
                         android.util.Log.e("KRUX_BUILD", String.valueOf(message));
+                        endBuild.run();
                         progress.fail(friendlyBuildError(message));
                         refresh.run();
                     }
@@ -1895,6 +1917,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     private String friendlyBuildError(String m) {
         if (m == null) return "Erreur inconnue.";
         if (m.startsWith("Création annulée")) return m;
+        if (m.contains("annulée") || m.contains("annulé")) return "Création arrêtée. Tu peux la relancer, je reprendrai là où j'en étais.";
         if (m.contains("GitHub 401")) return "Le service de création d'apps de KRUX est momentanément indisponible. Réessaie plus tard.";
         if (m.contains("GitHub 403") || m.contains("GitHub 429")) return "Le quota de création d'apps de KRUX est atteint pour le moment. Réessaie plus tard.";
         return "Erreur : " + m;
@@ -3152,6 +3175,19 @@ private final ActivityResultLauncher<String[]> filePicker =
         Intent live = new Intent(MainActivity.this, com.virtixstudio.kruxai.live.LiveActivity.class);
         if (selectedKruxModel != null) live.putExtra(com.virtixstudio.kruxai.live.LiveActivity.EXTRA_MODEL, selectedKruxModel.name());
         startActivity(live);
+    }
+
+    /** Mode « création en cours » : options du bas masquées, bouton carré pour arrêter, champ verrouillé. */
+    private void setBuildMode(boolean on) {
+        int vis = on ? View.GONE : View.VISIBLE;
+        if (btnPlus != null) btnPlus.setVisibility(vis);
+        if (btnMic != null) btnMic.setVisibility(vis);
+        if (etInput != null) {
+            etInput.setEnabled(!on);
+            etInput.setHint(on ? "Krux crée ton application…" : "Message Krux...");
+            if (on) etInput.setText("");
+        }
+        setGeneratingState(on);
     }
 
     private void setGeneratingState(boolean generating) {
