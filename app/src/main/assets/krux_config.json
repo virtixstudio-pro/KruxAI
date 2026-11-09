@@ -32,6 +32,11 @@
     "github": 4
   },
 
+  "worker": {
+    "_note": "Adresse du Worker Cloudflare (stockage des apps sur R2). Ex : https://krux-store.TON-COMPTE.workers.dev . Laisser vide pour désactiver. Aucun secret ici.",
+    "url": ""
+  },
+
   "cloudinary": {
     "_note": "Stockage des apps créées. Laisser vide pour désactiver. Jamais de api_secret ici : seulement le nom du cloud et le preset NON SIGNÉ (restreint dans Cloudinary : dossier krux_apps, 10 Mo, formats apk).",
     "cloud_name": "",

@@ -26,6 +26,7 @@ public final class KruxConfig {
 
     private static volatile String cloudName = "";
     private static volatile String uploadPreset = "";
+    private static volatile String workerUrl = "";
 
     private KruxConfig() { }
 
@@ -35,6 +36,11 @@ public final class KruxConfig {
     public static String uploadPreset() { return uploadPreset; }
 
     public static boolean cloudEnabled() { return !cloudName.isEmpty() && !uploadPreset.isEmpty(); }
+
+    /** Adresse https du Worker Cloudflare (stockage des apps), ou "" si non configuré. */
+    public static String workerUrl() { return workerUrl; }
+
+    public static boolean workerEnabled() { return !workerUrl.isEmpty(); }
 
     public static BuildSpec build() { return build; }
 
@@ -56,6 +62,9 @@ public final class KruxConfig {
             boolean ok = cn.matches("[a-z0-9_-]{2,40}") && up.matches("[A-Za-z0-9_-]{2,60}");
             cloudName = ok ? cn : "";
             uploadPreset = ok ? up : "";
+            JSONObject w = root.optJSONObject("worker");
+            String wu = w == null ? "" : w.optString("url", "").trim().replaceAll("/+$", "");
+            workerUrl = wu.matches("https://[A-Za-z0-9.-]{3,100}") ? wu : "";
             build = s;
             loadedFrom = "assets/krux_config.json";
         } catch (Exception e) {

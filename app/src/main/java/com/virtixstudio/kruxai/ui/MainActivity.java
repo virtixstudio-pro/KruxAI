@@ -479,6 +479,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         dialog.show();
+
+        KruxTheme.skin(dialog, this);
     }
 
     private void updateKruxModelUI() {
@@ -1624,36 +1626,49 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         final String fToken = token;
         String shown = desc.length() > 300 ? desc.substring(0, 300) + "…" : desc;
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Créer cette application ?")
                 .setMessage(shown + "\n\nCréations restantes cette semaine : " + (quota - used) + "/" + quota
                         + "\nApplication simple : 25 fichiers maximum.")
                 .setNegativeButton("Annuler", null)
                 .setPositiveButton("Lancer", (d, w) -> startAppBuild(fToken, desc))
-                .show();
+                .show(), this);
     }
 
-    /** Copie l'APK sur Cloudinary (si configuré) pour le retrouver même après changement de téléphone. */
+    /** Envoie le code source compressé (et l'APK s'il fait 10 Mo ou moins) sur les serveurs Virtix Studio. */
     private void uploadAppToCloud(final java.io.File apk, final String repoUrl) {
-        if (!com.virtixstudio.kruxai.core.KruxConfig.cloudEnabled() || currentUser == null) return;
-        final String uid = currentUser.getUid().replaceAll("[^A-Za-z0-9_-]", "");
-        final String name = "app-" + System.currentTimeMillis() / 1000 + ".apk";
+        if (!com.virtixstudio.kruxai.core.KruxConfig.workerEnabled() || currentUser == null) return;
+        final com.google.firebase.auth.FirebaseUser user = currentUser;
+        final String id = "app-" + System.currentTimeMillis() / 1000;
         new Thread(() -> {
             try {
-                String url = com.virtixstudio.kruxai.core.CloudinaryStore.upload(apk, "krux_apps/" + uid, name);
+                java.io.File src = new java.io.File(apk.getParentFile(), "krux-checkpoint.bin");
+                String srcPath = null, apkPath = null;
+                if (src.isFile()) {
+                    srcPath = "apps/" + id + ".krx";
+                    com.virtixstudio.kruxai.core.WorkerStore.put(user, srcPath, src);
+                }
+                if (apk.length() <= com.virtixstudio.kruxai.core.WorkerStore.MAX_BYTES) {
+                    apkPath = "apps/" + id + ".apk";
+                    try { com.virtixstudio.kruxai.core.WorkerStore.put(user, apkPath, apk); }
+                    catch (Exception e) { apkPath = null; android.util.Log.e("KRUX_BUILD", "apk cloud", e); }
+                }
                 android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
                 org.json.JSONArray arr = new org.json.JSONArray(sp.getString("apps", "[]"));
                 for (int i = 0; i < arr.length(); i++) {
                     org.json.JSONObject o = arr.getJSONObject(i);
-                    if (repoUrl.equals(o.optString("repo"))) { o.put("cloud_url", url); break; }
+                    if (repoUrl.equals(o.optString("repo"))) {
+                        if (srcPath != null) o.put("cloud_src", srcPath);
+                        if (apkPath != null) o.put("cloud_apk", apkPath);
+                        break;
+                    }
                 }
                 sp.edit().putString("apps", arr.toString()).apply();
-                db.collection("users").document(currentUser.getUid()).collection("apps")
-                        .add(new java.util.HashMap<String, Object>() {{
-                            put("url", url); put("time", System.currentTimeMillis());
-                        }});
+                java.util.HashMap<String, Object> doc = new java.util.HashMap<>();
+                doc.put("src", srcPath); doc.put("apk", apkPath); doc.put("time", System.currentTimeMillis());
+                db.collection("users").document(user.getUid()).collection("apps").add(doc);
             } catch (Exception e) {
-                android.util.Log.e("KRUX_BUILD", "cloudinary", e);
+                android.util.Log.e("KRUX_BUILD", "cloud", e);
             }
         }).start();
     }
@@ -1684,13 +1699,13 @@ private final ActivityResultLauncher<String[]> filePicker =
             runAppBuild(token, desc);
             return;
         }
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Application ambitieuse")
                 .setMessage(est.message())
                 .setPositiveButton("Version simplifiée", (d, w) ->
                         runAppBuild(token, com.virtixstudio.kruxai.builder.BuildEstimator.simplified(desc)))
                 .setNegativeButton("Tout créer", (d, w) -> runAppBuild(token, desc))
-                .show();
+                .show(), this);
     }
 
     /** La progression s'affiche dans une bulle de KRUX, avec la liste des fichiers au fur et à mesure. */
@@ -1810,6 +1825,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                                     .setNegativeButton("Annuler", (d, w) -> decided.countDown())
                                     .create();
                             shown[0].show();
+                            KruxTheme.skin(shown[0], MainActivity.this);
                         });
                         try {
                             if (!decided.await(10, java.util.concurrent.TimeUnit.MINUTES)) {
@@ -1920,6 +1936,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
 
         dialog.show();
+
+        KruxTheme.skin(dialog, this);
     }
 
     private void initSpeechRecognizer() {
@@ -2211,6 +2229,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         dialog.show();
+
+        KruxTheme.skin(dialog, this);
     }
 
     private void showUserMessageActions(View anchor, ChatMessage message) {
@@ -2221,7 +2241,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         LinearLayout menu = new LinearLayout(this);
         menu.setOrientation(LinearLayout.VERTICAL);
         menu.setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
-        menu.setBackgroundColor(Color.rgb(25, 16, 42));
+        menu.setBackgroundColor(KruxTheme.get(this, "input"));
 
         PopupWindow popup = new PopupWindow(
                 menu,
@@ -2269,7 +2289,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     ) {
         TextView item = new TextView(this);
         item.setText(label);
-        item.setTextColor(Color.WHITE);
+        item.setTextColor(KruxTheme.get(this, "text"));
         item.setTextSize(14);
         item.setGravity(android.view.Gravity.CENTER_VERTICAL);
         item.setCompoundDrawablesWithIntrinsicBounds(iconRes, 0, 0, 0);
@@ -2318,15 +2338,17 @@ private final ActivityResultLauncher<String[]> filePicker =
                 result.append("Aucune discussion trouvée.");
             }
 
-            new AlertDialog.Builder(this)
+            KruxTheme.skin(new AlertDialog.Builder(this)
                     .setTitle(matches + " résultat(s)")
                     .setMessage(result.toString())
                     .setPositiveButton("Fermer", null)
-                    .show();
+                    .show(), this);
             dialog.dismiss();
         }));
 
         dialog.show();
+
+        KruxTheme.skin(dialog, this);
     }
 
     private void applySavedTheme() {
@@ -2470,7 +2492,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void showCustomizationSheet() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(17, 19, 24));
+        root.setBackgroundColor(KruxTheme.get(this, "bg"));
 
         ScrollView scrollView = new ScrollView(this);
         scrollView.setFillViewport(true);
@@ -2483,7 +2505,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 dpToPx(20),
                 dpToPx(12)
         );
-        content.setBackgroundColor(Color.rgb(17, 19, 24));
+        content.setBackgroundColor(KruxTheme.get(this, "bg"));
 
         scrollView.addView(content);
 
@@ -2499,7 +2521,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView title = new TextView(this);
         title.setText("Personnaliser l’app");
         title.setTextSize(20);
-        title.setTextColor(Color.WHITE);
+        title.setTextColor(KruxTheme.get(this, "text"));
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         content.addView(title);
 
@@ -2764,6 +2786,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             dialog.dismiss();
         });
         dialog.show();
+        KruxTheme.skin(dialog, this);
     }
 
     private void openImagePicker() {
@@ -3192,7 +3215,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             }
         });
         builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
-        builder.show();
+        KruxTheme.skin(builder.show(), this);
     }
 
 
@@ -3317,6 +3340,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
 
         dialog.show();
+
+        KruxTheme.skin(dialog, this);
     }
 
     @Override

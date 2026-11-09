@@ -140,6 +140,53 @@ public final class KruxTheme {
         }
     }
 
+    /**
+     * Habille une boîte de dialogue ou une feuille du bas déjà affichée (show() appelé) :
+     * fond, titres, messages, boutons et champs suivent le thème choisi.
+     */
+    public static void skin(android.app.Dialog d, Context c) {
+        if (d == null || c == null) return;
+        try {
+            Window w = d.getWindow();
+            if (w == null) return;
+            int bg = get(c, "bg");
+            float r = 20 * c.getResources().getDisplayMetrics().density;
+            GradientDrawable g = new GradientDrawable();
+            g.setColor(bg);
+            g.setCornerRadii(new float[]{r, r, r, r, r, r, r, r});
+            View sheet = d.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (sheet != null) {
+                float t = r;
+                GradientDrawable top = new GradientDrawable();
+                top.setColor(bg);
+                top.setCornerRadii(new float[]{t, t, t, t, 0, 0, 0, 0});
+                sheet.setBackground(top);
+            } else {
+                w.setBackgroundDrawable(g);
+            }
+            skinWalk(w.getDecorView(), c);
+        } catch (Exception ignored) { }
+    }
+
+    private static void skinWalk(View v, Context c) {
+        Object t = v.getTag();
+        boolean tagged = t instanceof String && ((String) t).startsWith("krux:");
+        if (tagged) {
+            for (String k : ((String) t).substring(5).split(",")) style(v, k.trim(), c);
+        } else if (v instanceof EditText) {
+            ((EditText) v).setTextColor(get(c, "text"));
+            ((EditText) v).setHintTextColor(get(c, "hint"));
+        } else if (v instanceof Button) {
+            ((Button) v).setTextColor(get(c, "accent"));
+        } else if (v instanceof TextView) {
+            ((TextView) v).setTextColor(get(c, "text"));
+        }
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) skinWalk(g.getChildAt(i), c);
+        }
+    }
+
     private static void style(View v, String key, Context c) {
         if (indexOf(key) < 0) return;
         int color = get(c, key);

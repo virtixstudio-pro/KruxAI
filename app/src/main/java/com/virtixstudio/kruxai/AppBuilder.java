@@ -340,6 +340,8 @@ public class AppBuilder {
                         l.onStatus("Téléchargement de l'APK…");
                         File apk = gh.downloadApk(repo, run.getLong("id"), new File(outDir, repo));
                         BuildCheckpoint.clear(outDir);
+                        // Code source compressé (quelques Ko) rangé à côté de l'APK, pour pouvoir reconstruire l'app.
+                        BuildCheckpoint.save(new File(outDir, repo), description, name, current, System.currentTimeMillis());
                         l.onDone(apk, url);
                         return;
                     }
