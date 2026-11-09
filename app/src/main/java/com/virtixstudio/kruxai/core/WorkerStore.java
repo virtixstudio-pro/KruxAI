@@ -113,4 +113,32 @@ public final class WorkerStore {
         check(c);
         return new JSONObject(new String(readAll(c.getInputStream(), 1 << 20), StandardCharsets.UTF_8));
     }
+
+    /** Changements de l'utilisateur depuis la date "since" : {items:[{kind,id,updated,deleted,data}], now}. */
+    public static JSONObject syncGet(FirebaseUser u, long since) throws Exception {
+        if (!KruxConfig.workerEnabled()) throw new Exception("Stockage Virtix Studio non configuré");
+        HttpURLConnection c = (HttpURLConnection) new URL(KruxConfig.workerUrl() + "/sync?since=" + since).openConnection();
+        c.setRequestMethod("GET");
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        c.setRequestProperty("Authorization", "Bearer " + token(u));
+        check(c);
+        return new JSONObject(new String(readAll(c.getInputStream(), 4 << 20), StandardCharsets.UTF_8));
+    }
+
+    /** Envoie des changements (50 éléments et 2 Mo maximum par appel). */
+    public static void syncPost(FirebaseUser u, org.json.JSONArray items) throws Exception {
+        if (!KruxConfig.workerEnabled()) throw new Exception("Stockage Virtix Studio non configuré");
+        byte[] body = new JSONObject().put("items", items).toString().getBytes(StandardCharsets.UTF_8);
+        HttpURLConnection c = (HttpURLConnection) new URL(KruxConfig.workerUrl() + "/sync").openConnection();
+        c.setRequestMethod("POST");
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(60000);
+        c.setDoOutput(true);
+        c.setFixedLengthStreamingMode(body.length);
+        c.setRequestProperty("Authorization", "Bearer " + token(u));
+        c.setRequestProperty("Content-Type", "application/json");
+        try (OutputStream o = c.getOutputStream()) { o.write(body); }
+        check(c);
+    }
 }

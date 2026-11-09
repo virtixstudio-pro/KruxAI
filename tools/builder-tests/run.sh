@@ -15,3 +15,5 @@ javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/bui
 java -Dfile.encoding=UTF-8 -cp "$O" BuildProgressTests
 javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/builder/PreviewHtml.java "$D"/tools/builder-tests/PreviewHtmlTests.java
 java -Dfile.encoding=UTF-8 -cp "$O" PreviewHtmlTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/core/SyncCodec.java "$D"/tools/builder-tests/SyncCodecTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" SyncCodecTests

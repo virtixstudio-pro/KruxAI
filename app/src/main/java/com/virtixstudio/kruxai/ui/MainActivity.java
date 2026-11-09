@@ -3084,6 +3084,23 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
     }
 
+    private void syncCloud(boolean force) {
+        com.virtixstudio.kruxai.core.CloudSync.run(this, currentUser, dbHelper, force,
+                this::loadHistorySidebar, new android.os.Handler(android.os.Looper.getMainLooper()));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        syncCloud(false);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        syncCloud(true);
+    }
+
     private int sendOrLiveIcon() {
         boolean empty = etInput == null || etInput.getText().toString().trim().isEmpty();
         return empty ? R.drawable.ic_live : R.drawable.ic_send;
@@ -3104,6 +3121,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void setGeneratingState(boolean generating) {
         isGenerating = generating;
+        if (!generating) syncCloud(false);
 
         if (btnSend != null) {
             btnSend.setImageResource(
