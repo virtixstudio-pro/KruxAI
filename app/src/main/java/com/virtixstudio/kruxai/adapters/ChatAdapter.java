@@ -54,6 +54,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final Map<String, String> feedbackStates = new HashMap<>();
 
+    private static final String PAYLOAD_STATUS = "status";
     private String activeStatusMessageId = null;
     private String activeStatusText = null;
 
@@ -221,9 +222,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String messageId,
             String status
     ) {
+        String previous = activeStatusMessageId;
         activeStatusMessageId = messageId;
         activeStatusText = status;
-        notifyDataSetChanged();
+        if (previous != null && !previous.equals(messageId)) refreshStatusOf(previous);
+        refreshStatusOf(messageId);
     }
 
     public void clearKruxAnswerStatus(String messageId) {
@@ -232,8 +235,33 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             activeStatusMessageId = null;
             activeStatusText = null;
-            notifyDataSetChanged();
+            refreshStatusOf(messageId);
         }
+    }
+
+    /** Met à jour seulement la ligne d'état de cette bulle (pas de redessin du chat entier : plus fluide, pas de saut). */
+    private void refreshStatusOf(String messageId) {
+        if (messageId == null) return;
+        for (int i = messageList.size() - 1; i >= 0; i--) {
+            if (messageId.equals(messageList.get(i).getId())) {
+                notifyItemChanged(i, PAYLOAD_STATUS);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void onBindViewHolder(
+            @NonNull RecyclerView.ViewHolder holder,
+            int position,
+            @NonNull java.util.List<Object> payloads
+    ) {
+        if (!payloads.isEmpty() && payloads.contains(PAYLOAD_STATUS) && holder instanceof AiViewHolder
+                && position >= 0 && position < messageList.size()) {
+            setupKruxAnswerStatus((AiViewHolder) holder, messageList.get(position));
+            return;
+        }
+        super.onBindViewHolder(holder, position, payloads);
     }
 
     private void setupKruxAnswerStatus(
@@ -258,6 +286,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             return;
         }
 
+        boolean wasHidden = holder.kruxAnswerStatusContainer.getVisibility() != View.VISIBLE;
+        boolean changed = !activeStatusText.contentEquals(holder.tvKruxAnswerStatus.getText());
         holder.tvKruxAnswerStatus.setText(
                 activeStatusText
         );
@@ -265,6 +295,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.kruxAnswerStatusContainer.setVisibility(
                 View.VISIBLE
         );
+        if (wasHidden) {
+            holder.kruxAnswerStatusContainer.setAlpha(0f);
+            holder.kruxAnswerStatusContainer.animate().alpha(1f).setDuration(180).start();
+        } else if (changed) {
+            holder.tvKruxAnswerStatus.setAlpha(0.2f);
+            holder.tvKruxAnswerStatus.animate().alpha(1f).setDuration(200).start();
+        }
     }
 
     private void animateActionButton(@NonNull View button) {
@@ -1017,26 +1054,33 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             Context context,
             ChatMessage message
     ) {
-        if (message.getSources() != null
-                && !message.getSources().isEmpty()) {
-
-            holder.layoutSources.setVisibility(View.VISIBLE);
-
-            holder.rvSources.setLayoutManager(
-                    new LinearLayoutManager(
-                            context,
-                            LinearLayoutManager.HORIZONTAL,
-                            false
-                    )
-            );
-
-            holder.rvSources.setAdapter(
-                    new SourcesAdapter(message.getSources())
-            );
-
-        } else {
+        final java.util.List<com.virtixstudio.kruxai.models.SearchResult> src = message.getSources();
+        if (src == null || src.isEmpty()) {
             holder.layoutSources.setVisibility(View.GONE);
+            return;
         }
+        holder.layoutSources.setVisibility(View.VISIBLE);
+        View pill = holder.layoutSources.findViewById(R.id.sourcesPill);
+        com.virtixstudio.kruxai.ui.SourceStackView stack = holder.layoutSources.findViewById(R.id.sourceStack);
+        TextView label = holder.layoutSources.findViewById(R.id.tvSourcesLabel);
+        if (pill == null || stack == null || label == null) return;
+
+        int card = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "input");
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(card);
+        g.setCornerRadius(17 * context.getResources().getDisplayMetrics().density);
+        pill.setBackground(g);
+        label.setTextColor(com.virtixstudio.kruxai.ui.KruxTheme.get(context, "text"));
+        label.setText(src.size() == 1 ? "1 source" : src.size() + " sources");
+
+        java.util.List<String> domains = new java.util.ArrayList<>();
+        for (com.virtixstudio.kruxai.models.SearchResult r : src) {
+            String d = r.getDomain();
+            if (d != null && !domains.contains(d)) domains.add(d);
+        }
+        stack.setRingColor(card);
+        stack.setDomains(domains, 3);
+        pill.setOnClickListener(v -> com.virtixstudio.kruxai.ui.SourcesSheet.show(v.getContext(), src));
     }
 
     private void setupReasoning(

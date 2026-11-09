@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private static final int PERMISSION_AUDIO_CODE = 101;
 
     private DrawerLayout drawerLayout;
+    private KruxTerminalView terminal;
     private ImageButton btnMenu, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
     private View navSearchChats, navStudio, navCustomize, navLogout;
     private TextView btnNewChat;
@@ -243,6 +244,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
+        terminal = findViewById(R.id.kruxTerminal);
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
@@ -1165,9 +1167,24 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         if (tool == ToolRouter.Tool.WEB_SEARCH) {
             setKruxState(KruxState.SEARCHING);
+            if (terminal != null) {
+                terminal.clear();
+                terminal.println("krux web \"" + (prompt.length() > 60 ? prompt.substring(0, 57) + "…" : prompt.replace('\n', ' ')) + "\"", KruxTerminalView.CMD);
+            }
             webSearchEngine.search(prompt, new WebSearchEngine.SearchCallback() {
                 @Override
+                public void onProgress(String line) {
+                    if (terminal == null) return;
+                    if (line.startsWith("search ") || line.startsWith("read ")) terminal.println("krux " + line, KruxTerminalView.CMD);
+                    else terminal.println(line.trim(), KruxTerminalView.INFO);
+                }
+
+                @Override
                 public void onSuccess(List<SearchResult> results, String formattedContext) {
+                    if (terminal != null) {
+                        terminal.println(results.size() + " sources prêtes, je rédige la réponse", KruxTerminalView.OK);
+                        terminal.hideLater(2500);
+                    }
                     executeAiQuery(
                             prompt,
                             formattedContext,
@@ -1179,6 +1196,10 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 @Override
                 public void onError(String error) {
+                    if (terminal != null) {
+                        terminal.println("recherche impossible, je réponds avec ce que je sais", KruxTerminalView.ERR);
+                        terminal.hideLater(2500);
+                    }
                     executeAiQuery(
                             prompt,
                             "",
@@ -1768,7 +1789,14 @@ private final ActivityResultLauncher<String[]> filePicker =
             progress.setPulse(0, (int) ((System.currentTimeMillis() - started) / 1000));
             runOnUiThread(() -> setBuildMode(false));
         };
-        runOnUiThread(() -> setBuildMode(true));
+        runOnUiThread(() -> {
+            setBuildMode(true);
+            if (terminal != null) {
+                terminal.clear();
+                String d1 = desc == null ? "" : desc.replace('\n', ' ').trim();
+                terminal.println("krux build \"" + (d1.length() > 50 ? d1.substring(0, 47) + "…" : d1) + "\"", KruxTerminalView.CMD);
+            }
+        });
 
         com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
         AppBuilder.run(token, desc, outDir,
@@ -1835,6 +1863,9 @@ private final ActivityResultLauncher<String[]> filePicker =
                                 ? "Création du projet…"
                                 : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
                         refresh.run();
+                        final String shown = status.startsWith("Création du repo") ? "création du projet"
+                                : status.replace("sur GitHub", "sur Virtix Studio").replace("GitHub", "Virtix Studio");
+                        runOnUiThread(() -> { if (terminal != null) terminal.println(shown, KruxTerminalView.INFO); });
                     }
 
                     @Override
@@ -1889,11 +1920,14 @@ private final ActivityResultLauncher<String[]> filePicker =
                     public void onFile(final String path, final int bytes, final boolean fixed) {
                         progress.addFile(path, bytes, fixed);
                         refresh.run();
+                        final String fl = path + "  (" + (bytes < 1024 ? bytes + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", bytes / 1024.0)) + ")";
+                        runOnUiThread(() -> { if (terminal != null) terminal.println(fl, fixed ? KruxTerminalView.FIX : KruxTerminalView.OK); });
                     }
 
                     @Override
                     public void onDone(final java.io.File apk, final String repoUrl) {
                         endBuild.run();
+                        runOnUiThread(() -> { if (terminal != null) { terminal.println("application prête", KruxTerminalView.OK); terminal.hideLater(8000); } });
                         progress.finish("Ton application est prête",
                                 "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
                         refresh.run();
@@ -1908,6 +1942,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     public void onError(final String message) {
                         android.util.Log.e("KRUX_BUILD", String.valueOf(message));
                         endBuild.run();
+                        runOnUiThread(() -> { if (terminal != null) { terminal.println(friendlyBuildError(message), KruxTerminalView.ERR); terminal.hideLater(8000); } });
                         progress.fail(friendlyBuildError(message));
                         refresh.run();
                     }
@@ -2491,6 +2526,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         if (tvKruxStatus != null) {
             tvKruxStatus.setTextColor(accent);
+        }
+        if (terminal != null) {
+            terminal.applyColors(background, accent, KruxTheme.get(this, "text"));
         }
         if (chatAdapter != null) {
             chatAdapter.setAccentColors(accent, KruxTheme.get(this, "text2"));
@@ -3139,6 +3177,12 @@ private final ActivityResultLauncher<String[]> filePicker =
                     status
             );
         });
+    }
+
+    @Override
+    public void onConfigurationChanged(@androidx.annotation.NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (terminal != null) terminal.applyOrientation();
     }
 
     private void syncCloud(boolean force) {

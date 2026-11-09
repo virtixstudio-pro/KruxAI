@@ -94,20 +94,40 @@
         android:visibility="gone"
         android:layout_marginBottom="8dp">
 
-        <TextView
+        <LinearLayout
+            android:id="@+id/sourcesPill"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sources Web consultées en direct"
-            android:textColor="#A855F7"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:layout_height="34dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="12dp">
+
+            <com.virtixstudio.kruxai.ui.SourceStackView
+                android:id="@+id/sourceStack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/tvSourcesLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Sources"
+                android:textColor="#FAF7FF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSources"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal" />
+            android:orientation="horizontal"
+            android:visibility="gone" />
 
     </LinearLayout>
 

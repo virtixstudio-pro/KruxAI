@@ -39,7 +39,7 @@
         <activity
             android:name=".ui.SignupActivity"
             android:exported="false" />
-        <activity android:name=".ui.MainActivity" android:exported="false" />
+        <activity android:name=".ui.MainActivity" android:exported="false" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" />
         <activity android:name=".ui.StudioActivity" android:exported="false" />
 
             <provider
