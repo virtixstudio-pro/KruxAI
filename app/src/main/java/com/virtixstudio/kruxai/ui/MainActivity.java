@@ -351,7 +351,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             });
         }
 
-        btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+        btnMenu.setOnClickListener(v -> { refreshQuotaView(); drawerLayout.openDrawer(GravityCompat.START); });
 
         if (kruxModelCapsule != null) {
             kruxModelCapsule.setOnClickListener(v -> showKruxModelSelector());
@@ -1585,12 +1585,32 @@ private final ActivityResultLauncher<String[]> filePicker =
         return Math.max(local, cloud);
     }
 
+    /** Met à jour la carte « Créations d'apps cette semaine » du menu. */
+    private void refreshQuotaView() {
+        try {
+            android.widget.TextView detail = findViewById(R.id.tvQuotaDetail);
+            android.widget.ProgressBar bar = findViewById(R.id.quotaBar);
+            if (detail == null || bar == null) return;
+            int max = Math.max(1, weeklyQuota());
+            int used = Math.min(quotaUsed(), max);
+            int left = max - used;
+            bar.setMax(max);
+            bar.setProgress(used);
+            bar.setProgressTintList(android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "accent")));
+            bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "bg")));
+            detail.setText(used + " / " + max + " utilisées · "
+                    + (left > 0 ? left + (left > 1 ? " restantes" : " restante") : "limite atteinte, retour la semaine prochaine")
+                    + "\nLes corrections ne sont pas comptées.");
+        } catch (Exception ignored) { }
+    }
+
     private void refreshCloudQuota() {
         if (currentUser == null) return;
         final String week = quotaWeek();
         com.virtixstudio.kruxai.core.QuotaStore.fetch(currentUser.getUid(), week, used -> {
             cloudQuotaUsed = used;
             cloudQuotaWeek = week;
+            runOnUiThread(this::refreshQuotaView);
         });
     }
 
@@ -1600,6 +1620,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         sp.edit().putString("quota_week", quotaWeek()).putInt("quota_used", next).apply();
         cloudQuotaUsed = next;
         cloudQuotaWeek = quotaWeek();
+        refreshQuotaView();
         if (currentUser != null) com.virtixstudio.kruxai.core.QuotaStore.consume(currentUser.getUid(), quotaWeek());
     }
 
@@ -3092,6 +3113,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     @Override
     protected void onResume() {
         super.onResume();
+        refreshQuotaView();
         syncCloud(false);
     }
 

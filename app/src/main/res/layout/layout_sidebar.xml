@@ -58,6 +58,45 @@
         android:textColor="#FAF7FF"
         android:textSize="14sp" />
 
+    <!-- QUOTA DE CREATIONS -->
+
+    <LinearLayout android:tag="krux:input"
+        android:id="@+id/quotaCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_rounded_input"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView android:tag="krux:text"
+            android:id="@+id/tvQuotaTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Créations d'apps cette semaine"
+            android:textColor="#FAF7FF"
+            android:textSize="12sp" />
+
+        <ProgressBar android:tag="krux:accent"
+            android:id="@+id/quotaBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="8dp"
+            android:max="100"
+            android:progress="0" />
+
+        <TextView android:tag="krux:text2"
+            android:id="@+id/tvQuotaDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text=""
+            android:textColor="#B9AFCB"
+            android:textSize="11sp" />
+
+    </LinearLayout>
+
 
     <!-- RECHERCHE -->
 

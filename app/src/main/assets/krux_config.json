@@ -34,7 +34,7 @@
 
   "worker": {
     "_note": "Adresse du Worker Cloudflare (stockage des apps sur R2). Ex : https://krux-store.TON-COMPTE.workers.dev . Laisser vide pour désactiver. Aucun secret ici.",
-    "url": ""
+    "url": "https://misty-mountain-1b0dvirtix-store.kruxvirtix.workers.dev"
   },
 
   "cloudinary": {
