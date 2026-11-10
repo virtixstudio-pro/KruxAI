@@ -99,6 +99,8 @@ public class SettingsActivity extends AppCompatActivity {
         // ---- Données
         LinearLayout data = section(root, "Mes données");
         row(data, "Exporter la discussion", "Envoie la discussion en cours en texte (Markdown)", false, () -> give(ACTION_EXPORT));
+        row(data, "Mémoire", "Ce que KRUX sait de toi : voir, modifier, supprimer", false,
+            () -> startActivity(new Intent(this, MemoryActivity.class)));
         row(data, "Mes apps", "Les applications créées par KRUX et le quota de la semaine", false,
             () -> startActivity(new Intent(this, MyAppsActivity.class)));
 

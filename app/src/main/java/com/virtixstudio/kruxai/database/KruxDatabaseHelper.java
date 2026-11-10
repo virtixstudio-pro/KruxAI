@@ -408,4 +408,19 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).text.equals(text)) list.remove(i);
         writeMemoryEntries(list);
     }
+
+    /** Écran Mémoire : change le texte d'un souvenir en gardant sa catégorie et sa clé. */
+    public synchronized void editMemoryText(String oldText, String newText) {
+        if (newText == null || newText.trim().isEmpty()) return;
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = getMemoryEntries();
+        for (com.virtixstudio.kruxai.utils.MemoryBook.Entry e : list) {
+            if (e.text.equals(oldText)) { e.text = newText.trim(); e.ts = System.currentTimeMillis() / 1000L; break; }
+        }
+        writeMemoryEntries(list);
+    }
+
+    /** Écran Mémoire : tout effacer. */
+    public synchronized void clearMemory() {
+        writeMemoryEntries(new ArrayList<com.virtixstudio.kruxai.utils.MemoryBook.Entry>());
+    }
 }

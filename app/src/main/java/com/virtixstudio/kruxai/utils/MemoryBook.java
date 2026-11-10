@@ -187,13 +187,13 @@ public final class MemoryBook {
 
     // ---------- affichage pour KRUX ----------
 
-    static String date(long ts) {
+    public static String date(long ts) {
         SimpleDateFormat f = new SimpleDateFormat("dd/MM/yyyy", Locale.FRANCE);
         f.setTimeZone(TimeZone.getTimeZone("UTC"));
         return f.format(new Date(ts * 1000L));
     }
 
-    private static String label(String cat) {
+    public static String label(String cat) {
         switch (cat) {
             case PROFIL: return "Profil";
             case PREF: return "Goûts et préférences";
