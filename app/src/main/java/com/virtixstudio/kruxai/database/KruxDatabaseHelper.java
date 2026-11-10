@@ -297,4 +297,35 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return memoryText.toString();
     }
+
+    /** Oublie les souvenirs qui correspondent aux mots donnés ; retourne ceux qui ont été supprimés. */
+    public List<String> forgetMemory(List<String> words) {
+        List<String> removed = new ArrayList<>();
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor c = db.rawQuery("SELECT id, fact FROM memory", null);
+        List<long[]> ids = new ArrayList<>();
+        while (c.moveToNext()) {
+            String f = c.getString(1);
+            if (f != null && com.virtixstudio.kruxai.utils.MemoryExtractor.matchesForget(f, words)) {
+                ids.add(new long[]{c.getLong(0)});
+                removed.add(f);
+            }
+        }
+        c.close();
+        for (long[] id : ids) db.delete("memory", "id = ?", new String[]{String.valueOf(id[0])});
+        return removed;
+    }
+
+    /** Remplace toute la mémoire par cette liste (utilisé quand une suppression vient d'un autre appareil). */
+    public void replaceMemory(List<String> facts) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete("memory", null, null);
+            for (String f : facts) saveMemoryFact(f);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
 }

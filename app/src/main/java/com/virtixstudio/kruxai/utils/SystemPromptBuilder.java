@@ -47,6 +47,11 @@ public class SystemPromptBuilder {
       + "Ne crée pas de fichier pour une réponse courte, pour une simple explication, ni pour un extrait de code court : réponds normalement. "
       + "Ne livre jamais de mots de passe, de clés ni de données personnelles dans un fichier. "
 
+      + "TU AS UNE MÉMOIRE : les « SOUVENIRS SUR L'UTILISATEUR » du contexte sont des faits réels que tu as retenus. "
+      + "Ne dis jamais que tu n'as pas de mémoire ni que tu ne te souviens de rien. Utilise ces souvenirs naturellement (prénom, projet, goûts) sans les réciter à chaque message. "
+      + "Si on te demande ce que tu sais sur l'utilisateur, liste-les simplement ; s'il n'y en a pas encore, dis que tu n'as encore rien retenu et propose-lui de te le dire. "
+      + "L'application retient aussi toute seule ce que l'utilisateur dit de lui, et il peut dire « oublie que… » pour retirer un souvenir. "
+
       + "MÉMOIRE PERSISTANTE : la mémoire utilisateur est distincte de l'historique du chat. "
       + "Un nouveau chat ne signifie pas que tu dois oublier les informations importantes déjà mémorisées. "
       + "Lorsque l'utilisateur donne une information durable et utile pour de futures conversations "

@@ -56,6 +56,13 @@ public final class CloudSync {
         }, "krux-sync").start();
     }
 
+    /** À appeler quand l'utilisateur fait oublier un souvenir : le prochain envoi remplace la mémoire du cloud au lieu de la fusionner. */
+    public static void markMemoryReplace(Context ctx, FirebaseUser user) {
+        if (ctx == null || user == null) return;
+        ctx.getApplicationContext().getSharedPreferences("krux_sync_" + user.getUid(), Context.MODE_PRIVATE)
+                .edit().putBoolean("mem_replace", true).remove("h_memory").apply();
+    }
+
     static String cloudId(String sessionId) {
         String id = sessionId.replaceAll("[^A-Za-z0-9_-]", "_");
         return id.length() > 64 ? id.substring(id.length() - 64) : id;
@@ -103,13 +110,14 @@ public final class CloudSync {
         List<String> facts = helper.getAllMemoryFacts();
         JSONArray fa = new JSONArray();
         for (String f : facts) fa.put(f);
-        String fj = fa.toString();
+        final boolean replace = sp.getBoolean("mem_replace", false);
+        String fj = replace ? new JSONObject().put("r", 1).put("f", fa).toString() : fa.toString();
         String fh = Integer.toHexString(fj.hashCode()) + ":" + fj.length();
-        if (!facts.isEmpty() && !fh.equals(sp.getString("h_memory", ""))) {
+        if ((!facts.isEmpty() || replace) && !fh.equals(sp.getString("h_memory", ""))) {
             String data = SyncCodec.pack(fj);
             if (data.length() <= MAX_DATA) {
                 batch.put(new JSONObject().put("kind", "memory").put("id", "facts").put("updated", now).put("data", data));
-                ed.putString("h_memory", fh).putLong("u_memory", now);
+                ed.putString("h_memory", fh).putLong("u_memory", now).putBoolean("mem_replace", false);
             }
         }
         if (batch.length() > 0) flush(user, batch);
@@ -184,6 +192,16 @@ public final class CloudSync {
                     String json = SyncCodec.unpack(it.optString("data", ""));
                     if (json == null) continue;
                     if (updated <= sp.getLong("u_memory", 0)) continue; // notre propre envoi, ou déjà fusionné
+                    if (json.startsWith("{")) { // une suppression faite sur un autre appareil : on remplace la mémoire
+                        JSONObject ro = new JSONObject(json);
+                        JSONArray rf = ro.optJSONArray("f");
+                        List<String> keep = new ArrayList<>();
+                        if (rf != null) for (int k = 0; k < rf.length(); k++) keep.add(rf.optString(k));
+                        helper.replaceMemory(keep);
+                        ed.putLong("u_memory", updated).putString("h_memory", "");
+                        changed = true;
+                        continue;
+                    }
                     JSONArray fa = new JSONArray(json);
                     boolean added = false;
                     for (int k = 0; k < fa.length(); k++) {

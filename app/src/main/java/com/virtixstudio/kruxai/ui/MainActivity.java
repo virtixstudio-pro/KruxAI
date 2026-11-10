@@ -629,6 +629,49 @@ private final ActivityResultLauncher<String[]> filePicker =
                 );
     }
 
+    /**
+     * Mémoire automatique : retient ce que l'utilisateur dit de lui et oublie ce qu'il demande d'oublier,
+     * sans dépendre du modèle. Les sujets sensibles ne sont jamais retenus.
+     */
+    private void handleMemoryCommands(String prompt) {
+        try {
+            String target = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetTarget(prompt);
+            if (target != null) {
+                java.util.List<String> words = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetWords(target);
+                java.util.List<String> gone = dbHelper.forgetMemory(words);
+                for (String f : gone) {
+                    deleteMemoryFromCloud(f);
+                    if (terminal != null) terminal.println("oublié : " + f, KruxTerminalView.INFO);
+                }
+                if (!gone.isEmpty()) {
+                    com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
+                    if (terminal != null) terminal.hideLater(3500);
+                }
+                return;
+            }
+            for (String fact : com.virtixstudio.kruxai.utils.MemoryExtractor.extract(prompt)) {
+                if (dbHelper.hasMemoryFact(fact)) continue;
+                dbHelper.addMemoryFact(fact);
+                saveMemoryToCloud(fact, null);
+                if (terminal != null) {
+                    terminal.println("mémorisé : " + fact, KruxTerminalView.OK);
+                    terminal.hideLater(3500);
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_MEMORY", "mémoire automatique", e);
+        }
+    }
+
+    private void deleteMemoryFromCloud(String fact) {
+        if (currentUser == null || fact == null) return;
+        db.collection("users").document(currentUser.getUid()).collection("memory")
+                .whereEqualTo("fact", fact.trim()).get()
+                .addOnSuccessListener(snap -> {
+                    for (com.google.firebase.firestore.DocumentSnapshot d : snap.getDocuments()) d.getReference().delete();
+                });
+    }
+
     private void saveMemoryToCloud(
             String fact,
             Runnable onComplete
@@ -1150,6 +1193,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         ChatMessage userMessage = new ChatMessage(prompt, true);
         saveMessageToDatabase(userMessage);
+        handleMemoryCommands(prompt);
         updateWelcomePanel();
         if (welcomeScene != null) {
             welcomeScene.setAnimating(false);
@@ -1225,90 +1269,8 @@ private final ActivityResultLauncher<String[]> filePicker =
             String userPrompt,
             List<String> memoryFacts
     ) {
-        List<String> selected = new java.util.ArrayList<>();
-        if (memoryFacts == null || memoryFacts.isEmpty()) {
-            return selected;
-        }
-
-        java.util.Set<String> queryWords = new java.util.HashSet<>();
-        java.util.regex.Matcher matcher = java.util.regex.Pattern
-                .compile("[\\p{L}\\p{N}]{3,}")
-                .matcher(userPrompt == null ? "" : userPrompt.toLowerCase(java.util.Locale.ROOT));
-
-        while (matcher.find()) {
-            queryWords.add(matcher.group());
-        }
-
-        java.util.Set<String> stopWords = new java.util.HashSet<>(
-                java.util.Arrays.asList(
-                        "avec", "dans", "pour", "mais", "donc", "cette",
-                        "cela", "quel", "quelle", "quels", "quelles",
-                        "comment", "pourquoi", "faire", "être", "avoir",
-                        "est-ce", "plus", "moins", "peux", "peut",
-                        "vous", "nous", "the", "and", "for", "with"
-                )
-        );
-        queryWords.removeAll(stopWords);
-
-        class ScoredMemory {
-            final String fact;
-            final int score;
-            ScoredMemory(String fact, int score) {
-                this.fact = fact;
-                this.score = score;
-            }
-        }
-
-        List<ScoredMemory> ranked = new java.util.ArrayList<>();
-        for (String fact : memoryFacts) {
-            if (fact == null || fact.trim().isEmpty()) {
-                continue;
-            }
-
-            String normalized = fact.toLowerCase(java.util.Locale.ROOT);
-            int score = 0;
-            for (String word : queryWords) {
-                if (normalized.contains(word)) {
-                    score++;
-                }
-            }
-            if (score > 0) {
-                ranked.add(new ScoredMemory(fact.trim(), score));
-            }
-        }
-
-        java.util.Collections.sort(ranked, (a, b) ->
-                Integer.compare(b.score, a.score));
-
-        // En cas de correspondance, garder au plus six souvenirs.
-        for (ScoredMemory item : ranked) {
-            if (selected.size() >= 6) {
-                break;
-            }
-            String fact = item.fact;
-            if (fact.length() > 350) {
-                fact = fact.substring(0, 347) + "...";
-            }
-            selected.add(fact);
-        }
-
-        // Sans correspondance lexicale, garder seulement trois souvenirs
-        // récents au sens de l'ordre renvoyé par la base.
-        if (selected.isEmpty()) {
-            for (int i = memoryFacts.size() - 1;
-                    i >= 0 && selected.size() < 3; i--) {
-                String fact = memoryFacts.get(i);
-                if (fact != null && !fact.trim().isEmpty()) {
-                    fact = fact.trim();
-                    if (fact.length() > 350) {
-                        fact = fact.substring(0, 347) + "...";
-                    }
-                    selected.add(fact);
-                }
-            }
-        }
-
-        return selected;
+        // La mémoire est courte : KRUX reçoit tout ce qui tient (2 200 caractères), le plus lié à la question en premier.
+        return com.virtixstudio.kruxai.utils.MemorySelector.select(userPrompt, memoryFacts, 2200, 40);
     }
 
     private final java.util.Set<String> announcedFiles = new java.util.HashSet<>();
@@ -1360,7 +1322,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         List<String> memoryFacts = dbHelper.getAllMemoryFacts();
         List<String> relevantMemories = selectRelevantMemories(userPrompt, memoryFacts);
         if (!relevantMemories.isEmpty()) {
-            historyBuilder.append("\nSouvenirs pertinents sur l'utilisateur :\n");
+            historyBuilder.append("\nSOUVENIRS SUR L'UTILISATEUR (vrais, à utiliser naturellement quand c'est utile) :\n");
             for (String fact : relevantMemories) {
                 historyBuilder.append("- ").append(fact).append("\n");
             }

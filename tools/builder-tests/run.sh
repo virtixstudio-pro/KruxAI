@@ -21,3 +21,5 @@ javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/api
 java -Dfile.encoding=UTF-8 -cp "$O" SearchRankerTests
 javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/FileDelivery.java "$D"/tools/builder-tests/FileDeliveryTests.java
 java -Dfile.encoding=UTF-8 -cp "$O" FileDeliveryTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/MemoryExtractor.java "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/MemorySelector.java "$D"/tools/builder-tests/MemoryTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" MemoryTests
