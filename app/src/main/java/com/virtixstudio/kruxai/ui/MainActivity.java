@@ -1311,6 +1311,24 @@ private final ActivityResultLauncher<String[]> filePicker =
         return selected;
     }
 
+    private final java.util.Set<String> announcedFiles = new java.util.HashSet<>();
+
+    /** Montre dans le terminal les fichiers que KRUX est en train d'écrire, puis ceux qui sont terminés. */
+    private void announceFiles(String text) {
+        if (terminal == null || text == null || text.indexOf("<KRUX_FIL") < 0) return;
+        String now = com.virtixstudio.kruxai.utils.FileDelivery.writingNow(text);
+        if (now != null && announcedFiles.add("w:" + now)) {
+            terminal.println("krux write " + now, KruxTerminalView.CMD);
+        }
+        for (com.virtixstudio.kruxai.utils.FileDelivery.DFile f : com.virtixstudio.kruxai.utils.FileDelivery.parse(text)) {
+            if (announcedFiles.add("d:" + f.name)) {
+                int b = f.bytes();
+                terminal.println(f.name + "  (" + (b < 1024 ? b + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", b / 1024.0)) + ")", KruxTerminalView.OK);
+                terminal.hideLater(6000);
+            }
+        }
+    }
+
     private void executeAiQuery(
             String userPrompt,
             String webContext,
@@ -1318,6 +1336,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             String fileName,
             String fileContent
     ) {
+        announcedFiles.clear();
         // Autre point d'entrée possible (régénération...) : l'ancienne réponse ne doit pas recevoir l'état.
         if (activeAiMessage != null && !activeAiMessage.isStreaming() && chatAdapter != null) {
             chatAdapter.clearKruxAnswerStatus(activeAiMessage.getId());
@@ -1406,6 +1425,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                 });
 
                 String cleanResponse = stripReflexion(rawResponse);
+                final String forFiles = cleanResponse;
+                runOnUiThread(() -> announceFiles(forFiles));
 
                 java.util.regex.Matcher kruxMedia = java.util.regex.Pattern
                         .compile("<KRUX_TOOL>(?:\\s|\\\\n)*(image_search|video_search)(?:\\s|\\\\n)*(.*?)(?:\\s|\\\\n)*</KRUX_TOOL>",
@@ -1532,6 +1553,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             public void onPartialResponse(String partialResponse, String modelBrand) {
                 runOnUiThread(() -> {
                     aiMessage.setText(hideTool(stripReflexion(partialResponse)));
+                    announceFiles(partialResponse);
                     KruxState wantState = isReflecting(partialResponse) ? KruxState.THINKING : KruxState.GENERATING;
                     if (kruxState != wantState) setKruxState(wantState);
                     aiMessage.setModel(modelBrand);

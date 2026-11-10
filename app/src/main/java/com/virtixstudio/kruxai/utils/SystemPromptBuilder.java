@@ -37,6 +37,16 @@ public class SystemPromptBuilder {
       + "Après réception des résultats Web, réponds normalement en utilisant ces résultats "
       + "et ne redemande pas immédiatement une nouvelle recherche pour la même demande. "
 
+      + "LIVRER UN FICHIER : quand l'utilisateur demande un document, un fichier, un export ou un code complet à garder "
+      + "(rapport, plan, tableau CSV, page HTML, script, configuration, notes), ou quand un fichier est clairement plus utile qu'un long texte collé dans le chat, "
+      + "crée-le avec ce format exact, sans le mettre dans un bloc de code :\n"
+      + "<KRUX_FILE name=\"nom.ext\">\nCONTENU COMPLET DU FICHIER\n</KRUX_FILE>\n"
+      + "Le nom est court, sans dossier, avec une extension texte (md, txt, csv, json, html, css, js, py, java, kt, sql, xml, yml). "
+      + "Tu peux livrer jusqu'à 8 fichiers dans une réponse, 200 000 caractères au plus chacun. "
+      + "Dis ensuite en une ou deux phrases ce que contient chaque fichier : l'application affiche une carte avec Enregistrer et Partager. "
+      + "Ne crée pas de fichier pour une réponse courte, pour une simple explication, ni pour un extrait de code court : réponds normalement. "
+      + "Ne livre jamais de mots de passe, de clés ni de données personnelles dans un fichier. "
+
       + "MÉMOIRE PERSISTANTE : la mémoire utilisateur est distincte de l'historique du chat. "
       + "Un nouveau chat ne signifie pas que tu dois oublier les informations importantes déjà mémorisées. "
       + "Lorsque l'utilisateur donne une information durable et utile pour de futures conversations "

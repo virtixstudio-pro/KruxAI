@@ -207,8 +207,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         renderMessage(
                 aiHolder,
-                message.getText() == null ? "" : message.getText()
+                com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
         );
+        LinearLayout filesHost = aiHolder.itemView.findViewById(R.id.layoutFiles);
+        if (filesHost != null) {
+            com.virtixstudio.kruxai.ui.DeliveredFileCards.fill(filesHost,
+                    com.virtixstudio.kruxai.utils.FileDelivery.parse(message.getText()));
+        }
 
         setupKruxAnswerStatus(aiHolder, message);
 
@@ -1148,7 +1153,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ClipData clip =
                     ClipData.newPlainText(
                             "KruxAI",
-                            message.getText()
+                            com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
                     );
 
             if (clipboard != null) {
@@ -1170,7 +1175,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             shareIntent.putExtra(
                     Intent.EXTRA_TEXT,
-                    message.getText()
+                    com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
             );
 
             context.startActivity(
@@ -1192,7 +1197,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.btnSpeak.setOnClickListener(v -> {
             if (speechListener != null) {
                 speechListener.onSpeakRequested(
-                        message.getText()
+                        com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
                 );
             }
         });
