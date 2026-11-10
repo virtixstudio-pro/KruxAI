@@ -960,7 +960,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         if (clipboard != null) {
             clipboard.setPrimaryClip(
-                    ClipData.newPlainText("KruxAI", text)
+                    ClipData.newPlainText("Krux", text)
             );
 
             Toast.makeText(
@@ -1152,7 +1152,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             ClipData clip =
                     ClipData.newPlainText(
-                            "KruxAI",
+                            "Krux",
                             com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
                     );
 
@@ -1190,7 +1190,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 FileUtils.saveTextFile(
                         context,
                         message.getText(),
-                        "KruxAI_Export"
+                        "Krux_Export"
                 )
         );
 

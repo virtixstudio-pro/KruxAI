@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">KRUX AI</string>
+    <string name="app_name">Krux</string>
     <string name="language_french">Français</string>
     <string name="language_english">English</string>
     <string name="language_spanish">Español</string>
@@ -10,12 +10,12 @@
     <string name="language_current">Español</string>
 
     <string name="krux_tagline">Think. Build. Create.</string>
-    <string name="welcome_title">Bienvenido a KRUX AI</string>
+    <string name="welcome_title">Bienvenido a Krux</string>
     <string name="welcome_description">Un espacio para pensar, crear y construir.</string>
     <string name="login_with_email">Iniciar sesión con email</string>
     <string name="continue_google">Continuar con Google</string>
-    <string name="terms">Al continuar, aceptas las condiciones de uso de KRUX AI.</string>
-    <string name="about_krux">Acerca de KRUX AI</string>
+    <string name="terms">Al continuar, aceptas las condiciones de uso de Krux.</string>
+    <string name="about_krux">Acerca de Krux</string>
 
     <string name="login_title">Iniciar sesión</string>
     <string name="login_description">Entra en tu espacio Krux.</string>
@@ -31,7 +31,7 @@
     <string name="has_account">¿Ya tienes una cuenta? Iniciar sesión</string>
 
     <string name="signup_title">Registro</string>
-    <string name="signup_description">Comienza tu experiencia con KRUX AI.</string>
+    <string name="signup_description">Comienza tu experiencia con Krux.</string>
     <string name="create_space">Crear tu espacio</string>
     <string name="sign_up">Registrarse</string>
     <string name="creating">Creando...</string>

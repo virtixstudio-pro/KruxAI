@@ -40,6 +40,11 @@ public final class MemoryExtractor {
 
     private MemoryExtractor() { }
 
+    /** Vrai si le texte touche un sujet qu'on ne mémorise jamais (santé, argent, secrets, âge…). */
+    public static boolean isSensitive(String s) {
+        return s != null && SENSITIVE.matcher(s).find();
+    }
+
     private static String clean(String s) {
         String t = s.trim().replaceAll("[\\s]+", " ");
         t = t.replaceAll("[\\s,;:.!?…]+$", "");

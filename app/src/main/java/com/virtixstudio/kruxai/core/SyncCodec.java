@@ -29,7 +29,7 @@ public final class SyncCodec {
           + "dans sur sous avec sans pour par chez entre vers depuis pendant avant après contre selon comme quand lorsque si alors puis ensuite enfin voici voilà "
           + "bonjour salut merci s'il te plaît d'accord oui non peut-être exemple fichier application utilisateur message réponse question texte code erreur problème solution "
           + "fonction classe méthode variable paramètre résultat liste tableau données base serveur réseau connexion compte mémoire historique conversation recherche "
-          + "Voici ce que j'ai trouvé. Je peux t'aider. Comment puis-je t'aider ? Peux-tu préciser ? Je ne sais pas. Je suis Krux AI, créé par Virtix Studio. "
+          + "Voici ce que j'ai trouvé. Je peux t'aider. Comment puis-je t'aider ? Peux-tu préciser ? Je ne sais pas. Je suis Krux, créé par Virtix Studio. "
           + "the and for with that this from have not are you your can will what how why when where which "
           + "https://www. https://fr.wikipedia.org/wiki/ .com .fr .org .net .io /index.html "
           + "0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ éèêëàâùûôîïç ÉÈÀÇ "

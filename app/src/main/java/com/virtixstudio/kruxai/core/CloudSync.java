@@ -107,7 +107,7 @@ public final class CloudSync {
             }
         }
         // mémoire
-        List<String> facts = helper.getAllMemoryFacts();
+        List<String> facts = helper.getMemoryEncoded();
         JSONArray fa = new JSONArray();
         for (String f : facts) fa.put(f);
         final boolean replace = sp.getBoolean("mem_replace", false);
@@ -206,7 +206,7 @@ public final class CloudSync {
                     boolean added = false;
                     for (int k = 0; k < fa.length(); k++) {
                         String f = fa.optString(k, "").trim();
-                        if (!f.isEmpty() && f.length() < 2000 && !helper.hasMemoryFact(f)) { helper.saveMemoryFact(f); added = true; }
+                        if (!f.isEmpty() && f.length() < 2000 && helper.upsertMemory(f)) added = true;
                     }
                     ed.putLong("u_memory", updated);
                     if (added) { ed.remove("h_memory"); changed = true; } // l'union sera renvoyée au prochain passage

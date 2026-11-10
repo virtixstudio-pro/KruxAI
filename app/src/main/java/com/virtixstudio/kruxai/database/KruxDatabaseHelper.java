@@ -15,7 +15,7 @@ import java.util.List;
 public class KruxDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "krux_ai.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
 
     public KruxDatabaseHelper(Context context) {
         this(context, "default");
@@ -51,7 +51,10 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
 
         db.execSQL("CREATE TABLE IF NOT EXISTS memory (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "fact TEXT)");
+                "fact TEXT, " +
+                "cat TEXT, " +
+                "slot TEXT, " +
+                "updated INTEGER DEFAULT 0)");
 
         db.execSQL("CREATE TABLE IF NOT EXISTS session_metadata (" +
                 "session_id TEXT PRIMARY KEY, " +
@@ -71,6 +74,27 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 3) {
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)");
             db.execSQL("CREATE INDEX IF NOT EXISTS idx_memory_fact ON memory(fact)");
+        }
+
+        if (oldVersion < 4) {
+            // Mémoire v2 : catégorie, clé (pour remplacer au lieu d'empiler) et date
+            db.execSQL("ALTER TABLE memory ADD COLUMN cat TEXT");
+            db.execSQL("ALTER TABLE memory ADD COLUMN slot TEXT");
+            db.execSQL("ALTER TABLE memory ADD COLUMN updated INTEGER DEFAULT 0");
+            // on range les anciens souvenirs ; l'ordre d'origine devient l'ordre des dates
+            Cursor c = db.rawQuery("SELECT id, fact FROM memory ORDER BY id", null);
+            long base = System.currentTimeMillis() / 1000L - 100000L;
+            List<Object[]> rows = new ArrayList<>();
+            while (c.moveToNext()) rows.add(new Object[]{c.getLong(0), c.getString(1)});
+            c.close();
+            int n = 0;
+            for (Object[] r : rows) {
+                com.virtixstudio.kruxai.utils.MemoryBook.Entry e =
+                        com.virtixstudio.kruxai.utils.MemoryBook.classify(String.valueOf(r[1]), base + n++);
+                ContentValues v = new ContentValues();
+                v.put("cat", e.cat); v.put("slot", e.slot); v.put("updated", e.ts);
+                db.update("memory", v, "id = ?", new String[]{String.valueOf(r[0])});
+            }
         }
     }
 
@@ -258,15 +282,73 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         return messages;
     }
 
+    /** Retient un souvenir (texte simple ou « §cat|clé|date|texte ») : il remplace ce qu'il contredit au lieu de s'empiler. */
     public void saveMemoryFact(String fact) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put("fact", fact);
-        db.insert("memory", null, values);
+        upsertMemory(fact);
     }
 
     public void addMemoryFact(String fact) {
         saveMemoryFact(fact);
+    }
+
+    /** Vrai si la mémoire a changé. */
+    public synchronized boolean upsertMemory(String fact) {
+        if (fact != null && !fact.trim().startsWith("§") && hasMemoryFact(fact.trim())) return false;
+        com.virtixstudio.kruxai.utils.MemoryBook.Entry e =
+                com.virtixstudio.kruxai.utils.MemoryBook.decode(fact, System.currentTimeMillis() / 1000L);
+        if (e == null) return false;
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = getMemoryEntries();
+        if (!com.virtixstudio.kruxai.utils.MemoryBook.merge(list, e)) return false;
+        writeMemoryEntries(list);
+        return true;
+    }
+
+    /** Applique les décisions du modèle ; retourne ce qu'on peut afficher. */
+    public synchronized List<String> applyMemoryOps(List<com.virtixstudio.kruxai.utils.MemoryBook.Op> ops) {
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = getMemoryEntries();
+        List<String> log = com.virtixstudio.kruxai.utils.MemoryBook.apply(list, ops);
+        if (!log.isEmpty()) writeMemoryEntries(list);
+        return log;
+    }
+
+    /** Du plus ancien au plus récent. */
+    public synchronized List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> getMemoryEntries() {
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> out = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT fact, cat, slot, updated FROM memory ORDER BY updated, id", null);
+        while (c.moveToNext()) {
+            String t = c.getString(0);
+            if (t == null || t.trim().isEmpty()) continue;
+            String cat = c.getString(1);
+            out.add(new com.virtixstudio.kruxai.utils.MemoryBook.Entry(
+                    cat == null ? com.virtixstudio.kruxai.utils.MemoryBook.DIVERS : cat,
+                    c.getString(2), t.trim(), c.getLong(3)));
+        }
+        c.close();
+        return out;
+    }
+
+    private void writeMemoryEntries(List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete("memory", null, null);
+            for (com.virtixstudio.kruxai.utils.MemoryBook.Entry e : list) {
+                ContentValues v = new ContentValues();
+                v.put("fact", e.text); v.put("cat", e.cat); v.put("slot", e.slot); v.put("updated", e.ts);
+                db.insert("memory", null, v);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    /** Souvenirs encodés pour la synchronisation (gardent catégorie, clé et date). */
+    public List<String> getMemoryEncoded() {
+        List<String> out = new ArrayList<>();
+        for (com.virtixstudio.kruxai.utils.MemoryBook.Entry e : getMemoryEntries()) out.add(com.virtixstudio.kruxai.utils.MemoryBook.encode(e));
+        return out;
     }
 
     public List<String> getAllMemoryFacts() {
@@ -299,33 +381,31 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
     }
 
     /** Oublie les souvenirs qui correspondent aux mots donnés ; retourne ceux qui ont été supprimés. */
-    public List<String> forgetMemory(List<String> words) {
+    public synchronized List<String> forgetMemory(List<String> words) {
         List<String> removed = new ArrayList<>();
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor c = db.rawQuery("SELECT id, fact FROM memory", null);
-        List<long[]> ids = new ArrayList<>();
-        while (c.moveToNext()) {
-            String f = c.getString(1);
-            if (f != null && com.virtixstudio.kruxai.utils.MemoryExtractor.matchesForget(f, words)) {
-                ids.add(new long[]{c.getLong(0)});
-                removed.add(f);
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = getMemoryEntries();
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (com.virtixstudio.kruxai.utils.MemoryExtractor.matchesForget(list.get(i).text, words)) {
+                removed.add(0, list.get(i).text);
+                list.remove(i);
             }
         }
-        c.close();
-        for (long[] id : ids) db.delete("memory", "id = ?", new String[]{String.valueOf(id[0])});
+        if (!removed.isEmpty()) writeMemoryEntries(list);
         return removed;
     }
 
     /** Remplace toute la mémoire par cette liste (utilisé quand une suppression vient d'un autre appareil). */
-    public void replaceMemory(List<String> facts) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
-        try {
-            db.delete("memory", null, null);
-            for (String f : facts) saveMemoryFact(f);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
+    public synchronized void replaceMemory(List<String> facts) {
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = new ArrayList<>();
+        long now = System.currentTimeMillis() / 1000L;
+        for (String f : facts) com.virtixstudio.kruxai.utils.MemoryBook.merge(list, com.virtixstudio.kruxai.utils.MemoryBook.decode(f, now));
+        writeMemoryEntries(list);
+    }
+
+    /** Supprime un souvenir précis (écran Mémoire). */
+    public synchronized void deleteMemoryText(String text) {
+        List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> list = getMemoryEntries();
+        for (int i = list.size() - 1; i >= 0; i--) if (list.get(i).text.equals(text)) list.remove(i);
+        writeMemoryEntries(list);
     }
 }

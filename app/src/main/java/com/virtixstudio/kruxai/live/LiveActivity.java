@@ -41,7 +41,7 @@ public class LiveActivity extends AppCompatActivity {
     public static final String EXTRA_MODEL = "model";
 
     private static final String SYSTEM =
-        "Tu es Krux AI, créé par Virtix Studio, en conversation VOCALE avec l'utilisateur. "
+        "Tu es Krux, créé par Virtix Studio, en conversation VOCALE avec l'utilisateur. "
       + "Réponds en français, en 1 à 3 phrases courtes et naturelles, comme à l'oral. "
       + "Pas de markdown, pas de listes, pas d'émojis, pas de balises, pas d'outils. "
       + "Si tu ne sais pas, dis-le simplement.";
@@ -217,7 +217,7 @@ public class LiveActivity extends AppCompatActivity {
                 final String clean = cleanForSpeech(response);
                 ui(() -> {
                     history.add("Utilisateur: " + userText);
-                    history.add("Krux AI: " + clean);
+                    history.add("Krux: " + clean);
                     while (history.size() > 8) history.remove(0);
                     speak(clean);
                 });

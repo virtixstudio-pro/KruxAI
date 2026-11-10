@@ -25,3 +25,5 @@ javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/uti
 java -Dfile.encoding=UTF-8 -cp "$O" MemoryTests
 javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/core/SyncCodec.java "$D"/app/src/main/java/com/virtixstudio/kruxai/core/WorkspaceBundle.java "$D"/tools/builder-tests/WorkspaceBundleTests.java
 java -Dfile.encoding=UTF-8 -cp "$O" WorkspaceBundleTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/MemoryExtractor.java "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/MemorySelector.java "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/MemoryBook.java "$D"/tools/builder-tests/MemoryBookTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" MemoryBookTests

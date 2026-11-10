@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">KRUX AI</string>
+    <string name="app_name">Krux</string>
 
     <string name="language_french">Français</string>
     <string name="language_english">English</string>
@@ -12,12 +12,12 @@
 
     <string name="krux_tagline">Think. Build. Create.</string>
 
-    <string name="welcome_title">Welcome to KRUX AI</string>
+    <string name="welcome_title">Welcome to Krux</string>
     <string name="welcome_description">A space to think, create and build.</string>
     <string name="login_with_email">Sign in with email</string>
     <string name="continue_google">Continue with Google</string>
-    <string name="terms">By continuing, you accept KRUX AI\'s terms of use.</string>
-    <string name="about_krux">About KRUX AI</string>
+    <string name="terms">By continuing, you accept Krux\'s terms of use.</string>
+    <string name="about_krux">About Krux</string>
 
     <string name="login_title">Sign in</string>
     <string name="login_description">Enter your Krux space.</string>
@@ -33,7 +33,7 @@
     <string name="has_account">Already have an account? Sign in</string>
 
     <string name="signup_title">Sign up</string>
-    <string name="signup_description">Start your KRUX AI experience.</string>
+    <string name="signup_description">Start your Krux experience.</string>
     <string name="create_space">Create your space</string>
     <string name="sign_up">Sign up</string>
     <string name="creating">Creating...</string>

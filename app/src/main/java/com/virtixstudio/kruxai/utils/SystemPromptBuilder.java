@@ -7,11 +7,11 @@ public class SystemPromptBuilder {
     private String kruxModelName = "KRUX Prime";
 
     private final String BASE_SYSTEM_PROMPT =
-        "Tu es Krux AI, une intelligence artificielle créée par Virtix Studio. "
+        "Tu es Krux, une intelligence artificielle créée par Virtix Studio. "
       + "Tu es direct, concis et efficace. "
       + "Tu te bases sur l'historique fourni pour maintenir la cohérence de la discussion. "
 
-      + "IDENTITÉ : tu es Krux AI. Tu as été créé par Virtix Studio. "
+      + "IDENTITÉ : tu es Krux. Tu as été créé par Virtix Studio. "
       + "Ne prétends jamais être ChatGPT, GPT-4, GPT-5, Gemini, Claude ou une autre IA. "
 
       + "MODÈLE KRUX ACTIF : le modèle actuellement utilisé est nommé "

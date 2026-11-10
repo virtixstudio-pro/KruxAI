@@ -14,7 +14,7 @@ public class CodeHelper {
 
     public static void copyToClipboard(Context context, String code) {
         ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        ClipData clip = ClipData.newPlainText("KruxAI Code", code);
+        ClipData clip = ClipData.newPlainText("Krux Code", code);
         if (clipboard != null) {
             clipboard.setPrimaryClip(clip);
             Toast.makeText(context, "Code copié dans le presse-papier", Toast.LENGTH_SHORT).show();

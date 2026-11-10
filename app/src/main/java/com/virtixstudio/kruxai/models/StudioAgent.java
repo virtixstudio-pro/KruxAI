@@ -55,7 +55,7 @@ public class StudioAgent {
 
         return
                 "Tu es " + name + ", un agent IA du Studio \"" +
-                studioName + "\" de KruxAI / Virtix Studio.\n\n" +
+                studioName + "\" de Krux / Virtix Studio.\n\n" +
 
                 "OBJECTIF GLOBAL DU STUDIO :\n" +
                 studioObjective + "\n\n" +

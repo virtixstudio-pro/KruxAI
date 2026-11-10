@@ -2,6 +2,7 @@ package com.virtixstudio.kruxai.ui;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -74,6 +75,8 @@ public class LoginActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         etRepeatPassword = findViewById(R.id.etRepeatPassword);
 
+        setPasswordIcon(R.drawable.ic_visibility);
+
         btnSubmit = findViewById(R.id.btnSubmit);
         tvTitle = findViewById(R.id.tvTitle);
         tvToggleMode = findViewById(R.id.tvToggleMode);
@@ -106,10 +109,12 @@ public class LoginActivity extends AppCompatActivity {
                         etPassword.setTransformationMethod(
                                 PasswordTransformationMethod.getInstance()
                         );
+                        setPasswordIcon(R.drawable.ic_visibility);
                     } else {
                         etPassword.setTransformationMethod(
                                 HideReturnsTransformationMethod.getInstance()
                         );
+                        setPasswordIcon(R.drawable.ic_visibility_off);
                     }
 
                     etPassword.setSelection(
@@ -129,7 +134,7 @@ public class LoginActivity extends AppCompatActivity {
 
         Button btnGoogle = findViewById(R.id.btnGoogle);
         btnGoogle.setOnClickListener(v ->
-                showMessage("Connexion Google : configuration Firebase requise.")
+                showMessage(getString(R.string.google_config_required))
         );
 
         tvToggleMode.setOnClickListener(v -> {
@@ -152,23 +157,23 @@ public class LoginActivity extends AppCompatActivity {
 
         if (isSignUpMode) {
             tvForgotPassword.setVisibility(View.GONE);
-            tvTitle.setText("Inscription");
+            tvTitle.setText(R.string.signup_title);
 
             etFirstName.setVisibility(View.VISIBLE);
             etRepeatPassword.setVisibility(View.VISIBLE);
 
-            btnSubmit.setText("S'inscrire");
-            tvToggleMode.setText("Déjà un compte ? Se connecter");
+            btnSubmit.setText(R.string.sign_up);
+            tvToggleMode.setText(R.string.has_account);
 
         } else {
             tvForgotPassword.setVisibility(View.VISIBLE);
-            tvTitle.setText("Connexion");
+            tvTitle.setText(R.string.login_title);
 
             etFirstName.setVisibility(View.GONE);
             etRepeatPassword.setVisibility(View.GONE);
 
-            btnSubmit.setText("Se connecter");
-            tvToggleMode.setText("Pas encore de compte ? S'inscrire");
+            btnSubmit.setText(R.string.sign_in);
+            tvToggleMode.setText(R.string.no_account);
         }
     }
 
@@ -627,6 +632,13 @@ public class LoginActivity extends AppCompatActivity {
 
         startActivity(intent);
         finish();
+    }
+
+    private void setPasswordIcon(int drawableRes) {
+        etPassword.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, drawableRes, 0);
+        etPassword.setCompoundDrawableTintList(
+                ColorStateList.valueOf(KruxTheme.get(this, "text2"))
+        );
     }
 
     private int dpToPx(int dp) {

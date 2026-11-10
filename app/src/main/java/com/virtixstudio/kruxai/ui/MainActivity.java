@@ -629,6 +629,45 @@ private final ActivityResultLauncher<String[]> filePicker =
                 );
     }
 
+    private long lastMemoryExtract = 0;
+
+    /**
+     * Après chaque échange : un petit modèle relit le message et dit ce qu'il faut retenir, mettre à jour ou retirer.
+     * Tourne en arrière-plan, au plus une fois toutes les 20 s, sans jamais gêner la discussion.
+     */
+    private void extractMemoryInBackground(final String userMsg, final String aiReply) {
+        try {
+            if (!com.virtixstudio.kruxai.utils.MemoryBook.worthExtracting(userMsg)) return;
+            if (com.virtixstudio.kruxai.utils.MemoryExtractor.forgetTarget(userMsg) != null) return; // « oublie… » est déjà géré
+            long now = System.currentTimeMillis();
+            if (now - lastMemoryExtract < 20000L) return;
+            lastMemoryExtract = now;
+            final String sys = com.virtixstudio.kruxai.utils.MemoryBook.extractionSystemPrompt();
+            final String usr = com.virtixstudio.kruxai.utils.MemoryBook.extractionUserPrompt(dbHelper.getMemoryEntries(), userMsg, aiReply);
+            ApiClient.sendQuiet(sys, usr, out -> {
+                try {
+                    if (out == null) return;
+                    java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Op> ops =
+                            com.virtixstudio.kruxai.utils.MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
+                    if (ops.isEmpty()) return;
+                    final java.util.List<String> log = dbHelper.applyMemoryOps(ops);
+                    if (log.isEmpty()) return;
+                    runOnUiThread(() -> {
+                        if (terminal != null) {
+                            for (String l : log) terminal.println(l, l.startsWith("oublié") ? KruxTerminalView.INFO : KruxTerminalView.OK);
+                            terminal.hideLater(3500);
+                        }
+                        syncCloud(false);
+                    });
+                } catch (Exception e) {
+                    android.util.Log.e("KRUX_MEMORY", "extraction", e);
+                }
+            });
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_MEMORY", "extraction", e);
+        }
+    }
+
     /**
      * Mémoire automatique : retient ce que l'utilisateur dit de lui et oublie ce qu'il demande d'oublier,
      * sans dépendre du modèle. Les sujets sensibles ne sont jamais retenus.
@@ -1047,7 +1086,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
                 java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT);
-        StringBuilder sb = new StringBuilder("# Discussion KRUX AI\n");
+        StringBuilder sb = new StringBuilder("# Discussion Krux\n");
         sb.append("Exportée le ").append(df.format(new java.util.Date())).append("\n\n");
         for (ChatMessage m : messageList) {
             String text = m.getText();
@@ -1064,7 +1103,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
-        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion KRUX AI");
+        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion Krux");
         i.putExtra(Intent.EXTRA_TEXT, out);
         startActivity(Intent.createChooser(i, "Exporter la discussion"));
     }
@@ -1348,7 +1387,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         int startIndex = Math.max(0, messageList.size() - 10);
         for (int i = startIndex; i < messageList.size() - 1; i++) {
             ChatMessage msg = messageList.get(i);
-            historyBuilder.append(msg.isUser() ? "Utilisateur: " : "Krux AI: ")
+            historyBuilder.append(msg.isUser() ? "Utilisateur: " : "Krux: ")
                     .append(msg.getText())
                     .append("\n");
         }
@@ -1357,13 +1396,11 @@ private final ActivityResultLauncher<String[]> filePicker =
             historyBuilder.append("\nContexte Recherche Web:\n").append(webContext);
         }
 
-        List<String> memoryFacts = dbHelper.getAllMemoryFacts();
-        List<String> relevantMemories = selectRelevantMemories(userPrompt, memoryFacts);
-        if (!relevantMemories.isEmpty()) {
-            historyBuilder.append("\nSOUVENIRS SUR L'UTILISATEUR (vrais, à utiliser naturellement quand c'est utile) :\n");
-            for (String fact : relevantMemories) {
-                historyBuilder.append("- ").append(fact).append("\n");
-            }
+        String memoryBlock = com.virtixstudio.kruxai.utils.MemoryBook.formatForPrompt(
+                dbHelper.getMemoryEntries(), userPrompt, 2200, 40);
+        if (!memoryBlock.isEmpty()) {
+            historyBuilder.append("\nSOUVENIRS SUR L'UTILISATEUR (vrais, rangés par thème avec leur date ; le plus récent l'emporte ; à utiliser naturellement quand c'est utile) :\n");
+            historyBuilder.append(memoryBlock);
         }
 
         String systemPrompt = new SystemPromptBuilder().withThinking(isThinkingMode)
@@ -1425,6 +1462,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 });
 
                 String cleanResponse = stripReflexion(rawResponse);
+                extractMemoryInBackground(userPrompt, cleanResponse);
                 final String forFiles = cleanResponse;
                 runOnUiThread(() -> { announceFiles(forFiles); deliverToWorkspace(forFiles); });
 
@@ -2689,7 +2727,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         // Mini bloc de code
         TextView previewCodeBlock = new TextView(this);
-        previewCodeBlock.setText("System.out.println(\"KruxAI Live\");");
+        previewCodeBlock.setText("System.out.println(\"Krux Live\");");
         previewCodeBlock.setTextSize(11);
         previewCodeBlock.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
         LinearLayout.LayoutParams codeParams = new LinearLayout.LayoutParams(

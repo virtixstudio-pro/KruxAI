@@ -104,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         // ---- À propos
         LinearLayout about = section(root, "À propos");
-        row(about, "KRUX AI", "Version " + versionName() + "  ·  Virtix Studio", false, null);
+        row(about, "Krux", "Version " + versionName() + "  ·  Virtix Studio", false, null);
         row(about, "Générateur d'apps",
             "Android " + KruxConfig.build().targetSdk + "  ·  AGP " + KruxConfig.build().agp
                 + "  ·  config : " + KruxConfig.source(), false, null);

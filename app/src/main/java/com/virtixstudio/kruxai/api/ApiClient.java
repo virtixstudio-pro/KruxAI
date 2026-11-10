@@ -26,6 +26,37 @@ public class ApiClient {
     private static volatile HttpURLConnection activeConnection;
     private static volatile ApiCallback activeCallback;
     private static volatile boolean cancellationNotified;
+    /** Appels de fond (mémoire) : ils ne touchent jamais à la requête annulable du chat. */
+    private static final ThreadLocal<Boolean> QUIET = new ThreadLocal<Boolean>() {
+        @Override protected Boolean initialValue() { return Boolean.FALSE; }
+    };
+
+    /** Petit appel en arrière-plan, avec un moteur léger, sans attente ni message à l'utilisateur. null si échec. */
+    public interface QuietCallback { void done(String textOrNull); }
+
+    public static void sendQuiet(final String systemPrompt, final String userMessage, final QuietCallback cb) {
+        new Thread(() -> {
+            QUIET.set(Boolean.TRUE);
+            String result = null;
+            KruxModel[] cheap = { KruxModel.GEMINI_FLASH_LITE, KruxModel.GROQ_GPT_OSS_20B, KruxModel.MISTRAL_MINISTRAL_3B };
+            long now = System.currentTimeMillis();
+            for (KruxModel m : cheap) {
+                if (ModelCooldown.isCooling(m.name(), now)) continue;
+                try {
+                    String r = sendWithModel(m, systemPrompt, userMessage, new ApiCallback() {
+                        @Override public void onSuccess(String response, String modelBrand) { }
+                        @Override public void onError(String friendlyMessage) { }
+                    });
+                    if (r != null && !r.trim().isEmpty()) { result = r; break; }
+                } catch (Exception e) {
+                    if (ModelCooldown.isRateLimit(e.getMessage())) {
+                        ModelCooldown.markLimited(m.name(), System.currentTimeMillis(), ModelCooldown.parseRetryAfterMs(e.getMessage()));
+                    }
+                }
+            }
+            try { cb.done(result); } catch (Exception ignored) { }
+        }).start();
+    }
 
     public interface ApiCallback {
         void onSuccess(String response, String modelBrand);
@@ -551,7 +582,7 @@ public class ApiClient {
 
         HttpURLConnection conn =
                 (HttpURLConnection) url.openConnection();
-        activeConnection = conn;
+        if (!QUIET.get()) activeConnection = conn;
 
         conn.setRequestMethod("POST");
 
@@ -647,7 +678,7 @@ public class ApiClient {
 
         reader.close();
         conn.disconnect();
-        activeConnection = null;
+        if (!QUIET.get()) activeConnection = null;
 
         return response.toString();
     }
@@ -675,7 +706,7 @@ public class ApiClient {
 
         HttpURLConnection conn =
                 (HttpURLConnection) url.openConnection();
-        activeConnection = conn;
+        if (!QUIET.get()) activeConnection = conn;
 
         conn.setRequestMethod("POST");
 
@@ -776,7 +807,7 @@ public class ApiClient {
 
         reader.close();
         conn.disconnect();
-        activeConnection = null;
+        if (!QUIET.get()) activeConnection = null;
 
         return response.toString();
     }

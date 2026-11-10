@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">KRUX AI</string>
+    <string name="app_name">Krux</string>
     <string name="language_french">Français</string>
     <string name="language_english">English</string>
     <string name="language_spanish">Español</string>
@@ -10,12 +10,12 @@
     <string name="language_current">中文</string>
 
     <string name="krux_tagline">Think. Build. Create.</string>
-    <string name="welcome_title">欢迎来到 KRUX AI</string>
+    <string name="welcome_title">欢迎来到 Krux</string>
     <string name="welcome_description">一个用于思考、创造和构建的空间。</string>
     <string name="login_with_email">使用邮箱登录</string>
     <string name="continue_google">使用 Google 继续</string>
-    <string name="terms">继续使用即表示你接受 KRUX AI 的使用条款。</string>
-    <string name="about_krux">关于 KRUX AI</string>
+    <string name="terms">继续使用即表示你接受 Krux 的使用条款。</string>
+    <string name="about_krux">关于 Krux</string>
 
     <string name="login_title">登录</string>
     <string name="login_description">进入你的 Krux 空间。</string>
@@ -31,7 +31,7 @@
     <string name="has_account">已经有账户？ 登录</string>
 
     <string name="signup_title">注册</string>
-    <string name="signup_description">开始你的 KRUX AI 体验。</string>
+    <string name="signup_description">开始你的 Krux 体验。</string>
     <string name="create_space">创建你的空间</string>
     <string name="sign_up">注册</string>
     <string name="creating">正在创建...</string>

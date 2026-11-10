@@ -10,7 +10,7 @@
     <TextView android:tag="krux:accent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="KRUX AI"
+        android:text="Krux"
         android:textColor="#A855F7"
         android:textSize="22sp"
         android:textStyle="bold" />
