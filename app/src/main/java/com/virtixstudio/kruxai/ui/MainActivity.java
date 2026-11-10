@@ -1273,6 +1273,44 @@ private final ActivityResultLauncher<String[]> filePicker =
         return com.virtixstudio.kruxai.utils.MemorySelector.select(userPrompt, memoryFacts, 2200, 40);
     }
 
+    /**
+     * L'espace de travail de KRUX : les fichiers qu'il écrit sont rangés sur le téléphone, puis envoyés au cloud
+     * en une seule archive compressée au maximum (dictionnaire + deflate niveau 9), pour ne pas charger la base.
+     */
+    private void deliverToWorkspace(String text) {
+        final java.util.List<com.virtixstudio.kruxai.utils.FileDelivery.DFile> files = com.virtixstudio.kruxai.utils.FileDelivery.parse(text);
+        if (files.isEmpty() || !announcedFiles.add("s:" + Integer.toHexString(String.valueOf(text).hashCode()))) return;
+        final long stamp = System.currentTimeMillis();
+        final com.google.firebase.auth.FirebaseUser user = currentUser;
+        new Thread(() -> {
+            try {
+                java.io.File dir = new java.io.File(getFilesDir(), "workspace/" + stamp);
+                dir.mkdirs();
+                java.util.List<com.virtixstudio.kruxai.core.WorkspaceBundle.Entry> entries = new java.util.ArrayList<>();
+                int raw = 0;
+                for (com.virtixstudio.kruxai.utils.FileDelivery.DFile f : files) {
+                    try (java.io.FileOutputStream os = new java.io.FileOutputStream(new java.io.File(dir, f.name))) {
+                        os.write(f.content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    }
+                    entries.add(new com.virtixstudio.kruxai.core.WorkspaceBundle.Entry(f.name, f.content));
+                    raw += f.bytes();
+                }
+                if (!com.virtixstudio.kruxai.core.KruxConfig.workerEnabled() || user == null) return;
+                byte[] packed = com.virtixstudio.kruxai.core.WorkspaceBundle.pack(entries);
+                final String line = "cloud ws/" + stamp + ".krx  " + kb(raw) + " → " + kb(packed.length)
+                        + " (-" + (raw == 0 ? 0 : 100 - 100 * packed.length / raw) + " %)";
+                com.virtixstudio.kruxai.core.WorkerStore.put(user, "ws/" + stamp + ".krx", packed);
+                runOnUiThread(() -> { if (terminal != null) { terminal.println(line, KruxTerminalView.OK); terminal.hideLater(5000); } });
+            } catch (Exception e) {
+                android.util.Log.w("KRUX_WS", "espace de travail : " + e.getMessage());
+            }
+        }, "krux-workspace").start();
+    }
+
+    private static String kb(int b) {
+        return b < 1024 ? b + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", b / 1024.0);
+    }
+
     private final java.util.Set<String> announcedFiles = new java.util.HashSet<>();
 
     /** Montre dans le terminal les fichiers que KRUX est en train d'écrire, puis ceux qui sont terminés. */
@@ -1388,7 +1426,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 String cleanResponse = stripReflexion(rawResponse);
                 final String forFiles = cleanResponse;
-                runOnUiThread(() -> announceFiles(forFiles));
+                runOnUiThread(() -> { announceFiles(forFiles); deliverToWorkspace(forFiles); });
 
                 java.util.regex.Matcher kruxMedia = java.util.regex.Pattern
                         .compile("<KRUX_TOOL>(?:\\s|\\\\n)*(image_search|video_search)(?:\\s|\\\\n)*(.*?)(?:\\s|\\\\n)*</KRUX_TOOL>",
