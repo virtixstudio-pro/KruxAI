@@ -18,6 +18,7 @@ import androidx.core.view.WindowCompat;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.virtixstudio.kruxai.core.CloudSync;
+import com.virtixstudio.kruxai.core.MemoryRepository;
 import com.virtixstudio.kruxai.database.KruxDatabaseHelper;
 import com.virtixstudio.kruxai.utils.MemoryBook;
 
@@ -27,11 +28,12 @@ import java.util.List;
 public class MemoryActivity extends AppCompatActivity {
 
     private int bg, text, text2, accent, surface, buttonBg, buttonText;
-    private KruxDatabaseHelper db;
+    private MemoryRepository memory;
     private FirebaseUser user;
     private LinearLayout list;
     private TextView summary;
     private TextView learnBtn;
+    private TextView undoBtn;
     private boolean learning;
 
     @Override
@@ -47,7 +49,8 @@ public class MemoryActivity extends AppCompatActivity {
 
         try { user = FirebaseAuth.getInstance().getCurrentUser(); } catch (Exception ignore) { }
         if (user == null) { finish(); return; }
-        db = new KruxDatabaseHelper(this, user.getUid());
+        memory = new MemoryRepository(new KruxDatabaseHelper(this, user.getUid()));
+        memory.setOnChange(() -> CloudSync.markMemoryReplace(this, user));
 
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
@@ -109,6 +112,14 @@ public class MemoryActivity extends AppCompatActivity {
         a2.setMargins(0, dp(6), 0, 0);
         root.addView(actions2, a2);
 
+        LinearLayout actions3 = new LinearLayout(this);
+        undoBtn = button("Annuler la dernière modification", this::undoLastChange);
+        undoBtn.setVisibility(android.view.View.GONE);
+        actions3.addView(undoBtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams a3 = new LinearLayout.LayoutParams(-1, -2);
+        a3.setMargins(0, dp(6), 0, 0);
+        root.addView(actions3, a3);
+
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         root.addView(list);
@@ -136,9 +147,14 @@ public class MemoryActivity extends AppCompatActivity {
 
     private void render() {
         list.removeAllViews();
-        List<MemoryBook.Entry> all = db.getMemoryEntries();
+        List<MemoryBook.Entry> all = memory.all();
         String sum = MemoryBook.summary(all, 700);
         summary.setText(sum.isEmpty() ? "Je ne sais encore rien sur toi." : "Ce que je sais de toi\n\n" + sum);
+        if (undoBtn != null) {
+            int n = memory.undoCount();
+            undoBtn.setVisibility(n > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
+            undoBtn.setText(n > 1 ? "Annuler (" + n + ")" : "Annuler la dernière modification");
+        }
         if (all.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("Rien pour l'instant. KRUX retiendra ce que tu lui dis de toi, de tes projets et de tes goûts.");
@@ -187,8 +203,17 @@ public class MemoryActivity extends AppCompatActivity {
     }
 
     private void changed() {
-        CloudSync.markMemoryReplace(this, user); // les suppressions doivent aussi partir vers les autres appareils
-        render();
+        render(); // la synchro est prévenue par l'écouteur du dépôt
+    }
+
+    /** Remet la mémoire dans l'état d'avant la dernière modification (suppression, édition, apprentissage…). */
+    private void undoLastChange() {
+        if (memory.undo()) {
+            changed();
+            android.widget.Toast.makeText(this, "Modification annulée", android.widget.Toast.LENGTH_SHORT).show();
+        } else {
+            android.widget.Toast.makeText(this, "Rien à annuler", android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     private EditText input(String initial) {
@@ -210,9 +235,9 @@ public class MemoryActivity extends AppCompatActivity {
                 .setView(et)
                 .setPositiveButton("Enregistrer", (x, w) -> {
                     String n = et.getText().toString().trim();
-                    if (n.length() >= 3 && n.length() <= 300 && !n.equals(e.text)) { db.editMemoryText(e.text, n); changed(); }
+                    if (n.length() >= 3 && n.length() <= 300 && !n.equals(e.text)) { memory.edit(e.text, n); changed(); }
                 })
-                .setNeutralButton("Supprimer", (x, w) -> { db.deleteMemoryText(e.text); changed(); })
+                .setNeutralButton("Supprimer", (x, w) -> { memory.delete(e.text); changed(); })
                 .setNegativeButton("Annuler", null)
                 .create();
         d.show();
@@ -227,7 +252,7 @@ public class MemoryActivity extends AppCompatActivity {
                 .setView(et)
                 .setPositiveButton("Ajouter", (x, w) -> {
                     String n = et.getText().toString().trim();
-                    if (n.length() >= 3 && n.length() <= 300 && db.upsertMemory(n)) changed();
+                    if (n.length() >= 3 && n.length() <= 300 && memory.remember(n)) changed();
                 })
                 .setNegativeButton("Annuler", null)
                 .create();
@@ -239,7 +264,7 @@ public class MemoryActivity extends AppCompatActivity {
         AlertDialog d = new AlertDialog.Builder(this)
                 .setTitle("Tout effacer ?")
                 .setMessage("KRUX oubliera tout ce qu'il sait de toi, sur tous tes appareils.")
-                .setPositiveButton("Tout effacer", (x, w) -> { db.clearMemory(); changed(); })
+                .setPositiveButton("Tout effacer", (x, w) -> { memory.clear(); changed(); })
                 .setNegativeButton("Annuler", null)
                 .create();
         d.show();
@@ -249,7 +274,7 @@ public class MemoryActivity extends AppCompatActivity {
     /** Relit tes anciens messages (ceux où tu parles de toi) et retient ce qui compte. Quelques petits appels, une seule fois par clic. */
     private void learnFromChats() {
         if (learning) return;
-        final List<String> batches = MemoryBook.learnBatches(db.getRecentUserMessages(120), 1800, 3);
+        final List<String> batches = MemoryBook.learnBatches(memory.recentUserMessages(120), 1800, 3);
         if (batches.isEmpty()) {
             android.widget.Toast.makeText(this, "Rien à apprendre dans tes discussions pour l'instant.", android.widget.Toast.LENGTH_SHORT).show();
             return;
@@ -260,12 +285,12 @@ public class MemoryActivity extends AppCompatActivity {
         final int[] added = {0};
         final String sys = MemoryBook.extractionSystemPrompt();
         for (final String batch : batches) {
-            String usr = MemoryBook.extractionUserPrompt(db.getMemoryEntries(), batch, "(ce sont plusieurs anciens messages de l'utilisateur ; ne retiens que ce qui est durable)");
+            String usr = MemoryBook.extractionUserPrompt(memory.all(), batch, "(ce sont plusieurs anciens messages de l'utilisateur ; ne retiens que ce qui est durable)");
             com.virtixstudio.kruxai.api.ApiClient.sendQuiet(sys, usr, out -> {
                 try {
                     if (out != null) {
                         List<MemoryBook.Op> ops = MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
-                        if (!ops.isEmpty()) added[0] += db.applyMemoryOps(ops).size();
+                        if (!ops.isEmpty()) added[0] += memory.apply(ops).size();
                     }
                 } catch (Exception ignore) { }
                 runOnUiThread(() -> {

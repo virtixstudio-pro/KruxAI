@@ -27,8 +27,14 @@ public final class MemoryBook {
     public static final class Entry {
         public String cat, slot, text;
         public long ts; // secondes
+        public String id; // identité stable : suit le souvenir quand son texte change
         public Entry(String cat, String slot, String text, long ts) {
             this.cat = cat; this.slot = slot == null ? "" : slot; this.text = text; this.ts = ts;
+            this.id = stableId(this.cat, this.slot, this.text);
+        }
+        /** Copie détachée (l'identité est conservée). */
+        public Entry(Entry other) {
+            this.cat = other.cat; this.slot = other.slot; this.text = other.text; this.ts = other.ts; this.id = other.id;
         }
         @Override public String toString() { return cat + "/" + slot + ": " + text; }
     }
@@ -46,6 +52,24 @@ public final class MemoryBook {
 
     static String fold(String s) {
         return Normalizer.normalize(s == null ? "" : s, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Identité stable d'un souvenir : dépend de la catégorie, de la clé et du texte normalisé.
+     * Sert à mettre à jour une ligne au lieu de tout réécrire. Ne change pas quand seul l'accent
+     * ou la casse change.
+     */
+    public static String stableId(String cat, String slot, String text) {
+        String raw = fold(cat) + "|" + fold(slot == null ? "" : slot) + "|" + fold(text);
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
+            byte[] d = md.digest(raw.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder(16);
+            for (int i = 0; i < 8; i++) sb.append(String.format(Locale.ROOT, "%02x", d[i]));
+            return sb.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(raw.hashCode());
+        }
     }
 
     private static List<String> tokens(String s) {
@@ -116,6 +140,7 @@ public final class MemoryBook {
                     if (old.ts == e.ts) return false;
                     old.ts = e.ts; return true;                       // même fait revu : on rafraîchit la date
                 }
+                e.id = old.id;                                         // l'identité suit la clé
                 list.remove(i);
             }
             list.add(e);
@@ -136,6 +161,7 @@ public final class MemoryBook {
                 Entry old = list.get(hit);
                 if (old.ts > e.ts) return false;
                 if (old.text.equals(e.text) && old.ts == e.ts) return false;
+                e.id = old.id;                                        // même fait reformulé : on garde l'identité
                 list.remove(hit);
             }
             list.add(e);
@@ -247,7 +273,7 @@ public final class MemoryBook {
     }
 
     public static String extractionSystemPrompt() {
-        return "Tu es le gestionnaire de mémoire de KRUX AI. On te donne les souvenirs actuels sur l'utilisateur, son dernier message et la réponse de KRUX.\n"
+        return "Tu es le gestionnaire de mémoire de Krux. On te donne les souvenirs actuels sur l'utilisateur, son dernier message et la réponse de KRUX.\n"
                 + "Ta seule tâche : dire ce qu'il faut RETENIR, METTRE À JOUR ou RETIRER. Réponds uniquement par des lignes, sans autre texte :\n"
                 + "categorie|cle|souvenir   → retenir ou mettre à jour\n"
                 + "SUPPR|cle|               → retirer un souvenir devenu faux (ou SUPPR||texte exact)\n"

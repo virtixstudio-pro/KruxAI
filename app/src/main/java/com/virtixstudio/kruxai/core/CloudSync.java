@@ -175,6 +175,7 @@ public final class CloudSync {
     private static boolean pull(FirebaseUser user, KruxDatabaseHelper helper, SharedPreferences sp) throws Exception {
         long since = sp.getLong("since", 0);
         boolean changed = false;
+        MemoryRepository memory = new MemoryRepository(helper);
         SQLiteDatabase db = helper.getWritableDatabase();
         SharedPreferences.Editor ed = sp.edit();
         Set<String> known = new HashSet<>(sp.getStringSet("known", new HashSet<String>()));
@@ -217,7 +218,7 @@ public final class CloudSync {
                         JSONArray rf = ro.optJSONArray("f");
                         List<String> keep = new ArrayList<>();
                         if (rf != null) for (int k = 0; k < rf.length(); k++) keep.add(rf.optString(k));
-                        helper.replaceMemory(keep);
+                        memory.replaceAll(keep);
                         ed.putLong("u_memory", updated).putString("h_memory", "");
                         changed = true;
                         continue;
@@ -226,7 +227,7 @@ public final class CloudSync {
                     boolean added = false;
                     for (int k = 0; k < fa.length(); k++) {
                         String f = fa.optString(k, "").trim();
-                        if (!f.isEmpty() && f.length() < 2000 && helper.upsertMemory(f)) added = true;
+                        if (!f.isEmpty() && f.length() < 2000 && memory.remember(f)) added = true;
                     }
                     ed.putLong("u_memory", updated);
                     if (added) { ed.remove("h_memory"); changed = true; } // l'union sera renvoyée au prochain passage

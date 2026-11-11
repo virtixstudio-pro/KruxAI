@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private List<ChatMessage> messageList;
     private WebSearchEngine webSearchEngine;
     private KruxDatabaseHelper dbHelper;
+    private com.virtixstudio.kruxai.core.MemoryRepository memoryRepo;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -203,6 +204,12 @@ private final ActivityResultLauncher<String[]> filePicker =
         String accountId = currentUser.getUid();
 
         dbHelper = new KruxDatabaseHelper(this, accountId);
+        memoryRepo = new com.virtixstudio.kruxai.core.MemoryRepository(dbHelper);
+        memoryRepo.setOnChange(() -> {
+            if (currentUser != null) {
+                com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
+            }
+        });
         android.util.Log.e("KRUX_BOOT", "BOOT 06: DatabaseHelper OK");
 
         String sessionPrefsName = "krux_chat_" + accountId;
@@ -644,15 +651,15 @@ private final ActivityResultLauncher<String[]> filePicker =
             if (now - lastMemoryExtract < 20000L) return;
             lastMemoryExtract = now;
             final String sys = com.virtixstudio.kruxai.utils.MemoryBook.extractionSystemPrompt();
-            final String usr = com.virtixstudio.kruxai.utils.MemoryBook.extractionUserPrompt(dbHelper.getMemoryEntries(), userMsg, aiReply);
+            final String usr = com.virtixstudio.kruxai.utils.MemoryBook.extractionUserPrompt(memoryRepo.all(), userMsg, aiReply);
             ApiClient.sendQuiet(sys, usr, out -> {
                 try {
                     if (out == null) return;
                     java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Op> ops =
                             com.virtixstudio.kruxai.utils.MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
                     if (ops.isEmpty()) return;
-                    final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = dbHelper.getMemoryEntries();
-                    final java.util.List<String> log = dbHelper.applyMemoryOps(ops);
+                    final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = memoryRepo.all();
+                    final java.util.List<String> log = memoryRepo.apply(ops);
                     if (log.isEmpty()) return;
                     showMemoryPill(log, before);
                     runOnUiThread(() -> syncCloud(false));
@@ -671,22 +678,19 @@ private final ActivityResultLauncher<String[]> filePicker =
      */
     private void handleMemoryCommands(String prompt) {
         try {
-            final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = dbHelper.getMemoryEntries();
+            final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = memoryRepo.all();
             final java.util.List<String> log = new java.util.ArrayList<>();
             String target = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetTarget(prompt);
             if (target != null) {
-                java.util.List<String> words = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetWords(target);
-                java.util.List<String> gone = dbHelper.forgetMemory(words);
+                java.util.List<String> gone = memoryRepo.forget(target);
                 for (String f : gone) {
-                    deleteMemoryFromCloud(f);
                     log.add("oublié : " + f);
                 }
                 if (!gone.isEmpty()) com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
             } else {
                 for (String fact : com.virtixstudio.kruxai.utils.MemoryExtractor.extract(prompt)) {
-                    if (dbHelper.hasMemoryFact(fact)) continue;
-                    if (dbHelper.upsertMemory(fact)) {
-                        saveMemoryToCloud(fact, null);
+                    if (memoryRepo.has(fact)) continue;
+                    if (memoryRepo.remember(fact)) {
                         log.add("mémorisé : " + fact);
                     }
                 }
@@ -860,7 +864,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 sb.setTextColor(KruxTheme.get(this, "text"));
                 sb.setActionTextColor(KruxTheme.get(this, "accent"));
                 sb.setAction("Annuler", v -> {
-                    dbHelper.restoreMemory(before);
+                    memoryRepo.restore(before);
                     com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
                     syncCloud(false);
                 });
@@ -870,152 +874,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                 android.util.Log.e("KRUX_MEMORY", "pastille", e);
             }
         });
-    }
-
-    private void deleteMemoryFromCloud(String fact) {
-        if (currentUser == null || fact == null) return;
-        db.collection("users").document(currentUser.getUid()).collection("memory")
-                .whereEqualTo("fact", fact.trim()).get()
-                .addOnSuccessListener(snap -> {
-                    for (com.google.firebase.firestore.DocumentSnapshot d : snap.getDocuments()) d.getReference().delete();
-                });
-    }
-
-    private void saveMemoryToCloud(
-            String fact,
-            Runnable onComplete
-    ) {
-        if (fact == null || fact.trim().isEmpty()) {
-            if (onComplete != null) {
-                onComplete.run();
-            }
-            return;
-        }
-
-        if (currentUser == null) {
-            android.util.Log.w(
-                    "KRUX_SYNC",
-                    "Sauvegarde mémoire cloud ignorée : aucun compte authentifié."
-            );
-
-            if (onComplete != null) {
-                onComplete.run();
-            }
-            return;
-        }
-
-        String cleanFact = fact.trim();
-
-        com.google.firebase.firestore.CollectionReference memoryCollection =
-                db.collection("users")
-                        .document(currentUser.getUid())
-                        .collection("memory");
-
-        memoryCollection
-                .whereEqualTo("fact", cleanFact)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(snapshot -> {
-
-                    if (!snapshot.isEmpty()) {
-
-                        String memoryId =
-                                snapshot.getDocuments()
-                                        .get(0)
-                                        .getId();
-
-                        java.util.Map<String, Object> update =
-                                new java.util.HashMap<>();
-
-                        update.put(
-                                "updatedAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-
-                        memoryCollection
-                                .document(memoryId)
-                                .update(update)
-                                .addOnSuccessListener(unused -> {
-
-                                    android.util.Log.d(
-                                            "KRUX_SYNC",
-                                            "Mémoire Firestore mise à jour : "
-                                                    + memoryId
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-
-                                    android.util.Log.e(
-                                            "KRUX_SYNC",
-                                            "Échec mise à jour mémoire Firestore : "
-                                                    + memoryId,
-                                            e
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                });
-
-                    } else {
-
-                        java.util.Map<String, Object> memory =
-                                new java.util.HashMap<>();
-
-                        memory.put("fact", cleanFact);
-                        memory.put(
-                                "createdAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-                        memory.put(
-                                "updatedAt",
-                                com.google.firebase.firestore.FieldValue.serverTimestamp()
-                        );
-
-                        memoryCollection
-                                .add(memory)
-                                .addOnSuccessListener(documentReference -> {
-
-                                    android.util.Log.d(
-                                            "KRUX_SYNC",
-                                            "Nouvelle mémoire Firestore : "
-                                                    + documentReference.getId()
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-
-                                    android.util.Log.e(
-                                            "KRUX_SYNC",
-                                            "Échec création mémoire Firestore",
-                                            e
-                                    );
-
-                                    if (onComplete != null) {
-                                        onComplete.run();
-                                    }
-                                });
-                    }
-                })
-                .addOnFailureListener(e -> {
-
-                    android.util.Log.e(
-                            "KRUX_SYNC",
-                            "Échec recherche mémoire Firestore",
-                            e
-                    );
-
-                    if (onComplete != null) {
-                        onComplete.run();
-                    }
-                });
     }
 
     private void loadCurrentSession() {
@@ -1131,37 +989,10 @@ private final ActivityResultLauncher<String[]> filePicker =
                     loadCurrentSession();
                     loadHistorySidebar();
 
-                    db.collection("users")
-                            .document(accountId)
-                            .collection("memory")
-                            .get()
-                            .addOnSuccessListener(memorySnapshot -> {
-
-                                for (com.google.firebase.firestore.DocumentSnapshot doc
-                                        : memorySnapshot.getDocuments()) {
-
-                                    String fact = doc.getString("fact");
-
-                                    if (fact != null
-                                            && !fact.trim().isEmpty()
-                                            && !dbHelper.hasMemoryFact(fact)) {
-                                        dbHelper.addMemoryFact(fact);
-                                    }
-                                }
-
-                                android.util.Log.d(
-                                        "KRUX_SYNC",
-                                        "Synchronisation terminée pour " + accountId
-                                );
-
-                            })
-                            .addOnFailureListener(e ->
-                                    android.util.Log.e(
-                                            "KRUX_SYNC",
-                                            "Erreur synchronisation mémoire",
-                                            e
-                                    )
-                            );
+                    android.util.Log.d(
+                            "KRUX_SYNC",
+                            "Synchronisation terminée pour " + accountId
+                    );
 
                 })
                 .addOnFailureListener(e ->
@@ -1576,7 +1407,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
 
         String memoryBlock = com.virtixstudio.kruxai.utils.MemoryBook.formatForPrompt(
-                dbHelper.getMemoryEntries(), userPrompt, 2200, 40);
+                memoryRepo.all(), userPrompt, 2200, 40);
         if (!memoryBlock.isEmpty()) {
             historyBuilder.append("\nSOUVENIRS SUR L'UTILISATEUR (vrais, rangés par thème avec leur date ; le plus récent l'emporte ; à utiliser naturellement quand c'est utile) :\n");
             historyBuilder.append(memoryBlock);
@@ -1702,14 +1533,14 @@ private final ActivityResultLauncher<String[]> filePicker =
                                 setKruxState(KruxState.MEMORY);
 
                                 boolean alreadyExists =
-                                        dbHelper.hasMemoryFact(fact);
+                                        memoryRepo.has(fact);
 
                                 if (!alreadyExists) {
-                                    dbHelper.addMemoryFact(fact);
+                                    memoryRepo.remember(fact);
                                 }
 
                                 boolean verifiedLocally =
-                                        dbHelper.hasMemoryFact(fact);
+                                        memoryRepo.has(fact);
 
                                 android.util.Log.d(
                                         "KRUX_MEMORY",
@@ -1721,10 +1552,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                                                 + fact
                                 );
 
-                                saveMemoryToCloud(
-                                        fact,
-                                        () -> setKruxState(KruxState.IDLE)
-                                );
+                                setKruxState(KruxState.IDLE);
                             }
 
                         }

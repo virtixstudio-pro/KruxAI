@@ -40,6 +40,18 @@ public class MemoryBookTests {
         MemoryBook.merge(q, e("projets", "", "Développe une application Android avec Firebase et Java", 20));
         check(q.size() == 1 && q.get(0).ts == 20, "quasi-doublon fusionné : " + q);
 
+        // identité stable d'un souvenir
+        Entry id1 = e("profil", "ville", "Habite à Lyon", 10);
+        check(id1.id != null && id1.id.equals(MemoryBook.stableId("profil", "ville", "Habite à Lyon")), "id déterministe");
+        check(!id1.id.equals(e("profil", "ville", "Habite à Paris", 10).id), "id différent si texte différent");
+        check(id1.id.equals(MemoryBook.stableId("PROFIL", "Ville", "habite a lyon")), "id insensible casse/accents");
+        List<Entry> ids = new ArrayList<>();
+        Entry first = e("profil", "ville", "Habite à Lyon", 10);
+        MemoryBook.merge(ids, first);
+        MemoryBook.merge(ids, e("profil", "ville", "Habite à Paris", 20));
+        check(ids.size() == 1 && ids.get(0).id.equals(first.id), "id conservé quand la valeur change");
+        check(new Entry(first).id.equals(first.id), "copie garde l'id");
+
         // encodage / décodage
         Entry x = e("profil", "ville", "Habite à Lyon | centre", 1234);
         Entry y = MemoryBook.decode(MemoryBook.encode(x), 9);
