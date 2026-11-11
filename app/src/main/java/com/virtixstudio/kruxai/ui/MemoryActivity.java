@@ -30,6 +30,9 @@ public class MemoryActivity extends AppCompatActivity {
     private KruxDatabaseHelper db;
     private FirebaseUser user;
     private LinearLayout list;
+    private TextView summary;
+    private TextView learnBtn;
+    private boolean learning;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -85,10 +88,26 @@ public class MemoryActivity extends AppCompatActivity {
         hint.setPadding(0, dp(6), 0, dp(10));
         root.addView(hint);
 
+        summary = new TextView(this);
+        summary.setTextColor(text);
+        summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        summary.setLineSpacing(0, 1.15f);
+        summary.setBackgroundColor(surface);
+        summary.setPadding(dp(14), dp(12), dp(14), dp(12));
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+        slp.setMargins(0, 0, 0, dp(10));
+        root.addView(summary, slp);
+
         LinearLayout actions = new LinearLayout(this);
         actions.addView(button("Ajouter", this::addDialog), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         actions.addView(button("Tout effacer", this::clearDialog), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         root.addView(actions);
+        LinearLayout actions2 = new LinearLayout(this);
+        learnBtn = button("Apprendre de mes discussions", this::learnFromChats);
+        actions2.addView(learnBtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams a2 = new LinearLayout.LayoutParams(-1, -2);
+        a2.setMargins(0, dp(6), 0, 0);
+        root.addView(actions2, a2);
 
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -118,6 +137,8 @@ public class MemoryActivity extends AppCompatActivity {
     private void render() {
         list.removeAllViews();
         List<MemoryBook.Entry> all = db.getMemoryEntries();
+        String sum = MemoryBook.summary(all, 700);
+        summary.setText(sum.isEmpty() ? "Je ne sais encore rien sur toi." : "Ce que je sais de toi\n\n" + sum);
         if (all.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("Rien pour l'instant. KRUX retiendra ce que tu lui dis de toi, de tes projets et de tes goûts.");
@@ -223,5 +244,40 @@ public class MemoryActivity extends AppCompatActivity {
                 .create();
         d.show();
         KruxTheme.skin(d, this);
+    }
+
+    /** Relit tes anciens messages (ceux où tu parles de toi) et retient ce qui compte. Quelques petits appels, une seule fois par clic. */
+    private void learnFromChats() {
+        if (learning) return;
+        final List<String> batches = MemoryBook.learnBatches(db.getRecentUserMessages(120), 1800, 3);
+        if (batches.isEmpty()) {
+            android.widget.Toast.makeText(this, "Rien à apprendre dans tes discussions pour l'instant.", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        learning = true;
+        learnBtn.setText("Je lis tes discussions…");
+        final int[] done = {0};
+        final int[] added = {0};
+        final String sys = MemoryBook.extractionSystemPrompt();
+        for (final String batch : batches) {
+            String usr = MemoryBook.extractionUserPrompt(db.getMemoryEntries(), batch, "(ce sont plusieurs anciens messages de l'utilisateur ; ne retiens que ce qui est durable)");
+            com.virtixstudio.kruxai.api.ApiClient.sendQuiet(sys, usr, out -> {
+                try {
+                    if (out != null) {
+                        List<MemoryBook.Op> ops = MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
+                        if (!ops.isEmpty()) added[0] += db.applyMemoryOps(ops).size();
+                    }
+                } catch (Exception ignore) { }
+                runOnUiThread(() -> {
+                    done[0]++;
+                    if (done[0] < batches.size()) return;
+                    learning = false;
+                    learnBtn.setText("Apprendre de mes discussions");
+                    if (added[0] > 0) CloudSync.markMemoryReplace(this, user);
+                    render();
+                    android.widget.Toast.makeText(this, added[0] > 0 ? added[0] + " souvenir(s) mis à jour" : "Rien de nouveau à retenir", android.widget.Toast.LENGTH_SHORT).show();
+                });
+            });
+        }
     }
 }

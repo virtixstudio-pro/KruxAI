@@ -118,6 +118,19 @@
                 android:paddingBottom="12dp"
                 android:scrollbars="none" />
 
+            <TextView
+                android:id="@+id/offlineBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
 
             <!-- =================================================
                  MESSAGE D'ACCUEIL
@@ -215,6 +228,7 @@
              ================================================= -->
 
         <LinearLayout android:tag="krux:bg"
+            android:id="@+id/composerBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#07050F"

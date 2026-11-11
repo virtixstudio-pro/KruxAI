@@ -88,6 +88,28 @@ public class MemoryBookTests {
         check(up.contains("[profil/ville] Habite à Lyon") && up.contains("Je suis à Lyon"), "prompt d'extraction");
         check(MemoryBook.extractionSystemPrompt().contains("RIEN"), "consigne");
 
+        // résumé à la 2e personne
+        List<Entry> sm = new ArrayList<>();
+        MemoryBook.merge(sm, MemoryBook.classify("S'appelle Jo", 1));
+        MemoryBook.merge(sm, MemoryBook.classify("Habite ou vient de Lyon", 2));
+        MemoryBook.merge(sm, MemoryBook.classify("Est développeur", 3));
+        MemoryBook.merge(sm, MemoryBook.classify("Aime le manga", 4));
+        MemoryBook.merge(sm, MemoryBook.classify("N'aime pas les longs textes", 5));
+        MemoryBook.merge(sm, MemoryBook.classify("Son projet : KRUX AI", 6));
+        String su = MemoryBook.summary(sm, 700);
+        check(su.contains("Tu es développeur") && su.contains("tu t'appelles Jo") && su.contains("tu habites ou viens de Lyon"), "résumé profil : " + su);
+        check(su.contains("tu aimes le manga") && su.contains("n'aimes pas les longs textes") && su.contains("Ton projet : KRUX AI"), "résumé goûts/projet : " + su);
+        check(MemoryBook.summary(new ArrayList<Entry>(), 700).isEmpty(), "résumé vide");
+        check(MemoryBook.summary(sm, 30).length() <= 31, "résumé borné");
+
+        // lots d'apprentissage
+        List<String> msgs = new ArrayList<>();
+        msgs.add("ok"); msgs.add("Fais-moi une app de météo");
+        for (int i = 0; i < 20; i++) msgs.add("Je travaille sur mon projet numéro " + i + " avec beaucoup de détails inutiles pour remplir le lot");
+        List<String> bt = MemoryBook.learnBatches(msgs, 500, 2);
+        check(bt.size() == 2 && !bt.get(0).contains("météo") && bt.get(0).startsWith("- Je travaille"), "lots : " + bt.size());
+        check(MemoryBook.learnBatches(new ArrayList<String>(), 500, 2).isEmpty(), "lots vides");
+
         System.out.println(ok + " OK, " + ko + " échec(s)");
         if (ko > 0) System.exit(1);
     }

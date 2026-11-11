@@ -157,8 +157,34 @@ public class AppBuilder {
         return t.substring(a, b + 1);
     }
 
+    /** Réponse coupée en plein milieu : on garde ce qui est complet (partial) et on demandera la suite. */
+    static class Truncated extends Exception {
+        final Parsed partial;
+        Truncated(Parsed partial) { super("réponse coupée après " + partial.files.size() + " fichier(s)"); this.partial = partial; }
+    }
+
     static Parsed parse(String raw, boolean full, BuildSpec s) throws Exception {
-        JSONObject o = new JSONObject(extractJson(raw));
+        JSONObject o;
+        try {
+            o = new JSONObject(extractJson(raw));
+        } catch (org.json.JSONException je) {
+            Map<String, String> got = com.virtixstudio.kruxai.builder.TruncatedJson.files(raw);
+            if (got.isEmpty()) throw je;
+            Parsed part = new Parsed();
+            if (full) {
+                String n = com.virtixstudio.kruxai.builder.TruncatedJson.field(raw, "name");
+                if (n != null) {
+                    part.name = n.toLowerCase().replaceAll("[^a-z0-9-]", "-").replaceAll("-+", "-");
+                    if (part.name.length() > 30) part.name = part.name.substring(0, 30);
+                    part.name = part.name.replaceAll("^-|-$", "");
+                    if (part.name.isEmpty()) part.name = "app";
+                }
+                String pv = com.virtixstudio.kruxai.builder.TruncatedJson.field(raw, "preview");
+                if (pv != null) part.preview = pv;
+            }
+            for (Map.Entry<String, String> e : got.entrySet()) put(part, e.getKey(), e.getValue());
+            throw new Truncated(part);
+        }
         if (o.has("refuse"))
             throw new Refusal("KRUX ne peut pas créer cette application : " + o.optString("refuse"));
         Parsed p = new Parsed();
@@ -210,7 +236,12 @@ public class AppBuilder {
                 Thread.sleep(1500L * attempt);
             }
             try {
-                Parsed r = parse(gen.generate(system, p), full, s);
+                Parsed r;
+                try {
+                    r = parse(gen.generate(system, p), full, s);
+                } catch (Truncated t) {
+                    r = completeTruncated(gen, system, prompt, t.partial, full, s, l);
+                }
                 if (full) checkPolicy(r.files, s);
                 return r;
             } catch (Refusal r) {
@@ -223,6 +254,30 @@ public class AppBuilder {
             }
         }
         throw new Exception("L'IA n'a pas produit de code exploitable : " + (last == null ? "?" : last.getMessage()));
+    }
+
+    /** La réponse a été coupée : on redemande uniquement les fichiers qui manquent, jusqu'à 3 fois, et on assemble. */
+    static Parsed completeTruncated(Generator gen, String system, String prompt, Parsed partial, boolean full,
+                                    BuildSpec s, Listener l) throws Exception {
+        for (int round = 0; round < 3; round++) {
+            l.onStatus("La réponse de l'IA était coupée, je demande la suite (" + (round + 1) + "/3)…");
+            StringBuilder have = new StringBuilder();
+            for (String path : partial.files.keySet()) have.append("\n- ").append(path);
+            String p2 = prompt + "\n\nATTENTION : ta réponse précédente a été COUPÉE avant la fin. Fichiers déjà reçus (complets) :" + have
+                + "\nRéponds avec UN SEUL objet JSON {\"files\":[{\"path\":\"…\",\"content\":\"…\"}]} contenant UNIQUEMENT les fichiers qui manquent encore, "
+                + "sans répéter ceux déjà reçus. Reste COMPACT : code court, peu de commentaires, 3 ou 4 fichiers par réponse au maximum.";
+            String raw = gen.generate(system, p2);
+            try {
+                Parsed more = parse(raw, false, s);
+                partial.files.putAll(more.files);
+                return partial;
+            } catch (Truncated t2) {
+                int before = partial.files.size();
+                partial.files.putAll(t2.partial.files);
+                if (partial.files.size() == before) throw new Exception("réponse coupée sans rien de nouveau");
+            }
+        }
+        return partial;
     }
 
     // ------------------------------------------------------------------ prompts de correction

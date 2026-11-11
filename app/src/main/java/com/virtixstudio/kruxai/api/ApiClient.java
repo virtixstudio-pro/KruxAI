@@ -620,6 +620,8 @@ public class ApiClient {
 
         json.put("messages", messages);
         json.put("stream", true);
+        // sans limite explicite, certains moteurs coupent la réponse très court (surtout un gros JSON d'application)
+        json.put("max_tokens", 8192);
 
         try (OutputStream os = conn.getOutputStream()) {
             os.write(
@@ -742,6 +744,7 @@ public class ApiClient {
         contents.put(content);
 
         json.put("contents", contents);
+        json.put("generationConfig", new JSONObject().put("maxOutputTokens", 16384));
 
         try (OutputStream os = conn.getOutputStream()) {
             os.write(

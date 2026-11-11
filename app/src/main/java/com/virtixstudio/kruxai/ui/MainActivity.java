@@ -245,6 +245,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         etInput = findViewById(R.id.etInput);
         rvChat = findViewById(R.id.rvChat);
         terminal = findViewById(R.id.kruxTerminal);
+        initNetwork();
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
@@ -650,15 +651,11 @@ private final ActivityResultLauncher<String[]> filePicker =
                     java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Op> ops =
                             com.virtixstudio.kruxai.utils.MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
                     if (ops.isEmpty()) return;
+                    final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = dbHelper.getMemoryEntries();
                     final java.util.List<String> log = dbHelper.applyMemoryOps(ops);
                     if (log.isEmpty()) return;
-                    runOnUiThread(() -> {
-                        if (terminal != null) {
-                            for (String l : log) terminal.println(l, l.startsWith("oublié") ? KruxTerminalView.INFO : KruxTerminalView.OK);
-                            terminal.hideLater(3500);
-                        }
-                        syncCloud(false);
-                    });
+                    showMemoryPill(log, before);
+                    runOnUiThread(() -> syncCloud(false));
                 } catch (Exception e) {
                     android.util.Log.e("KRUX_MEMORY", "extraction", e);
                 }
@@ -674,32 +671,205 @@ private final ActivityResultLauncher<String[]> filePicker =
      */
     private void handleMemoryCommands(String prompt) {
         try {
+            final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before = dbHelper.getMemoryEntries();
+            final java.util.List<String> log = new java.util.ArrayList<>();
             String target = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetTarget(prompt);
             if (target != null) {
                 java.util.List<String> words = com.virtixstudio.kruxai.utils.MemoryExtractor.forgetWords(target);
                 java.util.List<String> gone = dbHelper.forgetMemory(words);
                 for (String f : gone) {
                     deleteMemoryFromCloud(f);
-                    if (terminal != null) terminal.println("oublié : " + f, KruxTerminalView.INFO);
+                    log.add("oublié : " + f);
                 }
-                if (!gone.isEmpty()) {
-                    com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
-                    if (terminal != null) terminal.hideLater(3500);
-                }
-                return;
-            }
-            for (String fact : com.virtixstudio.kruxai.utils.MemoryExtractor.extract(prompt)) {
-                if (dbHelper.hasMemoryFact(fact)) continue;
-                dbHelper.addMemoryFact(fact);
-                saveMemoryToCloud(fact, null);
-                if (terminal != null) {
-                    terminal.println("mémorisé : " + fact, KruxTerminalView.OK);
-                    terminal.hideLater(3500);
+                if (!gone.isEmpty()) com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
+            } else {
+                for (String fact : com.virtixstudio.kruxai.utils.MemoryExtractor.extract(prompt)) {
+                    if (dbHelper.hasMemoryFact(fact)) continue;
+                    if (dbHelper.upsertMemory(fact)) {
+                        saveMemoryToCloud(fact, null);
+                        log.add("mémorisé : " + fact);
+                    }
                 }
             }
+            showMemoryPill(log, before);
         } catch (Exception e) {
             android.util.Log.e("KRUX_MEMORY", "mémoire automatique", e);
         }
+    }
+
+    // ------------------------------------------------------------------ hors connexion
+
+    private com.virtixstudio.kruxai.core.NetworkWatcher net;
+    private TextView offlineBanner;
+    private final android.os.Handler netHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private int pendingAttempt = 0;
+
+    private static final class NetPending {
+        final String prompt, fileName, fileContent;
+        ChatMessage placeholder;
+        NetPending(String p, String n, String c, ChatMessage m) { prompt = p; fileName = n; fileContent = c; placeholder = m; }
+    }
+    private final java.util.ArrayDeque<NetPending> netQueue = new java.util.ArrayDeque<>();
+
+    private void initNetwork() {
+        try {
+            offlineBanner = findViewById(R.id.offlineBanner);
+            if (offlineBanner != null) {
+                offlineBanner.setOnClickListener(v -> {
+                    if (netQueue.isEmpty()) return;
+                    android.app.AlertDialog d = new android.app.AlertDialog.Builder(this)
+                            .setTitle("Messages en attente")
+                            .setMessage("Annuler l'envoi des " + netQueue.size() + " message(s) en attente ?")
+                            .setPositiveButton("Annuler l'envoi", (x, w) -> clearNetQueue())
+                            .setNegativeButton("Garder", null)
+                            .create();
+                    d.show();
+                    KruxTheme.skin(d, this);
+                });
+            }
+            net = new com.virtixstudio.kruxai.core.NetworkWatcher(this, online -> onNetChanged(online));
+            net.start();
+            if (!net.isOnline()) showBanner(false);
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_NET", "réseau", e);
+        }
+    }
+
+    private void showBanner(boolean back) {
+        if (offlineBanner == null) return;
+        offlineBanner.setBackgroundColor(KruxTheme.get(this, "input"));
+        offlineBanner.setTextColor(KruxTheme.get(this, back ? "accent" : "text"));
+        offlineBanner.setText(back ? com.virtixstudio.kruxai.utils.NetPolicy.BANNER_BACK : com.virtixstudio.kruxai.utils.NetPolicy.BANNER_OFFLINE);
+        offlineBanner.setVisibility(android.view.View.VISIBLE);
+        netHandler.removeCallbacks(hideBanner);
+        if (back) netHandler.postDelayed(hideBanner, 2200);
+    }
+
+    private final Runnable hideBanner = () -> { if (offlineBanner != null) offlineBanner.setVisibility(android.view.View.GONE); };
+
+    private void onNetChanged(boolean online) {
+        if (online) {
+            showBanner(true);
+            // le réseau est revenu : les attentes en cours repartent tout de suite
+            netHandler.postDelayed(this::drainNet, 600);
+            syncCloud(false);
+        } else {
+            showBanner(false);
+        }
+    }
+
+    private void persistNetQueue() {
+        try {
+            if (currentUser == null) return;
+            java.util.List<String> l = new java.util.ArrayList<>();
+            for (NetPending p : netQueue) l.add(p.prompt);
+            getSharedPreferences("krux_pending_" + currentUser.getUid(), MODE_PRIVATE).edit()
+                    .putString("q", com.virtixstudio.kruxai.utils.NetPolicy.encodeQueue(l)).apply();
+        } catch (Exception ignore) { }
+    }
+
+    /** Remet en attente les messages d'une session précédente qui n'ont jamais pu partir. */
+    private void restoreNetQueue() {
+        try {
+            if (currentUser == null || !netQueue.isEmpty()) return;
+            String saved = getSharedPreferences("krux_pending_" + currentUser.getUid(), MODE_PRIVATE).getString("q", "");
+            for (String p : com.virtixstudio.kruxai.utils.NetPolicy.decodeQueue(saved)) queueForNet(p, "", "", null);
+        } catch (Exception ignore) { }
+    }
+
+    /** Garde la demande et affiche, à la place de la réponse, qu'elle partira toute seule. */
+    private void queueForNet(String prompt, String fileName, String fileContent, ChatMessage existing) {
+        ChatMessage ph = existing;
+        if (ph == null) {
+            ph = new ChatMessage("", false);
+            messageList.add(ph);
+            if (chatAdapter != null) chatAdapter.notifyItemInserted(messageList.size() - 1);
+        }
+        ph.setStreaming(false);
+        ph.setText(com.virtixstudio.kruxai.utils.NetPolicy.waitingText());
+        int pos = messageList.indexOf(ph);
+        if (pos >= 0 && chatAdapter != null) { chatAdapter.notifyItemChanged(pos); rvChat.smoothScrollToPosition(pos); }
+        netQueue.add(new NetPending(prompt, fileName, fileContent, ph));
+        persistNetQueue();
+        if (net != null && !net.isOnline()) showBanner(false);
+    }
+
+    private void removePlaceholder(ChatMessage ph) {
+        int pos = messageList.indexOf(ph);
+        if (pos >= 0) { messageList.remove(pos); if (chatAdapter != null) chatAdapter.notifyItemRemoved(pos); }
+    }
+
+    private void clearNetQueue() {
+        for (NetPending p : netQueue) removePlaceholder(p.placeholder);
+        netQueue.clear();
+        persistNetQueue();
+        if (net != null && net.isOnline() && offlineBanner != null) offlineBanner.setVisibility(android.view.View.GONE);
+    }
+
+    /** Envoie la prochaine demande en attente, si le réseau est là et que KRUX n'est pas déjà en train de répondre. */
+    private void drainNet() {
+        if (netQueue.isEmpty() || net == null || !net.isOnline()) return;
+        if (isGenerating) { netHandler.postDelayed(this::drainNet, 1500); return; }
+        NetPending p = netQueue.poll();
+        persistNetQueue();
+        removePlaceholder(p.placeholder);
+        executeAiQuery(p.prompt, "", new ArrayList<>(), p.fileName, p.fileContent);
+    }
+
+    /** Connexion instable : compte à rebours visible, puis nouvel essai tout seul (3, 8, 20, 45 s). */
+    private void autoRetry(final String prompt, final String fileName, final String fileContent,
+                           final ChatMessage ph, final int attempt) {
+        final int[] left = { com.virtixstudio.kruxai.utils.NetPolicy.backoffSeconds(attempt) };
+        final Runnable[] tick = new Runnable[1];
+        tick[0] = () -> {
+            if (!messageList.contains(ph)) return; // la discussion a changé : on arrête
+            if (net != null && !net.isOnline()) { queueForNet(prompt, fileName, fileContent, ph); return; }
+            if (left[0] <= 0) {
+                removePlaceholder(ph);
+                pendingAttempt = attempt + 1;
+                executeAiQuery(prompt, "", new ArrayList<>(), fileName, fileContent);
+                return;
+            }
+            ph.setText(com.virtixstudio.kruxai.utils.NetPolicy.retryText(left[0], attempt));
+            int pos = messageList.indexOf(ph);
+            if (pos >= 0 && chatAdapter != null) chatAdapter.notifyItemChanged(pos);
+            left[0]--;
+            netHandler.postDelayed(tick[0], 1000);
+        };
+        tick[0].run();
+    }
+
+    /** Pastille sous la discussion : ce que KRUX vient de retenir ou d'oublier, avec Annuler ; toucher ouvre l'écran Mémoire. */
+    private void showMemoryPill(final java.util.List<String> log,
+                                final java.util.List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> before) {
+        if (log == null || log.isEmpty()) return;
+        runOnUiThread(() -> {
+            try {
+                String msg;
+                if (log.size() == 1) {
+                    String l = log.get(0);
+                    msg = "Mémoire · " + (l.startsWith("oublié") ? "Oublié" : "Retenu") + l.substring(l.indexOf(':'));
+                } else {
+                    msg = "Mémoire mise à jour · " + log.size() + " changements";
+                }
+                com.google.android.material.snackbar.Snackbar sb =
+                        com.google.android.material.snackbar.Snackbar.make(findViewById(android.R.id.content), msg, 7000);
+                android.view.View anchor = findViewById(R.id.composerBar);
+                if (anchor != null) sb.setAnchorView(anchor);
+                sb.setBackgroundTint(KruxTheme.get(this, "input"));
+                sb.setTextColor(KruxTheme.get(this, "text"));
+                sb.setActionTextColor(KruxTheme.get(this, "accent"));
+                sb.setAction("Annuler", v -> {
+                    dbHelper.restoreMemory(before);
+                    com.virtixstudio.kruxai.core.CloudSync.markMemoryReplace(this, currentUser);
+                    syncCloud(false);
+                });
+                sb.getView().setOnClickListener(v -> startActivity(new android.content.Intent(this, MemoryActivity.class)));
+                sb.show();
+            } catch (Exception e) {
+                android.util.Log.e("KRUX_MEMORY", "pastille", e);
+            }
+        });
     }
 
     private void deleteMemoryFromCloud(String fact) {
@@ -1248,7 +1418,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         ToolRouter.Tool tool = ToolRouter.decide(prompt, isDeepSearchEnabled);
 
-        if (tool == ToolRouter.Tool.WEB_SEARCH) {
+        if (tool == ToolRouter.Tool.WEB_SEARCH && (net == null || net.isOnline())) {
             setKruxState(KruxState.SEARCHING);
             if (terminal != null) {
                 terminal.clear();
@@ -1375,6 +1545,15 @@ private final ActivityResultLauncher<String[]> filePicker =
             String fileName,
             String fileContent
     ) {
+        final int netAttempt = pendingAttempt;
+        pendingAttempt = 0;
+        if (net != null && !net.isOnline()) {
+            // Pas d'Internet : on garde le message et on l'enverra tout seul au retour du réseau.
+            queueForNet(userPrompt, fileName, fileContent, null);
+            setGeneratingState(false);
+            setKruxState(KruxState.IDLE);
+            return;
+        }
         announcedFiles.clear();
         // Autre point d'entrée possible (régénération...) : l'ancienne réponse ne doit pas recevoir l'état.
         if (activeAiMessage != null && !activeAiMessage.isStreaming() && chatAdapter != null) {
@@ -1605,6 +1784,22 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             @Override
             public void onError(String errorMessage) {
+                if (com.virtixstudio.kruxai.utils.NetPolicy.isNetworkMessage(errorMessage)) {
+                    // Coupure réseau : pas de bouton « Réessayer », KRUX gère tout seul.
+                    runOnUiThread(() -> {
+                        setGeneratingState(false);
+                        setKruxState(KruxState.IDLE);
+                        aiMessage.setStreaming(false);
+                        if (net != null && !net.isOnline()) {
+                            queueForNet(userPrompt, fileName, fileContent, aiMessage);
+                        } else if (netAttempt < com.virtixstudio.kruxai.utils.NetPolicy.MAX_AUTO) {
+                            autoRetry(userPrompt, fileName, fileContent, aiMessage, netAttempt);
+                        } else {
+                            queueForNet(userPrompt, fileName, fileContent, aiMessage);
+                        }
+                    });
+                    return;
+                }
                 runOnUiThread(() -> {
                     setGeneratingState(false);
                     setKruxState(KruxState.ERROR);
@@ -3255,6 +3450,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         super.onResume();
         refreshQuotaView();
         syncCloud(false);
+        restoreNetQueue();
+        if (net != null && net.isOnline() && !netQueue.isEmpty()) netHandler.postDelayed(this::drainNet, 600);
     }
 
     @Override
@@ -3296,7 +3493,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void setGeneratingState(boolean generating) {
         isGenerating = generating;
-        if (!generating) syncCloud(false);
+        if (!generating) { syncCloud(false); if (!netQueue.isEmpty()) netHandler.postDelayed(this::drainNet, 900); }
 
         if (btnSend != null) {
             btnSend.setImageResource(
@@ -3540,6 +3737,8 @@ private final ActivityResultLauncher<String[]> filePicker =
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        netHandler.removeCallbacksAndMessages(null);
+        if (net != null) net.stop();
         if (speechRecognizer != null) speechRecognizer.destroy();
         if (textToSpeech != null) {
             textToSpeech.stop();

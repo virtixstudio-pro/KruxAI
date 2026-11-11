@@ -423,4 +423,22 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
     public synchronized void clearMemory() {
         writeMemoryEntries(new ArrayList<com.virtixstudio.kruxai.utils.MemoryBook.Entry>());
     }
+
+    /** Annuler : remet la mémoire telle qu'elle était. */
+    public synchronized void restoreMemory(List<com.virtixstudio.kruxai.utils.MemoryBook.Entry> entries) {
+        writeMemoryEntries(entries);
+    }
+
+    /** Les derniers messages écrits par l'utilisateur, tous chats confondus (du plus ancien au plus récent). */
+    public synchronized List<String> getRecentUserMessages(int limit) {
+        List<String> out = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT message FROM messages WHERE sender = 'user' ORDER BY id DESC LIMIT " + Math.max(1, limit), null);
+        while (c.moveToNext()) {
+            String m = c.getString(0);
+            if (m != null && !m.trim().isEmpty()) out.add(0, m);
+        }
+        c.close();
+        return out;
+    }
 }

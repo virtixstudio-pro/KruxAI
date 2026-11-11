@@ -325,4 +325,66 @@ public final class MemoryBook {
         }
         return log;
     }
+
+    // ---------- résumé lisible (« ce que je sais de toi ») ----------
+
+    private static String you(String t) {
+        String f = fold(t);
+        if (f.startsWith("s'appelle ") || f.startsWith("s’appelle ")) return "tu t'appelles " + t.substring(t.indexOf(' ') + 1);
+        if (f.startsWith("habite ou vient de ")) return "tu habites ou viens de " + t.substring("Habite ou vient de ".length());
+        if (f.startsWith("habite ")) return "tu habites " + t.substring(7);
+        if (f.startsWith("est ")) return "tu es " + t.substring(4);
+        if (f.startsWith("travaille ")) return "tu travailles " + t.substring(10);
+        if (f.startsWith("n'aime pas ") || f.startsWith("n’aime pas ")) return "tu n'aimes pas " + t.substring(11);
+        if (f.startsWith("aime ")) return "tu aimes " + t.substring(5);
+        if (f.startsWith("adore ")) return "tu adores " + t.substring(6);
+        if (f.startsWith("prefere ")) return "tu préfères " + t.substring(8);
+        if (f.startsWith("developpe ")) return "tu développes " + t.substring(10);
+        if (f.startsWith("son projet : ")) return "ton projet : " + t.substring(13);
+        return t;
+    }
+
+    private static String cap(String s) { return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1); }
+
+    /** Un court texte qui dit ce que KRUX sait de toi, à la 2e personne. Vide s'il n'y a rien. */
+    public static String summary(List<Entry> entries, int maxChars) {
+        if (entries == null || entries.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        String[] order = { PROFIL, PREF, PROJETS, PERSONNES, DIVERS };
+        for (String c : order) {
+            List<String> parts = new ArrayList<>();
+            for (int i = entries.size() - 1; i >= 0; i--) if (c.equals(entries.get(i).cat)) parts.add(you(entries.get(i).text));
+            if (parts.isEmpty()) continue;
+            StringBuilder sentence = new StringBuilder();
+            for (int k = 0; k < parts.size(); k++) {
+                if (k > 0) sentence.append(k == parts.size() - 1 ? " et " : ", ");
+                sentence.append(parts.get(k));
+            }
+            String piece = cap(sentence.toString()) + ". ";
+            if (sb.length() + piece.length() > maxChars) {
+                if (sb.length() == 0) sb.append(piece, 0, Math.max(0, maxChars - 1)).append("…");
+                break;
+            }
+            sb.append(piece);
+        }
+        return sb.toString().trim();
+    }
+
+    /** Messages de l'utilisateur à relire pour apprendre : seulement ceux qui parlent de lui, en lots d'environ maxChars. */
+    public static List<String> learnBatches(List<String> userMessages, int maxChars, int maxBatches) {
+        List<String> batches = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        for (String m : userMessages) {
+            if (!worthExtracting(m)) continue;
+            String line = "- " + cut(m.replaceAll("\\s+", " "), 300) + "\n";
+            if (cur.length() + line.length() > maxChars && cur.length() > 0) {
+                batches.add(cur.toString());
+                cur = new StringBuilder();
+                if (batches.size() >= maxBatches) return batches;
+            }
+            cur.append(line);
+        }
+        if (cur.length() > 0 && batches.size() < maxBatches) batches.add(cur.toString());
+        return batches;
+    }
 }
