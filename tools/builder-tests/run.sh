@@ -31,3 +31,5 @@ javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/bui
 java -Dfile.encoding=UTF-8 -cp "$O" TruncatedJsonTests
 javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/NetPolicy.java "$D"/tools/builder-tests/NetPolicyTests.java
 java -Dfile.encoding=UTF-8 -cp "$O" NetPolicyTests
+javac -encoding UTF-8 -d "$O" "$D"/app/src/main/java/com/virtixstudio/kruxai/utils/SyncStatus.java "$D"/tools/builder-tests/SyncStatusTests.java
+java -Dfile.encoding=UTF-8 -cp "$O" SyncStatusTests

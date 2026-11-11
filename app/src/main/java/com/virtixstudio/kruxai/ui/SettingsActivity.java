@@ -99,6 +99,7 @@ public class SettingsActivity extends AppCompatActivity {
         // ---- Données
         LinearLayout data = section(root, "Mes données");
         row(data, "Exporter la discussion", "Envoie la discussion en cours en texte (Markdown)", false, () -> give(ACTION_EXPORT));
+        row(data, "Synchronisation", com.virtixstudio.kruxai.core.CloudSync.statusLine(this) + "  ·  touche pour relancer", false, this::syncNow);
         row(data, "Mémoire", "Ce que KRUX sait de toi : voir, modifier, supprimer", false,
             () -> startActivity(new Intent(this, MemoryActivity.class)));
         row(data, "Mes apps", "Les applications créées par KRUX et le quota de la semaine", false,
@@ -106,7 +107,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         // ---- À propos
         LinearLayout about = section(root, "À propos");
-        row(about, "Krux", "Version " + versionName() + "  ·  Virtix Studio", false, null);
+        row(about, "KRUX AI", "Version " + versionName() + "  ·  Virtix Studio", false, null);
         row(about, "Générateur d'apps",
             "Android " + KruxConfig.build().targetSdk + "  ·  AGP " + KruxConfig.build().agp
                 + "  ·  config : " + KruxConfig.source(), false, null);
@@ -230,6 +231,19 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     // ------------------------------------------------------------------ actions
+
+    /** Relance la synchronisation tout de suite, puis rafraîchit la ligne d'état. */
+    private void syncNow() {
+        try {
+            FirebaseUser u = FirebaseAuth.getInstance().getCurrentUser();
+            if (u == null) { android.widget.Toast.makeText(this, "Non connecté", android.widget.Toast.LENGTH_SHORT).show(); return; }
+            android.widget.Toast.makeText(this, "Synchronisation…", android.widget.Toast.LENGTH_SHORT).show();
+            com.virtixstudio.kruxai.core.CloudSync.run(this, u, new com.virtixstudio.kruxai.database.KruxDatabaseHelper(this, u.getUid()), true, null, null);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> { if (!isFinishing()) recreate(); }, 4000);
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Synchro impossible", android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
 
     private void give(String action) {
         setResult(RESULT_OK, new Intent().putExtra(EXTRA_ACTION, action));

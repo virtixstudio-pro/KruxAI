@@ -36,7 +36,10 @@ public final class CloudSync {
     /** Lance une synchronisation en arrière-plan ; ignorée si une autre est en cours ou trop récente. */
     public static void run(final Context ctx, final FirebaseUser user, final KruxDatabaseHelper helper,
                            final boolean force, final Runnable onChanged, final android.os.Handler ui) {
-        if (!KruxConfig.workerEnabled() || user == null || helper == null) return;
+        if (user == null || helper == null) return;
+        // La configuration (adresse du Worker) n'était chargée que lors d'une création d'app : la synchro ne partait jamais avant.
+        KruxConfig.init(ctx.getApplicationContext());
+        if (!KruxConfig.workerEnabled()) { status(ctx, false, "Stockage Virtix Studio non configuré (adresse du Worker absente)"); return; }
         long now = System.currentTimeMillis();
         if (running || (!force && now - lastRun < MIN_GAP_MS)) return;
         running = true;
@@ -47,13 +50,30 @@ public final class CloudSync {
                         .getSharedPreferences("krux_sync_" + user.getUid(), Context.MODE_PRIVATE);
                 push(user, helper, sp);
                 boolean changed = pull(user, helper, sp);
+                status(ctx, true, "");
                 if (changed && onChanged != null && ui != null) ui.post(onChanged);
             } catch (Exception e) {
                 android.util.Log.w("KRUX_SYNC", "synchro impossible : " + e.getMessage());
+                status(ctx, false, String.valueOf(e.getMessage()));
             } finally {
                 running = false;
             }
         }, "krux-sync").start();
+    }
+
+    private static void status(Context ctx, boolean ok, String err) {
+        try {
+            SharedPreferences.Editor ed = ctx.getApplicationContext().getSharedPreferences("krux_sync_status", Context.MODE_PRIVATE).edit();
+            if (ok) ed.putLong("ok", System.currentTimeMillis()).putString("err", "");
+            else ed.putString("err", err == null ? "" : err);
+            ed.apply();
+        } catch (Exception ignore) { }
+    }
+
+    /** Phrase lisible pour Paramètres : « À jour · il y a 2 min » ou la cause du problème. */
+    public static String statusLine(Context ctx) {
+        SharedPreferences sp = ctx.getApplicationContext().getSharedPreferences("krux_sync_status", Context.MODE_PRIVATE);
+        return com.virtixstudio.kruxai.utils.SyncStatus.line(sp.getLong("ok", 0), sp.getString("err", ""), System.currentTimeMillis());
     }
 
     /** À appeler quand l'utilisateur fait oublier un souvenir : le prochain envoi remplace la mémoire du cloud au lieu de la fusionner. */
