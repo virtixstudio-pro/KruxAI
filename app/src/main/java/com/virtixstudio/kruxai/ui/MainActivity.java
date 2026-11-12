@@ -253,6 +253,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         rvChat = findViewById(R.id.rvChat);
         terminal = findViewById(R.id.kruxTerminal);
         initNetwork();
+        new Thread(() -> { try { if (dbHelper.removeDuplicateMessages() > 0) runOnUiThread(this::loadHistorySidebar); } catch (Exception ignore) { } }).start();
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
@@ -1087,7 +1088,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
                 java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT);
-        StringBuilder sb = new StringBuilder("# Discussion Krux\n");
+        StringBuilder sb = new StringBuilder("# Discussion KRUX AI\n");
         sb.append("Exportée le ").append(df.format(new java.util.Date())).append("\n\n");
         for (ChatMessage m : messageList) {
             String text = m.getText();
@@ -1104,7 +1105,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
-        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion Krux");
+        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion KRUX AI");
         i.putExtra(Intent.EXTRA_TEXT, out);
         startActivity(Intent.createChooser(i, "Exporter la discussion"));
     }
@@ -1397,7 +1398,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         int startIndex = Math.max(0, messageList.size() - 10);
         for (int i = startIndex; i < messageList.size() - 1; i++) {
             ChatMessage msg = messageList.get(i);
-            historyBuilder.append(msg.isUser() ? "Utilisateur: " : "Krux: ")
+            historyBuilder.append(msg.isUser() ? "Utilisateur: " : "Krux AI: ")
                     .append(msg.getText())
                     .append("\n");
         }
@@ -1704,7 +1705,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "bg")));
             detail.setText(used + " / " + max + " utilisées · "
                     + (left > 0 ? left + (left > 1 ? " restantes" : " restante") : "limite atteinte, retour la semaine prochaine")
-                    + "\nLes corrections ne sont pas comptées.");
+                    + "\nSeules les applications qui compilent sont comptées.");
         } catch (Exception ignored) { }
     }
 
@@ -1716,6 +1717,20 @@ private final ActivityResultLauncher<String[]> filePicker =
             cloudQuotaWeek = week;
             runOnUiThread(this::refreshQuotaView);
         });
+    }
+
+    private static final int MAX_FAILED_BUILDS = 6;
+
+    private int failedBuilds() {
+        android.content.SharedPreferences sp = getSharedPreferences("krux_builder", MODE_PRIVATE);
+        return quotaWeek().equals(sp.getString("fail_week", "")) ? sp.getInt("fail_used", 0) : 0;
+    }
+
+    /** Un échec de compilation ne coûte pas une création, mais on en tolère un nombre limité par semaine pour ne pas saturer le service. */
+    private void countFailedBuild(String message) {
+        if (message != null && (message.contains("annul") || message.contains("GitHub 401") || message.contains("GitHub 403") || message.contains("GitHub 429"))) return;
+        getSharedPreferences("krux_builder", MODE_PRIVATE).edit()
+                .putString("fail_week", quotaWeek()).putInt("fail_used", failedBuilds() + 1).apply();
     }
 
     private void consumeQuota() {
@@ -1747,6 +1762,10 @@ private final ActivityResultLauncher<String[]> filePicker =
         int used = quotaUsed();
         if (used >= quota) {
             Toast.makeText(this, "Limite atteinte : " + quota + " créations par semaine. Elles reviennent la semaine prochaine.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (failedBuilds() >= MAX_FAILED_BUILDS) {
+            Toast.makeText(this, "Trop d'échecs de compilation cette semaine. Réessaie plus tard ou change la demande.", Toast.LENGTH_LONG).show();
             return;
         }
         final String fToken = token;
@@ -1930,10 +1949,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                 new AppBuilder.Listener() {
                     @Override
                     public void onStatus(final String status) {
-                        if (!consumed[0] && status.startsWith("Création du repo")) {
-                            consumed[0] = true;
-                            consumeQuota();
-                        }
                         String t = null;
                         if (status.startsWith("Génération")) t = "J'écris ton application…";
                         else if (status.startsWith("Vérification")) t = "Je vérifie le code…";
@@ -2015,6 +2030,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                                 "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
                         refresh.run();
                         runOnUiThread(() -> {
+                            // seule une application réellement compilée compte dans le quota de la semaine
+                            if (!consumed[0]) { consumed[0] = true; consumeQuota(); }
                             saveBuiltApp(apk, repoUrl);
                             uploadAppToCloud(apk, repoUrl);
                             installApk(apk);
@@ -2024,6 +2041,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onError(final String message) {
                         android.util.Log.e("KRUX_BUILD", String.valueOf(message));
+                        countFailedBuild(message);
                         endBuild.run();
                         runOnUiThread(() -> { if (terminal != null) { terminal.println(friendlyBuildError(message), KruxTerminalView.ERR); terminal.hideLater(8000); } });
                         progress.fail(friendlyBuildError(message));
@@ -2750,7 +2768,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         // Mini bloc de code
         TextView previewCodeBlock = new TextView(this);
-        previewCodeBlock.setText("System.out.println(\"Krux Live\");");
+        previewCodeBlock.setText("System.out.println(\"KruxAI Live\");");
         previewCodeBlock.setTextSize(11);
         previewCodeBlock.setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
         LinearLayout.LayoutParams codeParams = new LinearLayout.LayoutParams(

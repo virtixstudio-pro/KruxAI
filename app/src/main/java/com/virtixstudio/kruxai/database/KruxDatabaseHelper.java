@@ -663,4 +663,37 @@ public class KruxDatabaseHelper extends SQLiteOpenHelper {
         c.close();
         return out;
     }
+
+    /**
+     * Supprime les doublons évidents : même discussion, même auteur, même texte, enregistrés à moins de 3 secondes l'un de l'autre
+     * (un vrai message répété à la main ne passe jamais aussi vite). Retourne le nombre de lignes supprimées.
+     */
+    public synchronized int removeDuplicateMessages() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int removed = 0;
+        Cursor c = db.rawQuery("SELECT id, session_id, sender, message, timestamp FROM messages ORDER BY session_id, id", null);
+        List<Long> doomed = new ArrayList<>();
+        String lastSid = null;
+        java.util.Map<String, Long> seen = new java.util.HashMap<>(); // sender|texte -> dernier timestamp
+        while (c.moveToNext()) {
+            String sid = c.getString(1);
+            if (sid == null) continue;
+            if (!sid.equals(lastSid)) { seen.clear(); lastSid = sid; }
+            String key = c.getString(2) + "|" + c.getString(3);
+            long ts = c.getLong(4);
+            Long prev = seen.get(key);
+            if (prev != null && Math.abs(ts - prev) < 3000) doomed.add(c.getLong(0));
+            else seen.put(key, ts);
+        }
+        c.close();
+        if (doomed.isEmpty()) return 0;
+        db.beginTransaction();
+        try {
+            for (Long id : doomed) removed += db.delete("messages", "id = ?", new String[]{String.valueOf(id)});
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return removed;
+    }
 }

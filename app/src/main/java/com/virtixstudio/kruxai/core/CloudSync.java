@@ -50,6 +50,7 @@ public final class CloudSync {
                         .getSharedPreferences("krux_sync_" + user.getUid(), Context.MODE_PRIVATE);
                 push(user, helper, sp);
                 boolean changed = pull(user, helper, sp);
+                if (helper.removeDuplicateMessages() > 0) changed = true;
                 status(ctx, true, "");
                 if (changed && onChanged != null && ui != null) ui.post(onChanged);
             } catch (Exception e) {
