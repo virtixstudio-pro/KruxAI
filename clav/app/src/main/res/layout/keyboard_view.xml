@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Root of the IME input view: suggestion slot on top (brand, suggestion
+    chips, certification badge) and key rows injected by KeyboardController.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/background"
+    android:orientation="vertical"
+    android:paddingBottom="6dp">
+
+    <FrameLayout
+        android:id="@+id/suggestion_slot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:id="@+id/keyboard_rows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/keyboard_horizontal_padding"
+        android:paddingTop="2dp"
+        android:paddingRight="@dimen/keyboard_horizontal_padding"
+        android:paddingBottom="2dp" />
+</LinearLayout>

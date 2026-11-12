@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="suggestion_bar_height">46dp</dimen>
+    <dimen name="key_row_height">54dp</dimen>
+    <dimen name="key_gap">3dp</dimen>
+    <dimen name="key_corner_radius">10dp</dimen>
+    <dimen name="keyboard_horizontal_padding">4dp</dimen>
+    <dimen name="badge_size">22dp</dimen>
+</resources>

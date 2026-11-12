@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive (API 26+) launcher icon foreground: badge within the safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF1D9BF0"
+        android:pathData="M54.00,30.00 L58.97,35.45 L66.00,33.22 L67.58,40.42 L74.78,42.00 L72.55,49.03 L78.00,54.00 L72.55,58.97 L74.78,66.00 L67.58,67.58 L66.00,74.78 L58.97,72.55 L54.00,78.00 L49.03,72.55 L42.00,74.78 L40.42,67.58 L33.22,66.00 L35.45,58.97 L30.00,54.00 L35.45,49.03 L33.22,42.00 L40.42,40.42 L42.00,33.22 L49.03,35.45 Z" />
+    <path
+        android:pathData="M46.32,54.48 L51.60,60.00 L62.64,47.76"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

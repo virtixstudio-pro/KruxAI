@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Popup grid offered by the emoji key. -->
+    <string-array name="emoji_options">
+        <item>😀</item>
+        <item>😂</item>
+        <item>🥰</item>
+        <item>😍</item>
+        <item>😉</item>
+        <item>😎</item>
+        <item>🤔</item>
+        <item>😴</item>
+        <item>🥳</item>
+        <item>😭</item>
+        <item>🤯</item>
+        <item>😅</item>
+        <item>👍</item>
+        <item>👏</item>
+        <item>🙏</item>
+        <item>💪</item>
+        <item>🔥</item>
+        <item>✨</item>
+        <item>🎉</item>
+        <item>❤️</item>
+        <item>💙</item>
+        <item>⭐</item>
+        <item>🤗</item>
+        <item>😇</item>
+    </string-array>
+</resources>

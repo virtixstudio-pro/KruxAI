@@ -1,0 +1,4 @@
+// Root build file: single module, pure Java — no library dependencies.
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}

@@ -1,0 +1,57 @@
+name: Clav Keyboard CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'clav/**'
+      - '.github/workflows/clav-android.yml'
+  pull_request:
+    paths:
+      - 'clav/**'
+      - '.github/workflows/clav-android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Assemble Clav APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clav
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clav-debug-apk
+          path: clav/app/build/outputs/apk/debug/*.apk
+
+      - name: Build release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gradle assembleRelease --no-daemon
+
+      - name: Attach release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: clav/app/build/outputs/apk/release/*.apk

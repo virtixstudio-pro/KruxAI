@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standard letter / character key: ripple + rounded dark surface. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33FFFFFF">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/key_background" />
+            <corners android:radius="@dimen/key_corner_radius" />
+        </shape>
+    </item>
+</ripple>

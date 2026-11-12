@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Clav</string>
+    <string name="ime_name">Clav</string>
+    <string name="brand">clav</string>
+
+    <!-- Suggestions -->
+    <string name="suggestion_secure_field">Saisie sécurisée</string>
+    <string name="space_label_francais">français</string>
+    <string name="space_label_qwerty">qwerty</string>
+
+    <!-- Certification badge popup -->
+    <string name="badge_popup_title">Clavier certifié</string>
+    <string name="badge_popup_subtitle">Badge de vérification actif · conception sombre validée</string>
+    <string name="badge_popup_footer">clav v1.0 · badge anti-usurpation</string>
+
+    <!-- Launcher / onboarding -->
+    <string name="launcher_title">Clav</string>
+    <string name="launcher_subtitle">Clavier virtuel sombre, minimaliste et certifié.</string>
+    <string name="step_enable_title">1 · Activez Clav</string>
+    <string name="step_enable_desc">Dans « Claviers et méthode de saisie », activez « Clav ».</string>
+    <string name="step_default_title">2 · Définissez Clav par défaut</string>
+    <string name="step_default_desc">Appuyez longuement sur un champ de texte, puis choisissez « Clav ».</string>
+    <string name="action_open_settings">Activer Clav</string>
+    <string name="action_pick_keyboard">Choisir par défaut</string>
+    <string name="status_enabled">Clav est activé</string>
+    <string name="status_not_enabled">Clav n’est pas encore activé</string>
+    <string name="status_default">Clav est le clavier actif</string>
+    <string name="status_not_default">Clav n’est pas encore sélectionné</string>
+    <string name="launcher_footer">Composant IME · Java + XML · sans dépendance externe</string>
+</resources>
