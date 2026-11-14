@@ -3,6 +3,7 @@ name: Clav Keyboard CI
 on:
   push:
     branches: [ main ]
+    tags: [ "v*", "clav-v*" ]
     paths:
       - 'clav/**'
       - '.github/workflows/clav-android.yml'
@@ -11,6 +12,9 @@ on:
       - 'clav/**'
       - '.github/workflows/clav-android.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
