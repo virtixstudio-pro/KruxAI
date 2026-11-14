@@ -30,7 +30,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 - **Personnalisation** : palettes et couleurs modifiables via un système de thème par tags `krux:*` (`ui/KruxTheme`).
 - **Multilingue** : français, anglais, espagnol et chinois (`utils/LanguageManager`, `res/values-*`).
 - **Comptes et synchronisation** : Firebase Auth (email / mot de passe) et Firestore (`firestore.rules`).
-- **Export et partage** : export de conversations, copie de code, partage de fichiers et gestion des médias.
+- **Export et partage** : export de la discussion en texte, PDF, CSV ou archive ZIP (PDF + CSV + texte + fichiers créés par Krux), à enregistrer dans Téléchargements ou à partager (`utils/ChatExporter`) ; copie de code, partage de fichiers et gestion des médias.
 
 ---
 
@@ -273,4 +273,6 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 - Voix : `VoiceStyler` (voix, pauses, intonation, nettoyage du markdown et des emojis) branché sur le chat, le mode Live et la bulle flottante.
 - Réponses : menu d'appui long (copier, tout sélectionner, partager) et boutons de lien.
 - Liens : navigateur intégré, réutilise `HtmlPreviewActivity`.
-- À venir : export CSV et zip de PDF, patch d'économie de quotas, vérification de la bannière hors ligne, écran Mémoire v2.
+- Export : menu « Exporter la discussion » avec 4 formats (texte, PDF, CSV, ZIP), chacun à « Enregistrer » ou « Partager ». Le CSV a les colonnes numero, date, auteur, modele, message.
+- Fichiers créés par Krux : le bouton « Aperçu » devient « Visualiser ».
+- À venir : blocs de code (couleurs personnalisables, coloration syntaxique, actions séparées), patch d'économie de quotas, vérification de la bannière hors ligne, écran Mémoire v2.

@@ -56,6 +56,11 @@ public final class VoiceStyler {
         }
     }
 
+    /** Retire les emojis (utile pour les PDF, dont la police ne les dessine pas). */
+    public static String removeEmojis(String s) {
+        return s == null ? "" : EMOJI.matcher(s).replaceAll("");
+    }
+
     /** Vrai pour les phrases intermédiaires (id du type "base#2") : à ignorer dans onDone/onError. */
     public static boolean isPart(String id) {
         return id != null && id.contains("#");

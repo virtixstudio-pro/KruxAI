@@ -93,7 +93,7 @@ public final class DeliveredFileCards {
         bp.rightMargin = Math.round(8 * d);
         String lower = f.name.toLowerCase(java.util.Locale.ROOT);
         if (lower.endsWith(".html") || lower.endsWith(".htm")) {
-            TextView prev = button(c, "Aperçu", accent, pale, d);
+            TextView prev = button(c, "Visualiser", accent, pale, d);
             prev.setOnClickListener(v -> HtmlPreviewActivity.open(c, f.name, f.content));
             row.addView(prev, bp);
             bp = new LinearLayout.LayoutParams(-2, -2);

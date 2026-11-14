@@ -1233,32 +1233,7 @@ private final ActivityResultLauncher<String[]> filePicker =
     }
 
     private void exportConversation() {
-        if (messageList == null || messageList.isEmpty()) {
-            Toast.makeText(this, "Rien à exporter : la discussion est vide.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        java.text.DateFormat df = java.text.DateFormat.getDateTimeInstance(
-                java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT);
-        StringBuilder sb = new StringBuilder("# Discussion KRUX AI\n");
-        sb.append("Exportée le ").append(df.format(new java.util.Date())).append("\n\n");
-        for (ChatMessage m : messageList) {
-            String text = m.getText();
-            if (text == null || text.trim().isEmpty()) continue;
-            sb.append(m.isUser() ? "**Moi**" : "**KRUX**");
-            long ts = m.getTimestamp();
-            if (ts > 100000000000L) sb.append(" · ").append(df.format(new java.util.Date(ts)));
-            else if (ts > 1000000000L) sb.append(" · ").append(df.format(new java.util.Date(ts * 1000L)));
-            sb.append("\n\n").append(text.trim()).append("\n\n---\n\n");
-        }
-        String out = sb.toString();
-        if (out.length() > 100000) {
-            out = "(début de la discussion tronqué)\n\n" + out.substring(out.length() - 100000);
-        }
-        Intent i = new Intent(Intent.ACTION_SEND);
-        i.setType("text/plain");
-        i.putExtra(Intent.EXTRA_SUBJECT, "Discussion KRUX AI");
-        i.putExtra(Intent.EXTRA_TEXT, out);
-        startActivity(Intent.createChooser(i, "Exporter la discussion"));
+        com.virtixstudio.kruxai.utils.ChatExporter.showSheet(this, messageList);
     }
 
     private void setupStartCards() {
