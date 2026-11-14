@@ -366,6 +366,11 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         btnMenu.setOnClickListener(v -> { refreshQuotaView(); drawerLayout.openDrawer(GravityCompat.START); });
 
+        View btnNewTop = findViewById(R.id.btnNewChatTop);
+        if (btnNewTop != null) btnNewTop.setOnClickListener(v -> startNewDiscussion());
+        View btnMoreTop = findViewById(R.id.btnMoreTop);
+        if (btnMoreTop != null) btnMoreTop.setOnClickListener(this::showMoreMenu);
+
         if (kruxModelCapsule != null) {
             kruxModelCapsule.setOnClickListener(v -> showKruxModelSelector());
         }
@@ -1182,6 +1187,46 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
         etInput.setText("");
         etInput.requestFocus();
+    }
+
+    /** Petit menu du haut à droite : exporter, mémoire, personnaliser, réglages. Suit le thème. */
+    private void showMoreMenu(View anchor) {
+        final float d = getResources().getDisplayMetrics().density;
+        final int tx = KruxTheme.get(this, "text");
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding((int) (6 * d), (int) (6 * d), (int) (6 * d), (int) (6 * d));
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(KruxTheme.get(this, "input"));
+        bg.setCornerRadius(16 * d);
+        bg.setStroke((int) d, androidx.core.graphics.ColorUtils.setAlphaComponent(tx, 40));
+        box.setBackground(bg);
+        final android.widget.PopupWindow pw = new android.widget.PopupWindow(box, (int) (230 * d),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        pw.setElevation(10 * d);
+        pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        Object[][] rows = {
+            {"Exporter la discussion", R.drawable.ic_download, (Runnable) this::exportConversation},
+            {"Mémoire", R.drawable.ic_memory, (Runnable) () -> startActivity(new Intent(this, MemoryActivity.class))},
+            {"Personnaliser", R.drawable.ic_palette, (Runnable) this::showCustomizationSheet},
+            {"Réglages", R.drawable.ic_opt_settings, (Runnable) () -> settingsLauncher.launch(new Intent(this, SettingsActivity.class))},
+        };
+        for (Object[] r : rows) {
+            TextView t = new TextView(this);
+            t.setText((String) r[0]);
+            t.setTextSize(15);
+            t.setTextColor(tx);
+            t.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            t.setCompoundDrawablesWithIntrinsicBounds((int) r[1], 0, 0, 0);
+            t.setCompoundDrawablePadding((int) (14 * d));
+            androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(t, android.content.res.ColorStateList.valueOf(tx));
+            t.setPadding((int) (14 * d), 0, (int) (14 * d), 0);
+            t.setBackgroundResource(android.R.drawable.list_selector_background);
+            final Runnable run = (Runnable) r[2];
+            t.setOnClickListener(v -> { pw.dismiss(); run.run(); });
+            box.addView(t, new LinearLayout.LayoutParams(-1, (int) (48 * d)));
+        }
+        pw.showAsDropDown(anchor, 0, (int) (4 * d), android.view.Gravity.END);
     }
 
     private void exportConversation() {

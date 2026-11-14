@@ -152,6 +152,29 @@
                 android:padding="11dp"
                 android:src="@drawable/ic_menu" />
 
+            <ImageButton android:tag="krux:input,text"
+                android:id="@+id/btnMoreTop"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_header_bubble"
+                android:contentDescription="Plus d'actions"
+                android:padding="10dp"
+                android:src="@drawable/ic_more" />
+
+            <ImageButton android:tag="krux:input,text"
+                android:id="@+id/btnNewChatTop"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="8dp"
+                android:layout_toStartOf="@id/btnMoreTop"
+                android:background="@drawable/bg_header_bubble"
+                android:contentDescription="Nouvelle discussion"
+                android:padding="10dp"
+                android:src="@drawable/ic_new_chat" />
+
             <LinearLayout android:tag="krux:input"
                 android:id="@+id/kruxModelCapsule"
                 android:layout_width="wrap_content"
@@ -159,6 +182,7 @@
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
                 android:layout_toEndOf="@id/btnMenu"
+                android:layout_toStartOf="@id/btnNewChatTop"
                 android:background="@drawable/bg_krux_capsule"
                 android:clickable="true"
                 android:focusable="true"
