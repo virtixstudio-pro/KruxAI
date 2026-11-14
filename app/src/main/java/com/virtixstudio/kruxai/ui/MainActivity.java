@@ -597,6 +597,9 @@ private final ActivityResultLauncher<String[]> filePicker =
     }
 
     private void saveMessageToCloud(ChatMessage message, String sender) {
+        // Les conversations passent maintenant uniquement par la synchro Cloudflare (CloudSync) : écrire aussi dans
+        // Firestore créait des doublons. Seule la lecture unique des anciennes conversations (syncCloudData) reste.
+        if (true) return;
         if (currentUser == null || message == null) {
             android.util.Log.w(
                     "KRUX_SYNC",
@@ -915,6 +918,14 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         final String accountId = currentUser.getUid();
 
+        // Reprise des anciennes conversations Firestore : une seule fois par compte, ensuite Cloudflare seul.
+        final android.content.SharedPreferences legacy = getSharedPreferences("krux_legacy_" + accountId, MODE_PRIVATE);
+        if (legacy.getBoolean("chats_done", false)) {
+            loadCurrentSession();
+            loadHistorySidebar();
+            return;
+        }
+
         db.collection("users")
                 .document(accountId)
                 .collection("chats")
@@ -989,6 +1000,8 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                     loadCurrentSession();
                     loadHistorySidebar();
+                    legacy.edit().putBoolean("chats_done", true).apply();
+                    syncCloud(true); // envoie ces anciennes conversations vers Cloudflare
 
                     android.util.Log.d(
                             "KRUX_SYNC",
