@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="krux_a11y_description">Permet à KRUX de lire le texte affiché à l\'écran, uniquement quand tu lui demandes (par exemple « lis l\'écran »). Rien n\'est lu en continu et rien n\'est enregistré.</string>
+</resources>

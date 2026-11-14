@@ -16,6 +16,21 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.widget.Toast;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import com.virtixstudio.kruxai.api.ApiClient;
+import com.virtixstudio.kruxai.models.KruxModel;
+import java.util.ArrayList;
+import java.util.Locale;
 
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.ui.MainActivity;
@@ -75,6 +90,13 @@ public class FloatingKruxService extends Service {
             c.startActivity(i);
             return false;
         }
+        if (ContextCompat.checkSelfPermission(c, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            if (c instanceof android.app.Activity) {
+                ActivityCompat.requestPermissions((android.app.Activity) c, new String[]{Manifest.permission.RECORD_AUDIO}, 21);
+            }
+            Toast.makeText(c, "Autorise le micro pour que KRUX puisse t'écouter, puis réessaie.", Toast.LENGTH_LONG).show();
+            return false;
+        }
         Intent i = new Intent(c, FloatingKruxService.class);
         if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         return true;
@@ -109,7 +131,9 @@ public class FloatingKruxService extends Service {
         b.setSmallIcon(R.drawable.ic_live).setContentTitle("KRUX est sur ton écran")
                 .setContentText("Touche pour ouvrir. Masquer avec le bouton.").setContentIntent(open).setOngoing(true)
                 .addAction(new Notification.Action.Builder((android.graphics.drawable.Icon) null, "Masquer", stop).build());
-        if (Build.VERSION.SDK_INT >= 34) startForeground(7, b.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        if (Build.VERSION.SDK_INT >= 34) startForeground(7, b.build(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE | ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+        else if (Build.VERSION.SDK_INT >= 30) startForeground(7, b.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
         else startForeground(7, b.build());
     }
 
@@ -130,25 +154,23 @@ public class FloatingKruxService extends Service {
         lp.x = getResources().getDisplayMetrics().widthPixels - size - Math.round(8 * d);
         lp.y = Math.round(220 * d);
         face.setOnTouchListener(new View.OnTouchListener() {
-            float downX, downY; int startX, startY; boolean moved;
+            float downX, downY; int startX, startY; boolean moved, longFired;
+            final Runnable longPress = () -> { longFired = true; openApp(); };
             @Override public boolean onTouch(View v, MotionEvent e) {
                 switch (e.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        downX = e.getRawX(); downY = e.getRawY(); startX = lp.x; startY = lp.y; moved = false;
+                        downX = e.getRawX(); downY = e.getRawY(); startX = lp.x; startY = lp.y; moved = false; longFired = false;
+                        MAIN.postDelayed(longPress, 700);
                         face.motion().flash(LiveMotion.Mood.SURPRISED, 0.6f);
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         float dx = e.getRawX() - downX, dy = e.getRawY() - downY;
-                        if (Math.abs(dx) + Math.abs(dy) > 12 * d) moved = true;
+                        if (Math.abs(dx) + Math.abs(dy) > 12 * d) { moved = true; MAIN.removeCallbacks(longPress); }
                         if (moved) { lp.x = Math.round(startX + dx); lp.y = Math.round(startY + dy); wm.updateViewLayout(face, lp); }
                         return true;
                     case MotionEvent.ACTION_UP:
-                        if (!moved) {
-                            face.motion().flash(LiveMotion.Mood.HAPPY, 1.2f);
-                            Intent i = new Intent(FloatingKruxService.this, MainActivity.class);
-                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                            startActivity(i);
-                        }
+                        MAIN.removeCallbacks(longPress);
+                        if (!moved && !longFired) onFaceTapped();
                         return true;
                 }
                 return false;
@@ -163,8 +185,140 @@ public class FloatingKruxService extends Service {
         }
     }
 
+
+    // ------------------------------------------------------------------ voix : le visage écoute, réfléchit et parle tout seul
+
+    private static final String SYSTEM =
+        "Tu es Krux, créé par Virtix Studio, en conversation VOCALE avec l'utilisateur, pendant qu'il utilise son téléphone. "
+      + "Réponds en français, en 1 à 3 phrases courtes et naturelles, comme à l'oral. "
+      + "Pas de markdown, pas de listes, pas d'émojis, pas de balises, pas d'outils. "
+      + "Si le contenu de l'écran est fourni, appuie-toi dessus pour répondre. Si tu ne sais pas, dis-le simplement.";
+
+    private SpeechRecognizer recognizer;
+    private TextToSpeech tts;
+    private boolean ttsReady, listening;
+    private final ArrayList<String> history = new ArrayList<>();
+
+    private void openApp() {
+        Intent i = new Intent(this, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(i);
+    }
+
+    private void initTts() {
+        if (tts != null) return;
+        tts = new TextToSpeech(this, st -> {
+            if (st == TextToSpeech.SUCCESS) {
+                tts.setLanguage(Locale.FRENCH);
+                ttsReady = true;
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override public void onStart(String id) { setState(LiveMotion.State.SPEAKING); }
+                    @Override public void onDone(String id) { setState(LiveMotion.State.IDLE); }
+                    @Override public void onError(String id) { setState(LiveMotion.State.IDLE); }
+                    @android.annotation.TargetApi(26) @Override public void onRangeStart(String id, int s, int e, int f) { word(); }
+                });
+            }
+        });
+    }
+
+    private void onFaceTapped() {
+        if (tts != null && tts.isSpeaking()) { tts.stop(); setState(LiveMotion.State.IDLE); return; }
+        if (listening) { if (recognizer != null) recognizer.stopListening(); return; }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Autorise le micro dans KRUX, puis réessaie.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "La reconnaissance vocale n'est pas disponible sur ce téléphone.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        initTts();
+        if (recognizer == null) {
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            recognizer.setRecognitionListener(new RecognitionListener() {
+                @Override public void onReadyForSpeech(Bundle p) { }
+                @Override public void onBeginningOfSpeech() { }
+                @Override public void onRmsChanged(float rms) { level((rms + 2f) / 12f); }
+                @Override public void onBufferReceived(byte[] b) { }
+                @Override public void onEndOfSpeech() { }
+                @Override public void onError(int e) {
+                    listening = false; level(0); setState(LiveMotion.State.IDLE);
+                    if (e != SpeechRecognizer.ERROR_NO_MATCH && e != SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+                        Toast.makeText(FloatingKruxService.this, "Problème de micro, réessaie.", Toast.LENGTH_SHORT).show();
+                }
+                @Override public void onResults(Bundle r) {
+                    listening = false; level(0);
+                    ArrayList<String> m = r.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (m == null || m.isEmpty() || m.get(0).trim().isEmpty()) { setState(LiveMotion.State.IDLE); return; }
+                    ask(m.get(0).trim());
+                }
+                @Override public void onPartialResults(Bundle p) { }
+                @Override public void onEvent(int t, Bundle p) { }
+            });
+        }
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
+        listening = true;
+        setState(LiveMotion.State.LISTENING);
+        recognizer.startListening(i);
+    }
+
+    /** Vrai si la question parle de ce qui est affiché. */
+    static boolean wantsScreen(String q) {
+        String s = q.toLowerCase(Locale.FRENCH);
+        return s.contains("écran") || s.contains("ecran") || s.contains("lis ") || s.contains("lis-moi")
+            || s.contains("cette page") || s.contains("ce message") || s.contains("ce texte") || s.contains("ici")
+            || s.contains("résume") || s.contains("resume") || s.contains("traduis") || s.contains("qu'est-ce que c'est");
+    }
+
+    private void ask(final String q) {
+        setState(LiveMotion.State.THINKING);
+        String screen = null;
+        if (wantsScreen(q)) {
+            if (!ScreenReaderService.isOn()) {
+                say("Pour lire ton écran, active KRUX dans les réglages d'accessibilité.");
+                Intent a = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                a.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try { startActivity(a); } catch (Exception ignored) { }
+                return;
+            }
+            screen = ScreenReaderService.read();
+        }
+        StringBuilder ctx = new StringBuilder();
+        for (String h : history) ctx.append(h).append('\n');
+        if (screen != null) ctx.append("[Contenu de l'écran]\n").append(screen.isEmpty() ? "(rien de lisible)" : screen).append("\n[Fin]\n");
+        ctx.append("Utilisateur: ").append(q);
+        ApiClient.sendRequest(KruxModel.KRUX_35_FLASH, SYSTEM, ctx.toString(), new ApiClient.ApiCallback() {
+            @Override public void onSuccess(String response, String brand) {
+                final String clean = LiveActivity.cleanForSpeech(response);
+                MAIN.post(() -> {
+                    history.add("Utilisateur: " + q); history.add("Krux: " + clean);
+                    while (history.size() > 8) history.remove(0);
+                    say(clean);
+                });
+            }
+            @Override public void onError(String msg) {
+                MAIN.post(() -> { setState(LiveMotion.State.IDLE); flash(LiveMotion.Mood.SURPRISED, 1.2f);
+                    Toast.makeText(FloatingKruxService.this, "Je n'arrive pas à répondre : " + msg, Toast.LENGTH_LONG).show(); });
+            }
+            @Override public void onCancelled() { MAIN.post(() -> setState(LiveMotion.State.IDLE)); }
+        });
+    }
+
+    private void say(String text) {
+        initTts();
+        if (text.isEmpty() || !ttsReady) { setState(LiveMotion.State.IDLE); if (!text.isEmpty()) Toast.makeText(this, text, Toast.LENGTH_LONG).show(); return; }
+        flash(LiveMotion.Mood.HAPPY, 0.8f);
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "krux_float");
+        if (Build.VERSION.SDK_INT < 26) setState(LiveMotion.State.SPEAKING);
+    }
+
     @Override
     public void onDestroy() {
+        MAIN.removeCallbacksAndMessages(null);
+        if (recognizer != null) { recognizer.destroy(); recognizer = null; }
+        if (tts != null) { tts.stop(); tts.shutdown(); tts = null; }
         running = false;
         liveFace = null;
         try { if (face != null && wm != null) wm.removeView(face); } catch (Exception ignored) { }
