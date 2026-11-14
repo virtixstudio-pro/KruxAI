@@ -2187,6 +2187,13 @@ private final ActivityResultLauncher<String[]> filePicker =
         TextView optThinking = view.findViewById(R.id.optThinking);
         TextView optFiles = view.findViewById(R.id.optFiles);
 
+        {   // icônes du menu : même couleur que le texte du thème
+            android.content.res.ColorStateList tint = android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "text"));
+            for (int id : new int[]{R.id.optLearning, R.id.optDeepSearch, R.id.optThinking, R.id.optLive, R.id.optFloat, R.id.optFiles}) {
+                TextView t = view.findViewById(id);
+                if (t != null) androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(t, tint);
+            }
+        }
         TextView optFloat = view.findViewById(R.id.optFloat);
         if (optFloat != null) {
             optFloat.setText(com.virtixstudio.kruxai.live.FloatingKruxService.isRunning()

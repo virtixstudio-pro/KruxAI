@@ -19,6 +19,8 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optLearning"
+        android:drawableStart="@drawable/ic_opt_learning"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
@@ -30,6 +32,8 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optDeepSearch"
+        android:drawableStart="@drawable/ic_opt_web"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
@@ -41,6 +45,8 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optThinking"
+        android:drawableStart="@drawable/ic_opt_think"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
@@ -55,6 +61,8 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optLive"
+        android:drawableStart="@drawable/ic_opt_live"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
@@ -66,6 +74,8 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optFloat"
+        android:drawableStart="@drawable/ic_opt_face"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
@@ -77,11 +87,13 @@
 
     <TextView android:tag="krux:text"
         android:id="@+id/optFiles"
+        android:drawableStart="@drawable/ic_opt_files"
+        android:drawablePadding="14dp"
         android:layout_width="match_parent"
         android:layout_height="52dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="12dp"
-        android:text="📎  Fichiers"
+        android:text="Fichiers"
         android:textColor="#F8FAFC"
         android:textSize="15sp"
         android:background="?attr/selectableItemBackground" />
