@@ -152,6 +152,21 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 .usePlugin(TablePlugin.create(context))
                 .usePlugin(new AbstractMarkwonPlugin() {
                     @Override
+                    public void configureConfiguration(@NonNull io.noties.markwon.MarkwonConfiguration.Builder builder) {
+                        // les liens de la réponse s'ouvrent dans le navigateur intégré
+                        builder.linkResolver((view, link) -> {
+                            if (link != null && (link.startsWith("http://") || link.startsWith("https://"))) {
+                                com.virtixstudio.kruxai.ui.LinkOpener.open(view.getContext(), link);
+                            } else if (link != null) {
+                                try {
+                                    android.content.Intent it = new android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link));
+                                    view.getContext().startActivity(it);
+                                } catch (Exception ignored) { }
+                            }
+                        });
+                    }
+                    @Override
                     public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
                         builder.codeBlockBackgroundColor(codeBackgroundColor)
                                .codeBlockTextColor(codeTextColor)
@@ -216,6 +231,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 aiHolder,
                 com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
         );
+        final String plainForActions = com.virtixstudio.kruxai.utils.LinkButtons.toPlain(
+                com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText()));
+        com.virtixstudio.kruxai.ui.MessageActions.attach(aiHolder.messageContainer, plainForActions);
+        for (int c = 0; c < aiHolder.messageContainer.getChildCount(); c++) {
+            View child = aiHolder.messageContainer.getChildAt(c);
+            if (child instanceof TextView && !(child instanceof android.widget.Button)
+                    && !child.hasOnClickListeners()) {
+                com.virtixstudio.kruxai.ui.MessageActions.attach(child, plainForActions);
+            }
+        }
         LinearLayout filesHost = aiHolder.itemView.findViewById(R.id.layoutFiles);
         if (filesHost != null) {
             com.virtixstudio.kruxai.ui.DeliveredFileCards.fill(filesHost,
@@ -413,6 +438,19 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 continue;
             }
 
+            if (com.virtixstudio.kruxai.utils.LinkButtons.isButtonLine(line)) {
+                flushMarkdown(holder.messageContainer, normal.toString());
+                normal.setLength(0);
+                addLinkButtons(holder.messageContainer,
+                        com.virtixstudio.kruxai.utils.LinkButtons.parse(line));
+                i++;
+                continue;
+            }
+            if (com.virtixstudio.kruxai.utils.LinkButtons.isPartial(line)) {
+                i++; // bouton encore en cours d'écriture : masqué en attendant
+                continue;
+            }
+
             normal.append(line);
             if (i < lines.size() - 1) {
                 normal.append('\n');
@@ -421,6 +459,41 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         flushMarkdown(holder.messageContainer, normal.toString());
+    }
+
+    /** Boutons de lien arrondis, aux couleurs de la personnalisation. */
+    private void addLinkButtons(LinearLayout container, List<String[]> buttons) {
+        Context ctx = container.getContext();
+        float d = ctx.getResources().getDisplayMetrics().density;
+        for (String[] b : buttons) {
+            final String url = b[1];
+            TextView btn = new TextView(ctx);
+            btn.setText(b[0]);
+            btn.setTextSize(15);
+            btn.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            int fg = com.virtixstudio.kruxai.ui.KruxTheme.get(ctx, "buttontext");
+            btn.setTextColor(fg);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(com.virtixstudio.kruxai.ui.KruxTheme.get(ctx, "button"));
+            bg.setCornerRadius(100 * d);
+            btn.setBackground(bg);
+            btn.setPadding((int) (18 * d), (int) (11 * d), (int) (18 * d), (int) (11 * d));
+            android.graphics.drawable.Drawable ic = ctx.getDrawable(R.drawable.ic_globe);
+            if (ic != null) {
+                ic = ic.mutate();
+                ic.setTint(fg);
+                ic.setBounds(0, 0, (int) (18 * d), (int) (18 * d));
+                btn.setCompoundDrawablesRelative(ic, null, null, null);
+                btn.setCompoundDrawablePadding((int) (10 * d));
+            }
+            btn.setOnClickListener(v ->
+                    com.virtixstudio.kruxai.ui.LinkOpener.open(v.getContext(), url));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = (int) (4 * d);
+            lp.bottomMargin = (int) (6 * d);
+            container.addView(btn, lp);
+        }
     }
 
     private void flushMarkdown(
@@ -1008,6 +1081,21 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return Markwon.builder(context)
                 .usePlugin(TablePlugin.create(context))
                 .usePlugin(new AbstractMarkwonPlugin() {
+                    @Override
+                    public void configureConfiguration(@NonNull io.noties.markwon.MarkwonConfiguration.Builder builder) {
+                        // les liens de la réponse s'ouvrent dans le navigateur intégré
+                        builder.linkResolver((view, link) -> {
+                            if (link != null && (link.startsWith("http://") || link.startsWith("https://"))) {
+                                com.virtixstudio.kruxai.ui.LinkOpener.open(view.getContext(), link);
+                            } else if (link != null) {
+                                try {
+                                    android.content.Intent it = new android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link));
+                                    view.getContext().startActivity(it);
+                                } catch (Exception ignored) { }
+                            }
+                        });
+                    }
                     @Override
                     public void configureTheme(@NonNull MarkwonTheme.Builder builder) {
                         builder.codeBlockBackgroundColor(codeBackgroundColor)

@@ -524,18 +524,21 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void initTextToSpeech() {
         textToSpeech = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
-                textToSpeech.setLanguage(Locale.FRENCH);
+                com.virtixstudio.kruxai.utils.VoiceStyler.prepare(textToSpeech, Locale.FRENCH);
                 textToSpeech.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
                     @Override public void onStart(String id) {
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.SPEAKING);
                     }
                     @Override public void onDone(String id) {
+                        if (com.virtixstudio.kruxai.utils.VoiceStyler.isPart(id)) return;
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
                     }
                     @Override public void onError(String id) {
+                        if (com.virtixstudio.kruxai.utils.VoiceStyler.isPart(id)) return;
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
                     }
                     @Override public void onStop(String id, boolean interrupted) {
+                        if (com.virtixstudio.kruxai.utils.VoiceStyler.isPart(id)) return;
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
                     }
                     @Override public void onRangeStart(String id, int start, int end, int frame) {
@@ -554,7 +557,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 isTtsSpeaking = false;
                 if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
             } else {
-                textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "KruxAI_TTS");
+                com.virtixstudio.kruxai.utils.VoiceStyler.speak(textToSpeech, text, "KruxAI_TTS");
                 isTtsSpeaking = true;
                 if (btnTtsControl != null) {
                     btnTtsControl.setImageResource(R.drawable.ic_pause);

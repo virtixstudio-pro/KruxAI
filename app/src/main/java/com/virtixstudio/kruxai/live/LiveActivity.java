@@ -13,6 +13,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import com.virtixstudio.kruxai.utils.VoiceStyler;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -116,11 +117,11 @@ public class LiveActivity extends AppCompatActivity {
 
         tts = new TextToSpeech(this, st -> {
             if (st == TextToSpeech.SUCCESS) {
-                tts.setLanguage(Locale.FRENCH);
+                VoiceStyler.prepare(tts, Locale.FRENCH);
                 ttsReady = true;
                 tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                     @Override public void onStart(String id) { ui(() -> { motion.setState(LiveMotion.State.SPEAKING); setStatus(""); }); }
-                    @Override public void onDone(String id) { ui(() -> { motion.setState(LiveMotion.State.IDLE); setStatus("Touche le micro pour parler"); }); }
+                    @Override public void onDone(String id) { if (VoiceStyler.isPart(id)) return; ui(() -> { motion.setState(LiveMotion.State.IDLE); setStatus("Touche le micro pour parler"); }); }
                     @Override public void onError(String id) { onDone(id); }
                     @android.annotation.TargetApi(26) @Override public void onRangeStart(String id, int start, int end, int frame) { ui(motion::onWord); }
                 });
@@ -245,7 +246,7 @@ public class LiveActivity extends AppCompatActivity {
         if (text.isEmpty()) { motion.setState(LiveMotion.State.IDLE); setStatus("Touche le micro pour parler"); return; }
         if (!ttsReady) { motion.setState(LiveMotion.State.IDLE); setStatus(text); return; }
         motion.flash(LiveMotion.Mood.HAPPY, 0.8f);
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "krux_live");
+        VoiceStyler.speak(tts, text, "krux_live");
         if (Build.VERSION.SDK_INT < 26) motion.setState(LiveMotion.State.SPEAKING);
     }
 

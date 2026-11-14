@@ -8,7 +8,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 |---|---|
 | **Nom affiché** | Krux |
 | **Package / applicationId** | `com.virtixstudio.kruxai` |
-| **Version** | `2.9.8.25` (versionCode 37) |
+| **Version** | `2.10.0` (versionCode 38) |
 | **Android minimum** | API 24 (Android 7.0) |
 | **Cible / compilation** | API 34 (Android 14) |
 | **Langage** | Java 8 |
@@ -21,6 +21,10 @@ Application Android de chat IA, de création d'applications et de conversation v
 - **Chat IA multi-fournisseurs** avec routage et repli automatique entre Groq, Cerebras, Mistral, Hugging Face et Gemini (`router/ModelRouter`, `api/ApiClient`).
 - **Recherche web et sources** : recherche, classement et scraping de pages, avec affichage des sources (`api/WebSearchEngine`, `api/SearchRanker`, `web/WebScraper`).
 - **Mode vocal et Live** : reconnaissance vocale, synthèse vocale, avatar animé et service flottant (`live/`).
+- **Voix plus vivante** : meilleure voix française installée, lecture phrase par phrase avec pauses et intonation, sans lire les emojis, astérisques ni liens (`utils/VoiceStyler`).
+- **Menu d'appui long sur les réponses** : copier, tout sélectionner, partager (`ui/MessageActions`).
+- **Boutons de lien** : l'IA écrit `[btn:Texte|https://…]`, l'app affiche un bouton arrondi aux couleurs du thème (`utils/LinkButtons`).
+- **Navigateur intégré** : les liens (boutons, texte, sources) s'ouvrent dans l'app, avec retour, actualiser et « Chrome » (`ui/HtmlPreviewActivity`, `ui/LinkOpener`).
 - **Studio / App Builder** : génération d'applications, modèles de build, validation, suivi de progression, stockage Cloudinary / Worker (`AppBuilder`, `builder/`, `core/`).
 - **Mémoire et historique** : base Room, extraction et sélection de souvenirs, synchronisation cloud (`db/`, `utils/MemoryExtractor`, `utils/ChatHistoryManager`, `core/CloudSync`).
 - **Personnalisation** : palettes et couleurs modifiables via un système de thème par tags `krux:*` (`ui/KruxTheme`).
@@ -95,6 +99,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 - `MainActivity` : chat, historique, réglages rapides, vocal, export.
 - `StudioActivity` : agents et création d'applications.
 - `LiveActivity` : conversation vocale et avatar.
+- `HtmlPreviewActivity` : aperçu plein écran des pages HTML créées par l'IA, et navigateur intégré pour les sites.
 - `SettingsActivity` : thème, langue, compte, informations.
 
 ---
@@ -245,3 +250,27 @@ Workflow manuel destiné à la compilation de dépôts publics.
 ## Auteur
 
 **Virtix Studio** — projet privé.
+
+---
+
+## Boutons de lien
+
+L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
+
+```text
+[btn:Ouvrir la documentation|https://exemple.com/doc]
+```
+
+- Texte du bouton : 40 caractères maximum.
+- Seules les adresses `http://` et `https://` sont acceptées.
+- Le bouton n'est pas lu à voix haute ; copié ou partagé, il devient `Texte : lien`.
+
+---
+
+## Journal des mises à jour
+
+**14/11/2026**
+- Voix : `VoiceStyler` (voix, pauses, intonation, nettoyage du markdown et des emojis) branché sur le chat, le mode Live et la bulle flottante.
+- Réponses : menu d'appui long (copier, tout sélectionner, partager) et boutons de lien.
+- Liens : navigateur intégré, réutilise `HtmlPreviewActivity`.
+- À venir : export CSV et zip de PDF, patch d'économie de quotas, vérification de la bannière hors ligne, écran Mémoire v2.

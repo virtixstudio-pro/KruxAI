@@ -24,6 +24,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import com.virtixstudio.kruxai.utils.VoiceStyler;
 import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -209,12 +210,12 @@ public class FloatingKruxService extends Service {
         if (tts != null) return;
         tts = new TextToSpeech(this, st -> {
             if (st == TextToSpeech.SUCCESS) {
-                tts.setLanguage(Locale.FRENCH);
+                VoiceStyler.prepare(tts, Locale.FRENCH);
                 ttsReady = true;
                 tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                     @Override public void onStart(String id) { setState(LiveMotion.State.SPEAKING); }
-                    @Override public void onDone(String id) { setState(LiveMotion.State.IDLE); }
-                    @Override public void onError(String id) { setState(LiveMotion.State.IDLE); }
+                    @Override public void onDone(String id) { if (VoiceStyler.isPart(id)) return; setState(LiveMotion.State.IDLE); }
+                    @Override public void onError(String id) { if (VoiceStyler.isPart(id)) return; setState(LiveMotion.State.IDLE); }
                     @android.annotation.TargetApi(26) @Override public void onRangeStart(String id, int s, int e, int f) { word(); }
                 });
             }
@@ -316,7 +317,7 @@ public class FloatingKruxService extends Service {
         initTts();
         if (text.isEmpty() || !ttsReady) { setState(LiveMotion.State.IDLE); if (!text.isEmpty()) Toast.makeText(this, text, Toast.LENGTH_LONG).show(); return; }
         flash(LiveMotion.Mood.HAPPY, 0.8f);
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "krux_float");
+        VoiceStyler.speak(tts, text, "krux_float");
         if (Build.VERSION.SDK_INT < 26) setState(LiveMotion.State.SPEAKING);
     }
 

@@ -95,7 +95,7 @@ public final class SourcesSheet {
                 try {
                     String u = s.getUrl();
                     if (u != null && (u.startsWith("https://") || u.startsWith("http://"))) {
-                        ctx.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        LinkOpener.open(ctx, u);
                     }
                 } catch (Exception ignored) { }
             });
