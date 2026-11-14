@@ -23,12 +23,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <com.virtixstudio.kruxai.ui.KruxWelcomeSceneView
-                android:id="@+id/welcomeScene"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:alpha="0.82" />
-
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvChat"
                 android:layout_width="match_parent"

@@ -259,7 +259,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         setupFloatingChrome();
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
         tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
-        welcomeScene = findViewById(R.id.welcomeScene);
+        welcomeScene = null; // la boule animée de l'accueil est retirée : tous les usages plus bas testent null
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
         waveBar1 = findViewById(R.id.waveBar1);
