@@ -1374,6 +1374,26 @@ private final ActivityResultLauncher<String[]> filePicker =
         activeAiMessage = null;
         setKruxState(KruxState.THINKING);
 
+        // « Montre-moi des photos de … » : galerie d'images libres, sans passer par le modèle
+        final String imageQuery = com.virtixstudio.kruxai.utils.ImageGallery.extractQuery(prompt);
+        if (imageQuery != null && (net == null || net.isOnline())) {
+            setKruxState(KruxState.SEARCHING);
+            com.virtixstudio.kruxai.api.ImageSearch.search(imageQuery, new com.virtixstudio.kruxai.api.ImageSearch.Callback() {
+                @Override public void onResult(java.util.List<com.virtixstudio.kruxai.utils.ImageGallery.Hit> hits) {
+                    String text = "Voici des images de « " + imageQuery + " ». Touche une image pour l'agrandir, la télécharger ou voir sa source.\n\n"
+                            + com.virtixstudio.kruxai.utils.ImageGallery.encode(hits);
+                    ChatMessage reply = new ChatMessage(text, false);
+                    reply.setStreaming(false);
+                    saveMessageToDatabase(reply);
+                    runOnUiThread(() -> { setGeneratingState(false); setKruxState(KruxState.IDLE); });
+                }
+                @Override public void onError(String message) {
+                    runOnUiThread(() -> executeAiQuery(prompt, "", new ArrayList<>(), fileNameForRequest, fileContentForRequest));
+                }
+            });
+            return;
+        }
+
         ToolRouter.Tool tool = ToolRouter.decide(prompt, isDeepSearchEnabled);
 
         if (tool == ToolRouter.Tool.WEB_SEARCH && (net == null || net.isOnline())) {

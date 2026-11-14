@@ -245,6 +245,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (filesHost != null) {
             com.virtixstudio.kruxai.ui.DeliveredFileCards.fill(filesHost,
                     com.virtixstudio.kruxai.utils.FileDelivery.parse(message.getText()));
+            java.util.List<com.virtixstudio.kruxai.utils.ImageGallery.Hit> pics =
+                    com.virtixstudio.kruxai.utils.ImageGallery.parse(message.getText());
+            if (!pics.isEmpty()) com.virtixstudio.kruxai.ui.ImageGalleryView.append(filesHost, pics);
         }
 
         setupKruxAnswerStatus(aiHolder, message);

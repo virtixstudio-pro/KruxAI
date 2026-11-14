@@ -94,7 +94,9 @@ public final class FileDelivery {
 
     /** Texte à afficher : blocs complets retirés, bloc encore en cours d'écriture masqué (pas de contenu brut qui défile). */
     public static String stripForDisplay(String text) {
-        if (text == null || text.indexOf("<KRUX_FIL") < 0) return text == null ? "" : text;
+        if (text == null) return "";
+        text = ImageGallery.strip(text);
+        if (text.indexOf("<KRUX_FIL") < 0) return text;
         String s = BLOCK.matcher(text).replaceAll("");
         Matcher o = OPEN.matcher(s);
         if (o.find()) s = s.substring(0, o.start());
