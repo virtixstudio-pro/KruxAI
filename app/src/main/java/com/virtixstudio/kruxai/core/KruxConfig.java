@@ -27,6 +27,7 @@ public final class KruxConfig {
     private static volatile String cloudName = "";
     private static volatile String uploadPreset = "";
     private static volatile String workerUrl = "";
+    private static volatile String aiProxyUrl = "";
 
     private KruxConfig() { }
 
@@ -41,6 +42,11 @@ public final class KruxConfig {
     public static String workerUrl() { return workerUrl; }
 
     public static boolean workerEnabled() { return !workerUrl.isEmpty(); }
+
+    /** Adresse https du Worker proxy IA (les clés des fournisseurs y restent), ou "" si non configuré. */
+    public static String aiProxyUrl() { return aiProxyUrl; }
+
+    public static boolean aiProxyEnabled() { return !aiProxyUrl.isEmpty(); }
 
     public static BuildSpec build() { return build; }
 
@@ -65,6 +71,9 @@ public final class KruxConfig {
             JSONObject w = root.optJSONObject("worker");
             String wu = w == null ? "" : w.optString("url", "").trim().replaceAll("/+$", "");
             workerUrl = wu.matches("https://[A-Za-z0-9.-]{3,100}") ? wu : "";
+            JSONObject ap = root.optJSONObject("ai_proxy");
+            String apu = ap == null ? "" : ap.optString("url", "").trim().replaceAll("/+$", "");
+            aiProxyUrl = apu.matches("https://[A-Za-z0-9.-]{3,100}") ? apu : "";
             build = s;
             loadedFrom = "assets/krux_config.json";
         } catch (Exception e) {

@@ -1,3 +1,14 @@
+        URL url = new URL(
+                viaProxy
+                        ? com.virtixstudio.kruxai.core.AiProxy.url("gemini/stream?model="
+                                + java.net.URLEncoder.encode(model, "UTF-8"))
+                        : "https://generativelanguage.googleapis.com/"
+                                + "v1beta/models/"
+                                + model
+                                + ":streamGenerateContent?alt=sse&key="
+                                + apiKey
+        );
+
 package com.virtixstudio.kruxai.api;
 
 import android.util.Log;
@@ -499,12 +510,17 @@ public class ApiClient {
             ApiCallback callback
     ) throws Exception {
 
+        boolean proxy = com.virtixstudio.kruxai.core.AiProxy.enabled();
+        // Avec le proxy, le "mot de passe" envoyé est le jeton Firebase ; sinon l'ancienne clé de l'APK.
+        String token = proxy ? com.virtixstudio.kruxai.core.AiProxy.idToken() : null;
+
         switch (model.getProvider()) {
 
             case "GROQ":
                 return callOpenAIStyle(
-                        "https://api.groq.com/openai/v1/chat/completions",
-                        BuildConfig.GROQ_API_KEY,
+                        proxy ? com.virtixstudio.kruxai.core.AiProxy.url("groq/chat")
+                                : "https://api.groq.com/openai/v1/chat/completions",
+                        proxy ? token : BuildConfig.GROQ_API_KEY,
                         model.getModelId(),
                         systemPrompt,
                         userMessage,
@@ -514,8 +530,9 @@ public class ApiClient {
 
             case "CEREBRAS":
                 return callOpenAIStyle(
-                        "https://api.cerebras.ai/v1/chat/completions",
-                        BuildConfig.CEREBRAS_API_KEY,
+                        proxy ? com.virtixstudio.kruxai.core.AiProxy.url("cerebras/chat")
+                                : "https://api.cerebras.ai/v1/chat/completions",
+                        proxy ? token : BuildConfig.CEREBRAS_API_KEY,
                         model.getModelId(),
                         systemPrompt,
                         userMessage,
@@ -525,8 +542,9 @@ public class ApiClient {
 
             case "MISTRAL":
                 return callOpenAIStyle(
-                        "https://api.mistral.ai/v1/chat/completions",
-                        BuildConfig.MISTRAL_API_KEY,
+                        proxy ? com.virtixstudio.kruxai.core.AiProxy.url("mistral/chat")
+                                : "https://api.mistral.ai/v1/chat/completions",
+                        proxy ? token : BuildConfig.MISTRAL_API_KEY,
                         model.getModelId(),
                         systemPrompt,
                         userMessage,
@@ -536,10 +554,12 @@ public class ApiClient {
 
             case "HUGGINGFACE":
                 return callOpenAIStyle(
-                        "https://api-inference.huggingface.co/models/"
-                                + model.getModelId()
-                                + "/v1/chat/completions",
-                        BuildConfig.HF_API_KEY,
+                        proxy ? com.virtixstudio.kruxai.core.AiProxy.url("huggingface/chat?model="
+                                        + java.net.URLEncoder.encode(model.getModelId(), "UTF-8"))
+                                : "https://api-inference.huggingface.co/models/"
+                                        + model.getModelId()
+                                        + "/v1/chat/completions",
+                        proxy ? token : BuildConfig.HF_API_KEY,
                         model.getModelId(),
                         systemPrompt,
                         userMessage,
@@ -549,7 +569,8 @@ public class ApiClient {
 
             case "GEMINI":
                 return callGemini(
-                        BuildConfig.GEMINI_API_KEY,
+                        proxy ? token : BuildConfig.GEMINI_API_KEY,
+                        proxy,
                         model.getModelId(),
                         systemPrompt,
                         userMessage,
@@ -687,6 +708,7 @@ public class ApiClient {
 
     private static String callGemini(
             String apiKey,
+            boolean viaProxy,
             String model,
             String systemPrompt,
             String userMessage,
@@ -711,6 +733,10 @@ public class ApiClient {
         if (!QUIET.get()) activeConnection = conn;
 
         conn.setRequestMethod("POST");
+
+        if (viaProxy) {
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+        }
 
         conn.setRequestProperty(
                 "Content-Type",

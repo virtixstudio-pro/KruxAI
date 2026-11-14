@@ -1,0 +1,10 @@
+# Worker Cloudflare "krux-ai-proxy" : les clés des fournisseurs IA restent ici, jamais dans l'APK.
+name = "krux-ai-proxy"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "krux-9fd33"
+
+# Les clés se déposent avec : npx wrangler secret put NOM  (voir README.md)
+# GROQ_API_KEY, CEREBRAS_API_KEY, MISTRAL_API_KEY, HF_API_KEY, GEMINI_API_KEY

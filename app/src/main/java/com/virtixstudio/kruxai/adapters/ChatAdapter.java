@@ -540,6 +540,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 .replaceAll("&nbsp;", " ");
     }
 
+    private static int dp(Context c, float v) {
+        return Math.round(v * c.getResources().getDisplayMetrics().density);
+    }
+
     private void addCodeBlock(
             LinearLayout container,
             String language,
@@ -548,19 +552,36 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     ) {
         Context context = container.getContext();
 
+        // Couleurs du bloc : tout vient du thème de l'app (palette + personnalisations).
+        int accent = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "accent");
+        int textColor = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "text");
+        int text2 = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "text2");
+        int blockBg = androidx.core.graphics.ColorUtils.setAlphaComponent(
+                com.virtixstudio.kruxai.ui.KruxTheme.get(context, "input"), 255);
+        int headerBg = androidx.core.graphics.ColorUtils.blendARGB(blockBg, accent, 0.10f);
+        int border = androidx.core.graphics.ColorUtils.setAlphaComponent(accent, 70);
+        float radius = Math.min(com.virtixstudio.kruxai.ui.KruxTheme.radiusDp(context), 16) * 
+                context.getResources().getDisplayMetrics().density;
+
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(0, 0, 0, 0);
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(codeBackgroundColor);
-        background.setCornerRadius(22);
-        background.setStroke(1, codeBorderColor);
+        background.setColor(blockBg);
+        background.setCornerRadius(radius);
+        background.setStroke(Math.max(1, dp(context, 0.8f)), border);
         card.setBackground(background);
+        card.setClipToOutline(true);
 
+        // Bandeau compact : capsule du langage, nom de fichier, actions.
         LinearLayout header = new LinearLayout(context);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(14, 10, 8, 10);
+        header.setPadding(dp(context, 8), dp(context, 3), dp(context, 4), dp(context, 3));
+        GradientDrawable headerShape = new GradientDrawable();
+        headerShape.setColor(headerBg);
+        headerShape.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
+        header.setBackground(headerShape);
 
         TextView languageView = new TextView(context);
         languageView.setText(
@@ -568,9 +589,15 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         ? "CODE"
                         : language.toUpperCase(Locale.ROOT)
         );
-        languageView.setTextColor(accentColor);
-        languageView.setTextSize(11);
+        languageView.setTextColor(accent);
+        languageView.setTextSize(10);
         languageView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        languageView.setSingleLine(true);
+        languageView.setPadding(dp(context, 8), dp(context, 1), dp(context, 8), dp(context, 1));
+        GradientDrawable capsule = new GradientDrawable();
+        capsule.setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(accent, 40));
+        capsule.setCornerRadius(dp(context, 999));
+        languageView.setBackground(capsule);
 
         header.addView(
                 languageView,
@@ -583,8 +610,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (!fileName.isEmpty()) {
             TextView fileView = new TextView(context);
             fileView.setText(fileName);
-            fileView.setTextColor(secondaryTextColor);
-            fileView.setTextSize(11);
+            fileView.setTextColor(text2);
+            fileView.setTextSize(10.5f);
             fileView.setSingleLine(true);
             fileView.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
 
@@ -594,7 +621,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             1f
                     );
-            fp.setMargins(10, 0, 8, 0);
+            fp.setMargins(dp(context, 8), 0, dp(context, 6), 0);
             header.addView(fileView, fp);
         } else {
             Space spacer = new Space(context);
@@ -611,21 +638,24 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         ImageButton share = createCodeAction(
                 context,
                 R.drawable.ic_share,
-                "Partager le code"
+                "Partager le code",
+                text2
         );
         ImageButton copy = createCodeAction(
                 context,
                 R.drawable.ic_copy,
-                "Copier le code"
+                "Copier le code",
+                text2
         );
         ImageButton download = createCodeAction(
                 context,
                 R.drawable.ic_download,
-                "Télécharger le code"
+                "Télécharger le code",
+                text2
         );
 
         if (com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code)) {
-            ImageButton preview = createCodeAction(context, R.drawable.ic_play, "Aperçu de la page");
+            ImageButton preview = createCodeAction(context, R.drawable.ic_play, "Aperçu de la page", text2);
             preview.setOnClickListener(v -> com.virtixstudio.kruxai.ui.HtmlPreviewActivity.open(context, fileName, code));
             header.addView(preview);
         }
@@ -638,12 +668,15 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         scroll.setFillViewport(false);
 
         TextView codeView = new TextView(context);
-        codeView.setText(code);
-        codeView.setTextColor(codeTextColor);
-        codeView.setTextSize(13);
+        codeView.setText(com.virtixstudio.kruxai.utils.SyntaxHighlighter.highlight(
+                code,
+                language,
+                com.virtixstudio.kruxai.utils.SyntaxHighlighter.paletteFor(blockBg, textColor, accent)));
+        codeView.setTextColor(textColor);
+        codeView.setTextSize(12.5f);
         codeView.setTypeface(Typeface.MONOSPACE);
         codeView.setGravity(Gravity.TOP | Gravity.START);
-        codeView.setPadding(18, 15, 18, 18);
+        codeView.setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 10));
         codeView.setHorizontallyScrolling(true);
         codeView.setTextIsSelectable(true);
 
@@ -714,18 +747,21 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private ImageButton createCodeAction(
             Context context,
             int icon,
-            String description
+            String description,
+            int tint
     ) {
         ImageButton button = new ImageButton(context);
         button.setImageResource(icon);
-        button.setColorFilter(secondaryTextColor);
+        button.setColorFilter(tint);
         button.setBackgroundColor(Color.TRANSPARENT);
         button.setContentDescription(description);
-        button.setPadding(6, 6, 6, 6);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int pad = dp(context, 6);
+        button.setPadding(pad, pad, pad, pad);
 
         LinearLayout.LayoutParams actionParams =
-                new LinearLayout.LayoutParams(30, 30);
-        actionParams.setMargins(3, 0, 3, 0);
+                new LinearLayout.LayoutParams(dp(context, 28), dp(context, 28));
+        actionParams.setMargins(dp(context, 1), 0, dp(context, 1), 0);
         button.setLayoutParams(actionParams);
 
         return button;

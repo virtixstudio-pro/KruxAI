@@ -37,6 +37,11 @@
     "url": "https://misty-mountain-1b0dvirtix-store.kruxvirtix.workers.dev"
   },
 
+  "ai_proxy": {
+    "_note": "Adresse du Worker proxy IA (dossier worker/ai-proxy). Les clés des fournisseurs sont dans les secrets Cloudflare. Ex : https://krux-ai-proxy.TON-COMPTE.workers.dev . Laisser vide = ancien mode (clés dans l'APK). Aucun secret ici.",
+    "url": ""
+  },
+
   "cloudinary": {
     "_note": "Stockage des apps créées. Laisser vide pour désactiver. Jamais de api_secret ici : seulement le nom du cloud et le preset NON SIGNÉ (restreint dans Cloudinary : dossier krux_apps, 10 Mo, formats apk).",
     "cloud_name": "",
