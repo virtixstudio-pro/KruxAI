@@ -1,14 +1,3 @@
-        URL url = new URL(
-                viaProxy
-                        ? com.virtixstudio.kruxai.core.AiProxy.url("gemini/stream?model="
-                                + java.net.URLEncoder.encode(model, "UTF-8"))
-                        : "https://generativelanguage.googleapis.com/"
-                                + "v1beta/models/"
-                                + model
-                                + ":streamGenerateContent?alt=sse&key="
-                                + apiKey
-        );
-
 package com.virtixstudio.kruxai.api;
 
 import android.util.Log;
@@ -721,11 +710,14 @@ public class ApiClient {
         }
 
         URL url = new URL(
-                "https://generativelanguage.googleapis.com/"
-                        + "v1beta/models/"
-                        + model
-                        + ":streamGenerateContent?alt=sse&key="
-                        + apiKey
+                viaProxy
+                        ? com.virtixstudio.kruxai.core.AiProxy.url("gemini/stream?model="
+                                + java.net.URLEncoder.encode(model, "UTF-8"))
+                        : "https://generativelanguage.googleapis.com/"
+                                + "v1beta/models/"
+                                + model
+                                + ":streamGenerateContent?alt=sse&key="
+                                + apiKey
         );
 
         HttpURLConnection conn =
