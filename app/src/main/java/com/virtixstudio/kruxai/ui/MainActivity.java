@@ -517,7 +517,26 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void initTextToSpeech() {
         textToSpeech = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) textToSpeech.setLanguage(Locale.FRENCH);
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech.setLanguage(Locale.FRENCH);
+                textToSpeech.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+                    @Override public void onStart(String id) {
+                        com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.SPEAKING);
+                    }
+                    @Override public void onDone(String id) {
+                        com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
+                    }
+                    @Override public void onError(String id) {
+                        com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
+                    }
+                    @Override public void onStop(String id, boolean interrupted) {
+                        com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
+                    }
+                    @Override public void onRangeStart(String id, int start, int end, int frame) {
+                        com.virtixstudio.kruxai.live.FloatingKruxService.word();
+                    }
+                });
+            }
         });
     }
 
@@ -2202,6 +2221,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                 @Override
                 public void onReadyForSpeech(Bundle params) {
+                    com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.LISTENING);
                     resetVoiceBars();
                 }
 
@@ -2212,6 +2232,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 @Override
                 public void onRmsChanged(float rmsdB) {
                     if (!isListening) return;
+                    com.virtixstudio.kruxai.live.FloatingKruxService.level((rmsdB + 2f) / 12f);
                     updateVoiceBars(rmsdB);
                 }
 
@@ -2351,6 +2372,8 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void stopVoiceUI() {
         isListening = false;
+        com.virtixstudio.kruxai.live.FloatingKruxService.level(0f);
+        com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
 
         btnMic.setVisibility(View.VISIBLE);
 
@@ -3264,12 +3287,34 @@ private final ActivityResultLauncher<String[]> filePicker =
         return s != null && s.contains("<REFLEXION>") && !s.contains("</REFLEXION>");
     }
 
+    /** Le visage flottant montre ce que fait KRUX : il réfléchit pendant la recherche et la génération, s'étonne en cas d'erreur. */
+    private void syncFloatingFace(KruxState st) {
+        try {
+            if (!com.virtixstudio.kruxai.live.FloatingKruxService.isRunning()) return;
+            com.virtixstudio.kruxai.live.LiveMotion.State target;
+            switch (st) {
+                case THINKING: case SEARCHING: case GENERATING: case MEMORY:
+                    target = com.virtixstudio.kruxai.live.LiveMotion.State.THINKING; break;
+                case LISTENING:
+                    target = com.virtixstudio.kruxai.live.LiveMotion.State.LISTENING; break;
+                case ERROR:
+                    com.virtixstudio.kruxai.live.FloatingKruxService.flash(com.virtixstudio.kruxai.live.LiveMotion.Mood.SURPRISED, 1.2f);
+                    target = com.virtixstudio.kruxai.live.LiveMotion.State.IDLE; break;
+                default:
+                    target = isTtsSpeaking ? com.virtixstudio.kruxai.live.LiveMotion.State.SPEAKING
+                                           : com.virtixstudio.kruxai.live.LiveMotion.State.IDLE;
+            }
+            com.virtixstudio.kruxai.live.FloatingKruxService.setState(target);
+        } catch (Exception ignore) { }
+    }
+
     private void setKruxState(KruxState state) {
         if (state == null) {
             state = KruxState.IDLE;
         }
 
         kruxState = state;
+        syncFloatingFace(state);
 
         final KruxState displayState = state;
 

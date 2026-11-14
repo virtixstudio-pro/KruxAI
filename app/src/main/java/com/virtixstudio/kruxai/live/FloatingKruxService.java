@@ -31,6 +31,32 @@ public class FloatingKruxService extends Service {
     private static final String CHANNEL = "krux_floating";
     private static volatile boolean running = false;
 
+    // --- Le visage flottant suit la voix : l'app lui dit quand KRUX réfléchit, parle ou écoute.
+    private static volatile KruxLiveView liveFace;
+    private static final android.os.Handler MAIN = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    public static void setState(final LiveMotion.State st) {
+        if (liveFace == null) return;
+        MAIN.post(() -> { KruxLiveView f = liveFace; if (f != null) f.motion().setState(st); });
+    }
+
+    /** Niveau du micro, de 0 à 1 (bouche et yeux réagissent quand tu parles). */
+    public static void level(final float v) {
+        if (liveFace == null) return;
+        MAIN.post(() -> { KruxLiveView f = liveFace; if (f != null) f.motion().setInputLevel(v); });
+    }
+
+    /** Un mot vient d'être prononcé : la bouche bouge. */
+    public static void word() {
+        if (liveFace == null) return;
+        MAIN.post(() -> { KruxLiveView f = liveFace; if (f != null) f.motion().onWord(); });
+    }
+
+    public static void flash(final LiveMotion.Mood m, final float seconds) {
+        if (liveFace == null) return;
+        MAIN.post(() -> { KruxLiveView f = liveFace; if (f != null) f.motion().flash(m, seconds); });
+    }
+
     private WindowManager wm;
     private KruxLiveView face;
     private WindowManager.LayoutParams lp;
@@ -130,6 +156,7 @@ public class FloatingKruxService extends Service {
         });
         try {
             wm.addView(face, lp);
+            liveFace = face;
         } catch (Exception e) {
             face = null;
             stopSelf();
@@ -139,6 +166,7 @@ public class FloatingKruxService extends Service {
     @Override
     public void onDestroy() {
         running = false;
+        liveFace = null;
         try { if (face != null && wm != null) wm.removeView(face); } catch (Exception ignored) { }
         face = null;
         super.onDestroy();
