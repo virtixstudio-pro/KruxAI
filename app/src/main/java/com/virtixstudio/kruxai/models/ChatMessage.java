@@ -47,6 +47,7 @@ public class ChatMessage {
     private String model;
     private String sessionId;
     private boolean streaming;
+    private boolean waiting; // hors réseau : en attente, jamais enregistré
 
     public ChatMessage() {
         this.id = UUID.randomUUID().toString();
@@ -136,6 +137,10 @@ public class ChatMessage {
     public String getSessionId() {
         return sessionId;
     }
+
+    public boolean isWaiting() { return waiting; }
+
+    public void setWaiting(boolean waiting) { this.waiting = waiting; }
 
     public boolean isStreaming() {
         return streaming;

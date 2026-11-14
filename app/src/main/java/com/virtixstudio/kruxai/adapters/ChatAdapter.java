@@ -81,6 +81,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onFeedbackRequested(ChatMessage message, String type);
     }
 
+    /** Appelé quand l'utilisateur touche « Réessayer » sur un message resté hors réseau. */
+    public interface OnWaitingRetryListener { void onRetryNow(ChatMessage message); }
+
+    private OnWaitingRetryListener waitingRetryListener;
+
+    public void setWaitingRetryListener(OnWaitingRetryListener l) { this.waitingRetryListener = l; }
+
     public interface OnUserActionListener {
         void onEditRequested(ChatMessage message);
         void onCopyRequested(ChatMessage message);
@@ -1124,11 +1131,58 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
+    /** Hors réseau : à la place de la barre copier / partager / télécharger, un seul bouton « Réessayer » au centre. */
+    private void showWaitingButton(final AiViewHolder holder, final Context context, final ChatMessage message) {
+        if (holder.btnWaiting == null) {
+            if (!(holder.layoutActions.getParent() instanceof LinearLayout)) return;
+            LinearLayout parent = (LinearLayout) holder.layoutActions.getParent();
+            float d = context.getResources().getDisplayMetrics().density;
+            TextView b = new TextView(context);
+            b.setText("Réessayer");
+            b.setTextSize(14);
+            b.setTypeface(null, android.graphics.Typeface.BOLD);
+            b.setGravity(android.view.Gravity.CENTER);
+            b.setCompoundDrawablePadding((int) (8 * d));
+            b.setPadding((int) (22 * d), 0, (int) (22 * d), 0);
+            b.setClickable(true);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, (int) (44 * d));
+            lp.gravity = android.view.Gravity.CENTER_HORIZONTAL;
+            lp.topMargin = (int) (10 * d);
+            lp.bottomMargin = (int) (4 * d);
+            parent.addView(b, parent.indexOfChild(holder.layoutActions) + 1, lp);
+            holder.btnWaiting = b;
+        }
+        TextView b = holder.btnWaiting;
+        if (!message.isWaiting()) { b.setVisibility(View.GONE); return; }
+        b.setVisibility(View.VISIBLE);
+        int btn = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "button");
+        int txt = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "buttontext");
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(btn);
+        g.setCornerRadius(com.virtixstudio.kruxai.ui.KruxTheme.radiusDp(context) * context.getResources().getDisplayMetrics().density);
+        b.setBackground(g);
+        b.setTextColor(txt);
+        android.graphics.drawable.Drawable ic = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_retry);
+        if (ic != null) {
+            ic = ic.mutate();
+            ic.setTint(txt);
+            int s = (int) (18 * context.getResources().getDisplayMetrics().density);
+            ic.setBounds(0, 0, s, s);
+            b.setCompoundDrawables(ic, null, null, null);
+        }
+        b.setOnClickListener(v -> { if (waitingRetryListener != null) waitingRetryListener.onRetryNow(message); });
+    }
+
     private void setupActions(
             AiViewHolder holder,
             Context context,
             ChatMessage message
     ) {
+        showWaitingButton(holder, context, message);
+        if (message.isWaiting()) {
+            holder.layoutActions.setVisibility(View.GONE);
+            return;
+        }
         if (message.isStreaming()) {
             holder.layoutActions.setVisibility(View.GONE);
             holder.layoutActions.setAlpha(0f);
@@ -1337,6 +1391,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         LinearLayout btnToggleReasoning;
         LinearLayout layoutSources;
         LinearLayout layoutActions;
+        TextView btnWaiting;
 
         ImageView ivArrowReasoning;
 

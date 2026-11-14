@@ -326,6 +326,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     }
                 }
         );
+        chatAdapter.setWaitingRetryListener(this::retryWaiting);
 
             applySavedTheme();
 
@@ -861,15 +862,35 @@ private final ActivityResultLauncher<String[]> filePicker =
             if (chatAdapter != null) chatAdapter.notifyItemInserted(messageList.size() - 1);
         }
         ph.setStreaming(false);
+        ph.setWaiting(true);
         ph.setText(com.virtixstudio.kruxai.utils.NetPolicy.waitingText());
         int pos = messageList.indexOf(ph);
         if (pos >= 0 && chatAdapter != null) { chatAdapter.notifyItemChanged(pos); rvChat.smoothScrollToPosition(pos); }
-        netQueue.add(new NetPending(prompt, fileName, fileContent, ph));
+        NetPending np = new NetPending(prompt, fileName, fileContent, ph);
+        waitingMap.put(ph, np);
+        netQueue.add(np);
         persistNetQueue();
         if (net != null && !net.isOnline()) showBanner(false);
     }
 
+    private final java.util.IdentityHashMap<ChatMessage, NetPending> waitingMap = new java.util.IdentityHashMap<>();
+
+    /** Bouton « Réessayer » : renvoie tout de suite ce message en attente, s'il y a du réseau. */
+    private void retryWaiting(ChatMessage m) {
+        NetPending p = waitingMap.get(m);
+        if (p == null) return;
+        if (net != null && !net.isOnline()) {
+            Toast.makeText(this, "Toujours pas de connexion. Réessaie dans un instant.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        netQueue.remove(p);
+        persistNetQueue();
+        removePlaceholder(m);
+        executeAiQuery(p.prompt, "", new ArrayList<>(), p.fileName, p.fileContent);
+    }
+
     private void removePlaceholder(ChatMessage ph) {
+        waitingMap.remove(ph);
         int pos = messageList.indexOf(ph);
         if (pos >= 0) { messageList.remove(pos); if (chatAdapter != null) chatAdapter.notifyItemRemoved(pos); }
     }
@@ -896,6 +917,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                            final ChatMessage ph, final int attempt) {
         final int[] left = { com.virtixstudio.kruxai.utils.NetPolicy.backoffSeconds(attempt) };
         final Runnable[] tick = new Runnable[1];
+        ph.setWaiting(true);
+        waitingMap.put(ph, new NetPending(prompt, fileName, fileContent, ph));
         tick[0] = () -> {
             if (!messageList.contains(ph)) return; // la discussion a changé : on arrête
             if (net != null && !net.isOnline()) { queueForNet(prompt, fileName, fileContent, ph); return; }
