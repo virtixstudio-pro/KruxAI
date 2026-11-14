@@ -56,6 +56,8 @@ public final class ImageGallery {
         return out;
     }
 
+    public static boolean has(String text) { return text != null && text.contains("<KRUX_IMAGES>"); }
+
     /** Texte sans le bloc d'images (y compris un bloc incomplet). */
     public static String strip(String text) {
         if (text == null || text.indexOf("<KRUX_IMAGES") < 0) return text == null ? "" : text;

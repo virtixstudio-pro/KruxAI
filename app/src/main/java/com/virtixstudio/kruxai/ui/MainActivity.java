@@ -1788,7 +1788,10 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setKruxState(KruxState.ERROR);
                 });
                 aiMessage.setStreaming(false);
-                aiMessage.setText("Erreur : " + errorMessage);
+                // Échec propre : message court + un seul bouton « Réessayer », pas de barre d'actions, rien d'enregistré.
+                aiMessage.setText(errorMessage);
+                aiMessage.setWaiting(true);
+                runOnUiThread(() -> waitingMap.put(aiMessage, new NetPending(userPrompt, fileName, fileContent, aiMessage)));
 
                 runOnUiThread(() -> {
                     int position = messageList.indexOf(aiMessage);
@@ -1796,7 +1799,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                         chatAdapter.notifyItemChanged(position);
                     }
                 });
-                saveMessageToDatabase(aiMessage);
             }
 
             @Override

@@ -327,15 +327,15 @@ public class ApiClient {
         if (lower.contains("clé api")
                 || lower.contains("api key")
                 || lower.contains("apikey")) {
-            return "Ce moteur n est pas encore disponible. Krux peut essayer une autre configuration.";
+            return "Ce modèle est indisponible pour le moment. Essaie-en un autre ou réessaie dans un instant.";
         }
 
         if (lower.contains("401") || lower.contains("403")) {
-            return "L accès à ce moteur n est pas disponible actuellement. Krux peut essayer une autre option.";
+            return "Ce modèle est indisponible pour le moment. Essaie-en un autre ou réessaie dans un instant.";
         }
 
         if (lower.contains("404")) {
-            return "Le service demandé n est pas disponible actuellement.";
+            return "Ce modèle est indisponible pour le moment. Essaie-en un autre ou réessaie dans un instant.";
         }
 
         if (lower.contains("429")) {

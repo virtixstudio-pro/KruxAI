@@ -70,7 +70,7 @@ public final class ImageGalleryView {
             iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
             GradientDrawable ph = new GradientDrawable();
             ph.setColor(KruxTheme.get(c, "input"));
-            ph.setCornerRadius(14 * d);
+            ph.setCornerRadius(16 * d);
             iv.setBackground(ph);
             iv.setClipToOutline(true);
             iv.setContentDescription(h.title);
@@ -83,6 +83,12 @@ public final class ImageGalleryView {
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2);
         hp.topMargin = (int) (6 * d);
         host.addView(hs, hp);
+        TextView note = new TextView(c);
+        note.setText(hits.size() + " images · " + hits.get(0).source + " · touche pour agrandir");
+        note.setTextSize(11);
+        note.setTextColor(KruxTheme.get(c, "text2"));
+        note.setPadding((int) (2 * d), (int) (6 * d), 0, 0);
+        host.addView(note);
     }
 
     /** Charge une image en arrière-plan, la réduit à maxPx, la garde en cache mémoire. */
@@ -106,7 +112,13 @@ public final class ImageGalleryView {
             } catch (Throwable ignored) { }
             final Bitmap result = bmp;
             if (result != null) CACHE.put(url + "@" + maxPx, result);
-            MAIN.post(() -> { if (result != null && url.equals(target.getTag())) target.setImageBitmap(result); });
+            MAIN.post(() -> {
+                if (result != null && url.equals(target.getTag())) {
+                    target.setAlpha(0f);
+                    target.setImageBitmap(result);
+                    target.animate().alpha(1f).setDuration(200).start();
+                }
+            });
         });
     }
 
@@ -118,76 +130,159 @@ public final class ImageGalleryView {
         }
     }
 
-    private static TextView button(Context c, String label, int fill, int color, float d) {
-        TextView b = new TextView(c);
-        b.setText(label);
-        b.setTextSize(13);
-        b.setTypeface(null, Typeface.BOLD);
-        b.setTextColor(color);
-        b.setGravity(Gravity.CENTER);
-        b.setPadding((int) (14 * d), 0, (int) (14 * d), 0);
+    private static ImageView iconButton(Context c, int res, String desc, float d) {
+        ImageView b = new ImageView(c);
+        b.setImageResource(res);
+        b.setColorFilter(Color.WHITE);
+        b.setContentDescription(desc);
+        b.setPadding((int) (10 * d), (int) (10 * d), (int) (10 * d), (int) (10 * d));
         GradientDrawable g = new GradientDrawable();
-        g.setColor(fill);
-        g.setCornerRadius(KruxTheme.radiusDp(c) * d);
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(0x66000000);
         b.setBackground(g);
         b.setClickable(true);
         return b;
+    }
+
+    private static void copyText(Context c, String label, String text) {
+        android.content.ClipboardManager cm = (android.content.ClipboardManager) c.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText(label, text));
+        Toast.makeText(c, "Copié", Toast.LENGTH_SHORT).show();
     }
 
     private static void showViewer(final Context c, final Hit h) {
         final float d = c.getResources().getDisplayMetrics().density;
         final Dialog dlg = new Dialog(c, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         dlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        int bg = KruxTheme.get(c, "bg"), tx = KruxTheme.get(c, "text"), tx2 = KruxTheme.get(c, "text2"),
-                btn = KruxTheme.get(c, "button"), btnTx = KruxTheme.get(c, "buttontext"), soft = KruxTheme.get(c, "input");
 
-        LinearLayout root = new LinearLayout(c);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(bg);
-        root.setPadding((int) (16 * d), (int) (36 * d), (int) (16 * d), (int) (16 * d));
+        final android.widget.FrameLayout root = new android.widget.FrameLayout(c);
+        root.setBackgroundColor(0xFF0A0A0D);
 
-        final ImageView iv = new ImageView(c);
-        iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        root.addView(iv, new LinearLayout.LayoutParams(-1, 0, 1f));
-        // aperçu net tout de suite (miniature déjà en cache), puis l'image complète
+        final ZoomImageView iv = new ZoomImageView(c);
+        root.addView(iv, new android.widget.FrameLayout.LayoutParams(-1, -1));
         Bitmap thumb = CACHE.get(h.thumb + "@400");
         if (thumb != null) iv.setImageBitmap(thumb);
-        load(h.full, 1600, iv);
+        loadInto(h.full, 1800, iv);
 
-        TextView cap = new TextView(c);
+        // légende en bas, discrète
+        final TextView cap = new TextView(c);
         cap.setText(h.title + (h.credit().isEmpty() ? "" : "\n" + h.credit()));
-        cap.setTextColor(tx2);
+        cap.setTextColor(0xFFE5E7EB);
         cap.setTextSize(12);
-        cap.setPadding(0, (int) (10 * d), 0, (int) (10 * d));
-        root.addView(cap, new LinearLayout.LayoutParams(-1, -2));
+        cap.setPadding((int) (18 * d), (int) (28 * d), (int) (18 * d), (int) (22 * d));
+        cap.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[]{0xCC000000, 0x00000000}));
+        android.widget.FrameLayout.LayoutParams cp = new android.widget.FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
+        root.addView(cap, cp);
 
-        LinearLayout row = new LinearLayout(c);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        TextView dl = button(c, "Télécharger", btn, btnTx, d);
-        TextView share = button(c, "Partager", soft, tx, d);
-        TextView src = button(c, "Source", soft, tx, d);
-        TextView close = button(c, "Fermer", soft, tx, d);
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, (int) (44 * d), 1f);
-        bp.rightMargin = (int) (6 * d);
-        row.addView(dl, bp);
-        row.addView(share, bp);
-        row.addView(src, bp);
-        row.addView(close, new LinearLayout.LayoutParams(0, (int) (44 * d), 1f));
-        root.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        // barre du haut : retour à gauche ; télécharger, partager, trois points à droite
+        final LinearLayout bar = new LinearLayout(c);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding((int) (12 * d), (int) (34 * d), (int) (12 * d), (int) (8 * d));
+        ImageView back = iconButton(c, com.virtixstudio.kruxai.R.drawable.ic_back_arrow, "Retour", d);
+        ImageView dl = iconButton(c, com.virtixstudio.kruxai.R.drawable.ic_download, "Télécharger", d);
+        ImageView share = iconButton(c, com.virtixstudio.kruxai.R.drawable.ic_share, "Partager", d);
+        ImageView more = iconButton(c, com.virtixstudio.kruxai.R.drawable.ic_more, "Plus d'options", d);
+        int sz = (int) (44 * d);
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(sz, sz);
+        ip.leftMargin = (int) (8 * d);
+        bar.addView(back, new LinearLayout.LayoutParams(sz, sz));
+        View spacer = new View(c);
+        bar.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        bar.addView(dl, ip);
+        bar.addView(share, ip);
+        bar.addView(more, ip);
+        root.addView(bar, new android.widget.FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
+        // un appui sur l'image cache ou montre les barres
+        iv.setOnSingleTap(() -> {
+            boolean show = bar.getAlpha() < 0.5f;
+            bar.animate().alpha(show ? 1f : 0f).setDuration(160).start();
+            cap.animate().alpha(show ? 1f : 0f).setDuration(160).start();
+        });
+
+        back.setOnClickListener(v -> dlg.dismiss());
         dl.setOnClickListener(v -> save(c, h));
         share.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain");
             i.putExtra(Intent.EXTRA_TEXT, h.title + "\n" + h.credit() + "\n" + h.page);
             c.startActivity(Intent.createChooser(i, "Partager").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         });
-        src.setOnClickListener(v -> {
-            try { c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(h.page)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
-            catch (Exception ignored) { }
+        more.setOnClickListener(v -> {
+            LinearLayout box = new LinearLayout(c);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding((int) (6 * d), (int) (6 * d), (int) (6 * d), (int) (6 * d));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xFF1B1B22);
+            bg.setCornerRadius(16 * d);
+            box.setBackground(bg);
+            final android.widget.PopupWindow pw = new android.widget.PopupWindow(box, (int) (250 * d), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+            pw.setElevation(12 * d);
+            pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            String[] names = {"Voir la source", "Copier le lien", "Copier le crédit", "Définir comme fond d'écran"};
+            Runnable[] acts = {
+                () -> { try { c.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(h.page)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { } },
+                () -> copyText(c, "Lien", h.page),
+                () -> copyText(c, "Crédit", h.title + " — " + h.credit()),
+                () -> setWallpaper(c, h)
+            };
+            for (int k = 0; k < names.length; k++) {
+                TextView t = new TextView(c);
+                t.setText(names[k]);
+                t.setTextSize(15);
+                t.setTextColor(0xFFF3F4F6);
+                t.setGravity(Gravity.CENTER_VERTICAL);
+                t.setPadding((int) (14 * d), 0, (int) (14 * d), 0);
+                final Runnable act = acts[k];
+                t.setOnClickListener(x -> { pw.dismiss(); act.run(); });
+                box.addView(t, new LinearLayout.LayoutParams(-1, (int) (48 * d)));
+            }
+            pw.showAsDropDown(more, 0, (int) (4 * d), Gravity.END);
         });
-        close.setOnClickListener(v -> dlg.dismiss());
+
         dlg.setContentView(root);
         dlg.show();
+    }
+
+    private static void setWallpaper(final Context c, final Hit h) {
+        Toast.makeText(c, "Je prépare le fond d'écran…", Toast.LENGTH_SHORT).show();
+        POOL.execute(() -> {
+            String msg;
+            try {
+                byte[] data = download(h.full);
+                Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length);
+                if (b == null) throw new Exception("image illisible");
+                android.app.WallpaperManager.getInstance(c).setBitmap(b);
+                msg = "Fond d'écran défini";
+            } catch (Throwable e) {
+                msg = "Impossible de définir le fond d'écran";
+            }
+            final String shown = msg;
+            MAIN.post(() -> Toast.makeText(c, shown, Toast.LENGTH_LONG).show());
+        });
+    }
+
+    /** Comme load(), mais pour la visionneuse zoomable (la matrice est recalculée à chaque image). */
+    private static void loadInto(final String url, final int maxPx, final ZoomImageView target) {
+        Bitmap hit = CACHE.get(url + "@" + maxPx);
+        if (hit != null) { target.setImageBitmap(hit); return; }
+        POOL.execute(() -> {
+            Bitmap bmp = null;
+            try {
+                byte[] data = download(url);
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(data, 0, data.length, o);
+                int sample = 1;
+                while (o.outWidth / (sample * 2) >= maxPx && o.outHeight / (sample * 2) >= maxPx) sample *= 2;
+                o = new BitmapFactory.Options();
+                o.inSampleSize = sample;
+                bmp = BitmapFactory.decodeByteArray(data, 0, data.length, o);
+            } catch (Throwable ignored) { }
+            final Bitmap result = bmp;
+            if (result != null) CACHE.put(url + "@" + maxPx, result);
+            MAIN.post(() -> { if (result != null) target.setImageBitmap(result); });
+        });
     }
 
     /** Traitement final avant l'enregistrement. Point d'accroche du futur filigrane. */

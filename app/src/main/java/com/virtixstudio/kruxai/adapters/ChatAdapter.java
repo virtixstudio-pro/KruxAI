@@ -1311,7 +1311,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ChatMessage message
     ) {
         showWaitingButton(holder, context, message);
-        if (message.isWaiting()) {
+        if (message.isWaiting() || com.virtixstudio.kruxai.utils.ImageGallery.has(message.getText())) {
             holder.layoutActions.setVisibility(View.GONE);
             return;
         }
