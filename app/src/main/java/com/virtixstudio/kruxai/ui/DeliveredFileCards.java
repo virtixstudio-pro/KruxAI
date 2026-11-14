@@ -91,6 +91,14 @@ public final class DeliveredFileCards {
         TextView share = button(c, "Partager", accent, pale, d);
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-2, -2);
         bp.rightMargin = Math.round(8 * d);
+        String lower = f.name.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+            TextView prev = button(c, "Aperçu", accent, pale, d);
+            prev.setOnClickListener(v -> HtmlPreviewActivity.open(c, f.name, f.content));
+            row.addView(prev, bp);
+            bp = new LinearLayout.LayoutParams(-2, -2);
+            bp.rightMargin = Math.round(8 * d);
+        }
         row.addView(save, bp);
         row.addView(share);
         box.addView(row);

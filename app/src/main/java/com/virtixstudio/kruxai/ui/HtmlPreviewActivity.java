@@ -1,0 +1,173 @@
+package com.virtixstudio.kruxai.ui;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
+import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+/**
+ * Aperçu plein écran d'une page HTML écrite par KRUX : la page tourne vraiment (JavaScript compris),
+ * sans accès aux fichiers de l'app ni à ses données. Les liens externes s'ouvrent dans le navigateur.
+ */
+public class HtmlPreviewActivity extends AppCompatActivity {
+
+    private static String pendingHtml = "";
+    private static String pendingTitle = "";
+
+    /** Ouvre l'aperçu. Le HTML passe par une variable (un Intent est limité à environ 1 Mo). */
+    public static void open(Context c, String title, String html) {
+        pendingHtml = html == null ? "" : html;
+        pendingTitle = title == null ? "" : title;
+        Intent i = new Intent(c, HtmlPreviewActivity.class);
+        if (!(c instanceof android.app.Activity)) i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        c.startActivity(i);
+    }
+
+    /** Vrai si le texte ressemble à une page web complète ou à un fragment affichable. */
+    public static boolean looksLikeHtml(String language, String code) {
+        if (code == null) return false;
+        String l = language == null ? "" : language.trim().toLowerCase(java.util.Locale.ROOT);
+        if (l.equals("html") || l.equals("htm")) return true;
+        String h = code.trim().toLowerCase(java.util.Locale.ROOT);
+        return h.startsWith("<!doctype html") || h.startsWith("<html");
+    }
+
+    private WebView web;
+    private String html = "";
+
+    @SuppressLint("SetJavaScriptEnabled")
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        html = pendingHtml;
+        final float d = getResources().getDisplayMetrics().density;
+        final int bg = KruxTheme.get(this, "bg"), tx = KruxTheme.get(this, "text"), ac = KruxTheme.get(this, "accent"),
+                btn = KruxTheme.get(this, "input");
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(bg);
+
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding((int) (10 * d), (int) (6 * d), (int) (10 * d), (int) (6 * d));
+
+        TextView close = pill("Fermer", tx, btn, d);
+        close.setOnClickListener(v -> finish());
+        TextView title = new TextView(this);
+        title.setText(pendingTitle.isEmpty() ? "Aperçu" : pendingTitle);
+        title.setTextColor(tx);
+        title.setTextSize(15);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        title.setGravity(Gravity.CENTER);
+        TextView reload = pill("Recharger", ac, btn, d);
+        bar.addView(close);
+        bar.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
+        bar.addView(reload);
+        root.addView(bar, new LinearLayout.LayoutParams(-1, (int) (56 * d)));
+
+        final ProgressBar progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(100);
+        progress.setProgressTintList(android.content.res.ColorStateList.valueOf(ac));
+        root.addView(progress, new LinearLayout.LayoutParams(-1, (int) (3 * d)));
+
+        FrameLayout holder = new FrameLayout(this);
+        web = new WebView(this);
+        WebSettings ws = web.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+        ws.setAllowFileAccess(false);
+        ws.setAllowContentAccess(false);
+        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        ws.setSupportMultipleWindows(false);
+        ws.setLoadWithOverviewMode(true);
+        ws.setUseWideViewPort(true);
+        web.setBackgroundColor(Color.WHITE);
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override public void onProgressChanged(WebView v, int p) {
+                progress.setProgress(p);
+                progress.setVisibility(p >= 100 ? View.GONE : View.VISIBLE);
+            }
+        });
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                Uri u = r.getUrl();
+                String sch = u.getScheme() == null ? "" : u.getScheme();
+                if (sch.equals("http") || sch.equals("https")) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
+                }
+                return true; // jamais de navigation dans l'aperçu, ni de schémas étranges (intent:, file:…)
+            }
+        });
+        holder.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(holder, new LinearLayout.LayoutParams(-1, 0, 1f));
+        setContentView(root);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets s = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(s.left, s.top, s.right, s.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
+        reload.setOnClickListener(v -> load());
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { finish(); }
+        });
+        load();
+    }
+
+    private void load() {
+        String page = html;
+        if (!page.toLowerCase(java.util.Locale.ROOT).contains("viewport")) {
+            page = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" + page;
+        }
+        web.loadDataWithBaseURL("https://apercu.krux.local/", page, "text/html", "UTF-8", null);
+    }
+
+    private TextView pill(String label, int color, int fill, float d) {
+        TextView t = new TextView(this);
+        t.setText(label);
+        t.setTextSize(13);
+        t.setTextColor(color);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding((int) (14 * d), 0, (int) (14 * d), 0);
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(KruxTheme.radiusDp(this) * d);
+        t.setBackground(g);
+        t.setMinHeight((int) (38 * d));
+        t.setClickable(true);
+        return t;
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (web != null) { web.stopLoading(); web.destroy(); web = null; }
+        super.onDestroy();
+    }
+}

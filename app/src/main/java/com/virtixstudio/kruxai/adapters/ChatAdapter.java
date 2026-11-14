@@ -551,6 +551,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 "Télécharger le code"
         );
 
+        if (com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code)) {
+            ImageButton preview = createCodeAction(context, R.drawable.ic_play, "Aperçu de la page");
+            preview.setOnClickListener(v -> com.virtixstudio.kruxai.ui.HtmlPreviewActivity.open(context, fileName, code));
+            header.addView(preview);
+        }
         header.addView(share);
         header.addView(copy);
         header.addView(download);

@@ -178,7 +178,7 @@
             <LinearLayout android:tag="krux:input"
                 android:id="@+id/kruxModelCapsule"
                 android:layout_width="wrap_content"
-                android:layout_height="44dp"
+                android:layout_height="38dp"
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
                 android:layout_toEndOf="@id/btnMenu"
@@ -188,7 +188,7 @@
                 android:focusable="true"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="11dp">
+                android:paddingHorizontal="9dp">
 
                 <TextView android:tag="krux:text"
                     android:id="@+id/tvKruxName"
@@ -196,35 +196,35 @@
                     android:layout_height="wrap_content"
                     android:text="Krux"
                     android:textColor="#FAF7FF"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView android:tag="krux:text2"
                     android:id="@+id/tvSelectedModel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="7dp"
+                    android:layout_marginStart="5dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:maxWidth="130dp"
+                    android:maxWidth="84dp"
                     android:text="3.5 Flash"
                     android:textColor="#B9AFCB"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView android:tag="krux:text2"
                     android:id="@+id/tvTokenRemaining"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="4dp"
                     android:text="1M"
                     android:textColor="#766A8A"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
 
                 <ImageView android:tag="krux:text2"
                     android:id="@+id/ivModelArrow"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginStart="4dp"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="2dp"
                     android:src="@drawable/ic_arrow_down"
                     android:tint="#B9AFCB" />
 
