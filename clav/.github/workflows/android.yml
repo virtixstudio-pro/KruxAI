@@ -21,8 +21,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # The ubuntu runner ships with the Android SDK preinstalled (ANDROID_HOME).
+      - name: Check Android SDK
+        run: echo "SDK=$ANDROID_HOME"; ls "$ANDROID_HOME/platforms" 2>/dev/null | tail -2
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
