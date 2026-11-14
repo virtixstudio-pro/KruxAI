@@ -17,15 +17,25 @@ public class InputMediator {
         void onComposingWordChanged(String word);
     }
 
+    /** Sends the editor action (done/next/search…) — provided by the IME service. */
+    public interface EnterKeyHandler {
+        boolean sendDefaultEditorAction();
+    }
+
     private final Listener listener;
     private final StringBuilder composingWord = new StringBuilder();
 
     private InputConnection inputConnection;
     private EditorInfo editorInfo;
     private boolean secureField;
+    private EnterKeyHandler enterKeyHandler;
 
     public InputMediator(Listener listener) {
         this.listener = listener;
+    }
+
+    public void setEnterKeyHandler(EnterKeyHandler handler) {
+        enterKeyHandler = handler;
     }
 
     // ------------------------------------------------------------- lifecycle
@@ -115,7 +125,7 @@ public class InputMediator {
             return;
         }
         finishComposing();
-        boolean handled = editorInfo != null && inputConnection.sendDefaultEditorAction(true);
+        boolean handled = enterKeyHandler != null && enterKeyHandler.sendDefaultEditorAction();
         if (!handled) {
             inputConnection.commitText("\n", 1);
         }

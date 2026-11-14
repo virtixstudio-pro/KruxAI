@@ -24,6 +24,7 @@ public class ClavImeService extends InputMethodService {
     public View onCreateInputView() {
         View root = getLayoutInflater().inflate(R.layout.keyboard_view, null);
         controller = new KeyboardController(this, root);
+        controller.getMediator().setEnterKeyHandler(() -> sendDefaultEditorAction(true));
         return root;
     }
 
