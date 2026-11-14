@@ -66,21 +66,36 @@ public class LiveActivity extends AppCompatActivity {
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        getWindow().setStatusBarColor(Color.BLACK);
-        getWindow().setNavigationBarColor(Color.BLACK);
+        final int bgTheme = com.virtixstudio.kruxai.ui.KruxTheme.get(this, "bg");
+        final int accent = com.virtixstudio.kruxai.ui.KruxTheme.get(this, "accent");
+        final int text2 = com.virtixstudio.kruxai.ui.KruxTheme.get(this, "text2");
+        final int deep = androidx.core.graphics.ColorUtils.blendARGB(bgTheme, Color.BLACK, 0.45f);
+        getWindow().setStatusBarColor(bgTheme);
+        getWindow().setNavigationBarColor(deep);
         WindowInsetsControllerCompat ic = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         ic.hide(WindowInsetsCompat.Type.systemBars());
         ic.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.BLACK);
+        // fond sobre qui suit le thème : dégradé doux + une légère lueur derrière le visage
+        GradientDrawable backdrop = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{bgTheme, deep});
+        root.setBackground(backdrop);
+        View glow = new View(this);
+        GradientDrawable gl = new GradientDrawable();
+        gl.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        gl.setGradientRadius(dp(340));
+        gl.setGradientCenter(0.5f, 0.42f);
+        gl.setColors(new int[]{androidx.core.graphics.ColorUtils.setAlphaComponent(accent, 46), Color.TRANSPARENT});
+        glow.setBackground(gl);
+        root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
         face = new KruxLiveView(this);
         motion = face.motion();
+        face.setTransparent(true);
         root.addView(face, new FrameLayout.LayoutParams(-1, -1));
 
         TextView close = new TextView(this);
         close.setText("✕");
-        close.setTextColor(0xFF9CA3AF);
+        close.setTextColor(text2);
         close.setTextSize(22);
         close.setPadding(dp(20), dp(28), dp(20), dp(20));
         close.setOnClickListener(v -> finish());
@@ -88,7 +103,7 @@ public class LiveActivity extends AppCompatActivity {
         root.addView(close, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START));
 
         status = new TextView(this);
-        status.setTextColor(0xFFBFA8D6);
+        status.setTextColor(text2);
         status.setTextSize(15);
         status.setGravity(Gravity.CENTER);
         status.setPadding(dp(32), 0, dp(32), 0);
@@ -103,8 +118,8 @@ public class LiveActivity extends AppCompatActivity {
         mic.setTypeface(null, Typeface.BOLD);
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
-        g.setColor(Color.BLACK);
-        g.setStroke(dp(3), 0xFF22D3EE);
+        g.setColor(deep);
+        g.setStroke(dp(2), accent);
         mic.setBackground(g);
         mic.setContentDescription("Parler à Krux");
         mic.setOnClickListener(v -> onMicTapped());
