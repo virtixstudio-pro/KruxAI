@@ -273,6 +273,12 @@ public class FloatingKruxService extends Service {
     }
 
     private void ask(final String q) {
+        String low = q.toLowerCase(Locale.FRENCH);
+        if (low.contains("ferme-toi") || low.contains("ferme toi") || low.contains("disparais")
+                || low.contains("masque-toi") || low.contains("masque toi") || low.contains("au revoir")) {
+            stopSelf();
+            return;
+        }
         setState(LiveMotion.State.THINKING);
         String screen = null;
         if (wantsScreen(q)) {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="krux_face"
+        android:enabled="true"
+        android:icon="@drawable/ic_live"
+        android:shortcutShortLabel="@string/krux_shortcut_face_short"
+        android:shortcutLongLabel="@string/krux_shortcut_face_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.virtixstudio.kruxai"
+            android:targetClass="com.virtixstudio.kruxai.live.FaceToggleActivity" />
+    </shortcut>
+</shortcuts>
