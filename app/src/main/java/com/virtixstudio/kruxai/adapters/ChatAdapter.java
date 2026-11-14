@@ -560,7 +560,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 com.virtixstudio.kruxai.ui.KruxTheme.get(context, "input"), 255);
         int headerBg = androidx.core.graphics.ColorUtils.blendARGB(blockBg, accent, 0.10f);
         int border = androidx.core.graphics.ColorUtils.setAlphaComponent(accent, 70);
-        float radius = Math.min(com.virtixstudio.kruxai.ui.KruxTheme.radiusDp(context), 16) * 
+        float radius = Math.min(com.virtixstudio.kruxai.ui.KruxTheme.radiusDp(context), 16) *
                 context.getResources().getDisplayMetrics().density;
 
         LinearLayout card = new LinearLayout(context);
