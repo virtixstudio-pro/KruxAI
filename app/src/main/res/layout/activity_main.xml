@@ -11,16 +11,140 @@
          CONTENU PRINCIPAL
          ===================================================== -->
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
+
+        <!-- =================================================
+             ZONE CHAT / ACCUEIL
+             ================================================= -->
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <com.virtixstudio.kruxai.ui.KruxWelcomeSceneView
+                android:id="@+id/welcomeScene"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0.82" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvChat"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="12dp"
+                android:fadingEdgeLength="36dp"
+                android:paddingTop="72dp"
+                android:paddingBottom="140dp"
+                android:requiresFadingEdge="vertical"
+                android:scrollbars="none" />
+
+            <TextView
+                android:id="@+id/offlineBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="70dp"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+
+            <!-- =================================================
+                 MESSAGE D'ACCUEIL
+                 ================================================= -->
+
+            <LinearLayout
+                android:id="@+id/welcomePanel"
+                
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:layout_marginHorizontal="24dp"
+                
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="22dp">
+
+                <TextView
+                    android:id="@+id/tvWelcomeTitle"
+                    android:tag="krux:text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bonjour"
+                    android:textColor="#FAF7FF"
+                    android:textSize="25sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWelcomeSubtitle"
+                    android:tag="krux:text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="7dp"
+                    android:gravity="center"
+                    android:text="Prêt à commencer quelque chose ?"
+                    android:textColor="#B9AFCB"
+                    android:textSize="14sp" />
+
+
+
+
+            </LinearLayout>
+
+
+            <!-- TTS -->
+
+            <ImageButton android:tag="krux:button,buttontext"
+                android:id="@+id/btnTtsControl"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="76dp"
+                android:background="@drawable/bg_send_button"
+                android:contentDescription="Contrôle vocal IA"
+                android:elevation="4dp"
+                android:src="@drawable/ic_pause"
+                android:tint="#07050F"
+                android:visibility="gone" />
+
+
+            <!-- RETOUR EN BAS -->
+
+            <ImageButton android:tag="krux:button,buttontext"
+                android:id="@+id/btnScrollBottom"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="150dp"
+                android:background="@drawable/bg_send_button"
+                android:contentDescription="Défiler vers le bas"
+                android:src="@drawable/ic_arrow_down"
+                android:tint="#07050F"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+
+
+
 
         <!-- HEADER -->
 
         <RelativeLayout
+            android:id="@+id/headerBar"
             android:layout_width="match_parent"
             android:layout_height="64dp"
+            android:layout_alignParentTop="true"
             android:paddingStart="12dp"
             android:paddingEnd="12dp">
 
@@ -93,130 +217,9 @@
         </RelativeLayout>
 
 
-        <!-- =================================================
-             ZONE CHAT / ACCUEIL
-             ================================================= -->
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <com.virtixstudio.kruxai.ui.KruxWelcomeSceneView
-                android:id="@+id/welcomeScene"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:alpha="0.82" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvChat"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingHorizontal="12dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="12dp"
-                android:scrollbars="none" />
-
-            <TextView
-                android:id="@+id/offlineBanner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="6dp"
-                android:gravity="center"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="8dp"
-                android:textSize="13sp"
-                android:visibility="gone" />
-
-
-            <!-- =================================================
-                 MESSAGE D'ACCUEIL
-                 ================================================= -->
-
-            <LinearLayout
-                android:id="@+id/welcomePanel"
-                
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:layout_marginHorizontal="24dp"
-                
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:padding="22dp">
-
-                <TextView
-                    android:id="@+id/tvWelcomeTitle"
-                    android:tag="krux:text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Bonjour"
-                    android:textColor="#FAF7FF"
-                    android:textSize="25sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvWelcomeSubtitle"
-                    android:tag="krux:text2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="7dp"
-                    android:gravity="center"
-                    android:text="Prêt à commencer quelque chose ?"
-                    android:textColor="#B9AFCB"
-                    android:textSize="14sp" />
-
-
-
-
-            </LinearLayout>
-
-
-            <!-- TTS -->
-
-            <ImageButton android:tag="krux:button,buttontext"
-                android:id="@+id/btnTtsControl"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentTop="true"
-                android:layout_marginEnd="16dp"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_send_button"
-                android:contentDescription="Contrôle vocal IA"
-                android:elevation="4dp"
-                android:src="@drawable/ic_pause"
-                android:tint="#07050F"
-                android:visibility="gone" />
-
-
-            <!-- RETOUR EN BAS -->
-
-            <ImageButton android:tag="krux:button,buttontext"
-                android:id="@+id/btnScrollBottom"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_alignParentBottom="true"
-                android:layout_alignParentEnd="true"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_send_button"
-                android:contentDescription="Défiler vers le bas"
-                android:src="@drawable/ic_arrow_down"
-                android:tint="#07050F"
-                android:visibility="gone" />
-
-        </RelativeLayout>
-
-
-
-
-
         <com.virtixstudio.kruxai.ui.KruxTerminalView
             android:id="@+id/kruxTerminal"
+            android:layout_above="@+id/composerBar"
             android:layout_width="match_parent"
             android:layout_height="88dp"
             android:layout_marginHorizontal="12dp"
@@ -227,11 +230,12 @@
              COMPOSER
              ================================================= -->
 
-        <LinearLayout android:tag="krux:bg"
+        <LinearLayout
             android:id="@+id/composerBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#07050F"
+            android:layout_alignParentBottom="true"
+            android:background="@android:color/transparent"
             android:orientation="vertical"
             android:paddingHorizontal="12dp"
             android:paddingTop="4dp"
@@ -344,7 +348,7 @@
 
         </LinearLayout>
 
-    </LinearLayout>
+    </RelativeLayout>
 
 
     <!-- =====================================================

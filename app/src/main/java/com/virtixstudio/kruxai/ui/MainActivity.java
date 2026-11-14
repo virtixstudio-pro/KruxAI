@@ -256,6 +256,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         new Thread(() -> { try { if (dbHelper.removeDuplicateMessages() > 0) runOnUiThread(this::loadHistorySidebar); } catch (Exception ignore) { } }).start();
         rvHistory = findViewById(R.id.rvHistory);
         welcomePanel = findViewById(R.id.welcomePanel);
+        setupFloatingChrome();
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
         tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
         welcomeScene = findViewById(R.id.welcomeScene);
@@ -702,6 +703,53 @@ private final ActivityResultLauncher<String[]> filePicker =
             showMemoryPill(log, before);
         } catch (Exception e) {
             android.util.Log.e("KRUX_MEMORY", "mémoire automatique", e);
+        }
+    }
+
+    // ------------------------------------------------------------------ header et barre de saisie flottants
+
+    private int lastChatBottomInset = -1;
+
+    private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density); }
+
+    /** Le header et la barre de saisie flottent sans plaque : le chat défile dessous, avec la bonne marge en haut et en bas. */
+    private void setupFloatingChrome() {
+        try {
+            final View composer = findViewById(R.id.composerBar);
+            final View header = findViewById(R.id.headerBar);
+            if (composer == null || rvChat == null) return;
+            View.OnLayoutChangeListener l = (v, a, b, c, d, e, f, g, h) -> updateChatInsets();
+            composer.addOnLayoutChangeListener(l);
+            if (terminal != null) terminal.addOnLayoutChangeListener(l);
+            if (header != null) header.addOnLayoutChangeListener(l);
+            rvChat.post(this::updateChatInsets);
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_UI", "marges du chat", e);
+        }
+    }
+
+    private void updateChatInsets() {
+        try {
+            final View composer = findViewById(R.id.composerBar);
+            final View header = findViewById(R.id.headerBar);
+            if (composer == null || rvChat == null || !(rvChat.getParent() instanceof View)) return;
+            int parentH = ((View) rvChat.getParent()).getHeight();
+            if (parentH <= 0) return;
+            View lowest = (terminal != null && terminal.getVisibility() == View.VISIBLE) ? terminal : composer;
+            int bottom = Math.max(0, parentH - lowest.getTop()) + dp(8);
+            int top = (header != null ? header.getHeight() : dp(64)) + dp(8);
+            if (bottom == lastChatBottomInset && rvChat.getPaddingTop() == top) return;
+            boolean atEnd = !rvChat.canScrollVertically(1);
+            lastChatBottomInset = bottom;
+            rvChat.setPadding(rvChat.getPaddingLeft(), top, rvChat.getPaddingRight(), bottom);
+            if (btnScrollBottom != null && btnScrollBottom.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams) {
+                android.view.ViewGroup.MarginLayoutParams mp = (android.view.ViewGroup.MarginLayoutParams) btnScrollBottom.getLayoutParams();
+                mp.bottomMargin = bottom + dp(4);
+                btnScrollBottom.setLayoutParams(mp);
+            }
+            if (atEnd && messageList != null && !messageList.isEmpty()) rvChat.scrollToPosition(messageList.size() - 1);
+        } catch (Exception e) {
+            android.util.Log.e("KRUX_UI", "marges du chat", e);
         }
     }
 
@@ -2747,9 +2795,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         previewCard.setLayoutParams(cardParams);
 
         GradientDrawable cardBg = new GradientDrawable();
-        cardBg.setColor(Color.parseColor("#0F0D15"));
+        cardBg.setColor(KruxTheme.get(this, "input"));
         cardBg.setCornerRadius(dpToPx(16));
-        cardBg.setStroke(dpToPx(1), Color.parseColor("#2A2634"));
+        cardBg.setStroke(dpToPx(1), KruxTheme.get(this, "text2") & 0x55FFFFFF | 0x33000000);
         previewCard.setBackground(cardBg);
         previewCard.setVisibility(View.GONE);
 
@@ -2852,8 +2900,8 @@ private final ActivityResultLauncher<String[]> filePicker =
         content.addView(sectionLabel("Fond d’écran personnalisé"));
         Button btnPickWallpaper = new Button(this);
         btnPickWallpaper.setText("Choisir une image de fond");
-        btnPickWallpaper.setTextColor(Color.WHITE);
-        btnPickWallpaper.setBackgroundColor(Color.parseColor("#1F192E"));
+        btnPickWallpaper.setTextColor(KruxTheme.get(this, "buttontext"));
+        btnPickWallpaper.setBackgroundColor(KruxTheme.get(this, "button"));
         btnPickWallpaper.setOnClickListener(v -> openImagePicker());
         content.addView(btnPickWallpaper);
 

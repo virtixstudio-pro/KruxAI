@@ -292,6 +292,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         boolean wasHidden = holder.kruxAnswerStatusContainer.getVisibility() != View.VISIBLE;
+        holder.tvKruxAnswerStatus.setTextColor(secondaryTextColor);
         boolean changed = !activeStatusText.contentEquals(holder.tvKruxAnswerStatus.getText());
         holder.tvKruxAnswerStatus.setText(
                 activeStatusText
