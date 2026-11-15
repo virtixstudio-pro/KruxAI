@@ -35,24 +35,27 @@ public final class KruxTheme {
     private KruxTheme() {}
 
     public static final String[] KEYS = {
-        "bg", "text", "text2", "hint", "button", "buttontext", "input", "accent", "bubble_user", "bubble_ai"};
+        "bg", "text", "text2", "hint", "button", "buttontext", "input", "accent", "bubble_user", "bubble_ai",
+        "code_bg", "code_text", "code_kw", "code_str", "code_com", "code_num"};
     public static final String[] LABELS = {
         "Fond des écrans", "Textes principaux", "Textes secondaires", "Textes d'aide (champs)",
         "Boutons", "Texte des boutons", "Champs de saisie", "Accent (liens, icônes)",
-        "Bulle utilisateur", "Bulle KRUX"};
+        "Bulle utilisateur", "Bulle KRUX",
+        "Fond des blocs de code", "Texte du code", "Code : mots-clés", "Code : textes entre guillemets",
+        "Code : commentaires", "Code : nombres"};
     public static final String[] PALETTES = {"noir", "blanc", "midnight", "graphite", "ocean", "sable", "foret", "rose"};
     public static final String[] PALETTE_LABELS = {"Noir", "Blanc", "Midnight", "Graphite", "Océan", "Sable", "Forêt", "Rose"};
 
     //                                bg          text        text2       hint        button      buttontext  input       accent      bubble_user bubble_ai
-    private static final int[] NOIR     = {0xFF000000, 0xFFFFFFFF, 0xFFB3B3B3, 0xFF808080, 0xFFFFFFFF, 0xFF000000, 0xFF1A1A1A, 0xFFFFFFFF, 0xFF222222, 0x00000000};
-    private static final int[] BLANC    = {0xFFFFFFFF, 0xFF000000, 0xFF555555, 0xFF888888, 0xFF000000, 0xFFFFFFFF, 0xFFEEEEEE, 0xFF000000, 0xFFE2E2E2, 0x00000000};
-    private static final int[] MIDNIGHT = {0xFF07050F, 0xFFFAF7FF, 0xFFBFA8D6, 0xFF8B7BA8, 0xFFA855F7, 0xFFFFFFFF, 0xFF14101D, 0xFFA855F7, 0xFF120B24, 0x00000000};
-    private static final int[] GRAPHITE = {0xFF101216, 0xFFEBEFF5, 0xFF9AA4B2, 0xFF6B7380, 0xFFA855F7, 0xFFFFFFFF, 0xFF1C2027, 0xFFA855F7, 0xFF262B34, 0x00000000};
-    private static final int[] OCEAN    = {0xFF05101C, 0xFFE8F8FF, 0xFF9CC3D6, 0xFF6C93A6, 0xFF22D3EE, 0xFF05101C, 0xFF0B2233, 0xFF22D3EE, 0xFF0A344C, 0x00000000};
+    private static final int[] NOIR     = {0xFF000000, 0xFFFFFFFF, 0xFFB3B3B3, 0xFF808080, 0xFFFFFFFF, 0xFF000000, 0xFF1A1A1A, 0xFFFFFFFF, 0xFF222222, 0x00000000, 0xFF1A1A1A, 0xFFFFFFFF, 0xFFFFFFFF, 0xFF9ECE6A, 0xFF7A7A7A, 0xFFFF9E64};
+    private static final int[] BLANC    = {0xFFFFFFFF, 0xFF000000, 0xFF555555, 0xFF888888, 0xFF000000, 0xFFFFFFFF, 0xFFEEEEEE, 0xFF000000, 0xFFE2E2E2, 0x00000000, 0xFFEEEEEE, 0xFF000000, 0xFF000000, 0xFF2E7D32, 0xFF6A737D, 0xFFC2410C};
+    private static final int[] MIDNIGHT = {0xFF07050F, 0xFFFAF7FF, 0xFFBFA8D6, 0xFF8B7BA8, 0xFFA855F7, 0xFFFFFFFF, 0xFF14101D, 0xFFA855F7, 0xFF120B24, 0x00000000, 0xFF14101D, 0xFFFAF7FF, 0xFFA855F7, 0xFF9ECE6A, 0xFF7C6F99, 0xFFFF9E64};
+    private static final int[] GRAPHITE = {0xFF101216, 0xFFEBEFF5, 0xFF9AA4B2, 0xFF6B7380, 0xFFA855F7, 0xFFFFFFFF, 0xFF1C2027, 0xFFA855F7, 0xFF262B34, 0x00000000, 0xFF1C2027, 0xFFEBEFF5, 0xFFA855F7, 0xFF9ECE6A, 0xFF6B7380, 0xFFFF9E64};
+    private static final int[] OCEAN    = {0xFF05101C, 0xFFE8F8FF, 0xFF9CC3D6, 0xFF6C93A6, 0xFF22D3EE, 0xFF05101C, 0xFF0B2233, 0xFF22D3EE, 0xFF0A344C, 0x00000000, 0xFF0B2233, 0xFFE8F8FF, 0xFF22D3EE, 0xFF9ECE6A, 0xFF6C93A6, 0xFFFF9E64};
 
-    private static final int[] SABLE = {0xFFF7F3EC, 0xFF1C1A17, 0xFF6B645A, 0xFF9A9286, 0xFF1C1A17, 0xFFF7F3EC, 0xFFECE6DA, 0xFFB5651D, 0xFFE6DDCC, 0x00000000};
-    private static final int[] FORET = {0xFF08120D, 0xFFE9F5EE, 0xFF9DBBA9, 0xFF6C8A78, 0xFF34D399, 0xFF04120B, 0xFF11231A, 0xFF34D399, 0xFF0F2E20, 0x00000000};
-    private static final int[] ROSE  = {0xFF140A10, 0xFFFFF1F5, 0xFFD6A9B8, 0xFF9A7080, 0xFFF472B6, 0xFF1A0610, 0xFF22121A, 0xFFF472B6, 0xFF2E1220, 0x00000000};
+    private static final int[] SABLE = {0xFFF7F3EC, 0xFF1C1A17, 0xFF6B645A, 0xFF9A9286, 0xFF1C1A17, 0xFFF7F3EC, 0xFFECE6DA, 0xFFB5651D, 0xFFE6DDCC, 0x00000000, 0xFFECE6DA, 0xFF1C1A17, 0xFFB5651D, 0xFF2E7D32, 0xFF8A8173, 0xFFC2410C};
+    private static final int[] FORET = {0xFF08120D, 0xFFE9F5EE, 0xFF9DBBA9, 0xFF6C8A78, 0xFF34D399, 0xFF04120B, 0xFF11231A, 0xFF34D399, 0xFF0F2E20, 0x00000000, 0xFF11231A, 0xFFE9F5EE, 0xFF34D399, 0xFFE0AF68, 0xFF6C8A78, 0xFFFF9E64};
+    private static final int[] ROSE  = {0xFF140A10, 0xFFFFF1F5, 0xFFD6A9B8, 0xFF9A7080, 0xFFF472B6, 0xFF1A0610, 0xFF22121A, 0xFFF472B6, 0xFF2E1220, 0x00000000, 0xFF22121A, 0xFFFFF1F5, 0xFFF472B6, 0xFF9ECE6A, 0xFF9A7080, 0xFFE0AF68};
 
     private static int[] defaults(String palette) {
         switch (palette == null ? "noir" : palette) {
@@ -88,6 +91,31 @@ public final class KruxTheme {
         int i = indexOf(key);
         if (i < 0) return Color.MAGENTA;
         return prefs(c).getInt("c_" + key, defaults(palette(c))[i]);
+    }
+
+    /** Fond d'un bloc de code : réglage de l'utilisateur, sinon dérivé de la couleur des champs. */
+    public static int codeBg(Context c) {
+        return hasOverride(c, "code_bg") ? get(c, "code_bg") : ColorUtils.setAlphaComponent(get(c, "input"), 255);
+    }
+
+    /** Couleur du texte du code : réglage de l'utilisateur, sinon texte principal. */
+    public static int codeText(Context c) {
+        return hasOverride(c, "code_text") ? get(c, "code_text") : get(c, "text");
+    }
+
+    /**
+     * Couleurs de coloration syntaxique : automatiques (lisibles sur le fond du bloc),
+     * sauf celles que l'utilisateur a réglées lui-même.
+     */
+    public static com.virtixstudio.kruxai.utils.SyntaxHighlighter.Palette codePalette(Context c) {
+        com.virtixstudio.kruxai.utils.SyntaxHighlighter.Palette p =
+                com.virtixstudio.kruxai.utils.SyntaxHighlighter.paletteFor(codeBg(c), codeText(c), get(c, "accent"));
+        if (hasOverride(c, "code_text")) p.text = get(c, "code_text");
+        if (hasOverride(c, "code_kw")) p.keyword = get(c, "code_kw");
+        if (hasOverride(c, "code_str")) p.string = get(c, "code_str");
+        if (hasOverride(c, "code_com")) p.comment = get(c, "code_com");
+        if (hasOverride(c, "code_num")) p.number = get(c, "code_num");
+        return p;
     }
 
     public static void set(Context c, String key, int color) {
@@ -326,6 +354,13 @@ public final class KruxTheme {
         LinearLayout.LayoutParams lpBar = new LinearLayout.LayoutParams(-1, -2);
         lpBar.topMargin = (int) (10 * d);
         preview.addView(bar, lpBar);
+        final TextView pCode = new TextView(a);
+        pCode.setTypeface(android.graphics.Typeface.MONOSPACE);
+        pCode.setTextSize(12);
+        pCode.setPadding((int) (12 * d), (int) (10 * d), (int) (12 * d), (int) (10 * d));
+        LinearLayout.LayoutParams lpCode = new LinearLayout.LayoutParams(-1, -2);
+        lpCode.topMargin = (int) (10 * d);
+        preview.addView(pCode, lpCode);
         box.addView(preview, new LinearLayout.LayoutParams(-1, -2));
 
         box.addView(label(a, "Palette", d));
@@ -366,6 +401,11 @@ public final class KruxTheme {
             pInput.setBackground(round(get(a, "input"), 22 * d, 0, 0));
             pBtn.setTextColor(get(a, "buttontext"));
             pBtn.setBackground(round(get(a, "button"), rb, 0, 0));
+            pCode.setBackground(round(codeBg(a), 12 * d, ColorUtils.setAlphaComponent(codeText(a), 45), (int) d));
+            pCode.setTextColor(codeText(a));
+            pCode.setText(com.virtixstudio.kruxai.utils.SyntaxHighlighter.highlight(
+                    "fun salut(nom: String) {\n    // un commentaire\n    return \"Krux, \" + nom + 42\n}",
+                    "kotlin", codePalette(a)));
 
             rowP.removeAllViews();
             for (int i = 0; i < PALETTES.length; i++) {

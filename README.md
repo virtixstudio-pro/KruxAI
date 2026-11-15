@@ -25,6 +25,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 - **Menu d'appui long sur les réponses** : copier, tout sélectionner, partager (`ui/MessageActions`).
 - **Boutons de lien** : l'IA écrit `[btn:Texte|https://…]`, l'app affiche un bouton arrondi aux couleurs du thème (`utils/LinkButtons`).
 - **Navigateur intégré** : les liens (boutons, texte, sources) s'ouvrent dans l'app, avec retour, actualiser et « Chrome » (`ui/HtmlPreviewActivity`, `ui/LinkOpener`).
+- **Blocs de code** : coloration syntaxique, couleurs personnalisables (Personnaliser, Réglage détaillé) et actions séparées : Copier, Télécharger, Partager, et Visualiser pour le HTML.
 - **Studio / App Builder** : génération d'applications, modèles de build, validation, suivi de progression, stockage Cloudinary / Worker (`AppBuilder`, `builder/`, `core/`).
 - **Mémoire et historique** : base Room, extraction et sélection de souvenirs, synchronisation cloud (`db/`, `utils/MemoryExtractor`, `utils/ChatHistoryManager`, `core/CloudSync`).
 - **Personnalisation** : palettes et couleurs modifiables via un système de thème par tags `krux:*` (`ui/KruxTheme`).
@@ -268,6 +269,9 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 ---
 
 ## Journal des mises à jour
+
+**15/11/2026 (blocs de code)**
+- Blocs de code : actions séparées avec libellés (« Visualiser » pour le HTML), couleurs du code personnalisables dans Personnaliser.
 
 **14/11/2026**
 - Voix : `VoiceStyler` (voix, pauses, intonation, nettoyage du markdown et des emojis) branché sur le chat, le mode Live et la bulle flottante.
