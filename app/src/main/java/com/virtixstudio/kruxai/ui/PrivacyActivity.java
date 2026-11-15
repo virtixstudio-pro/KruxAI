@@ -32,6 +32,8 @@ public class PrivacyActivity extends AppCompatActivity {
         static boolean has() { return email != null && password != null; }
     }
 
+    public static final String POLICY_URL = "https://virtixstudio-pro.github.io/KruxAI/privacy.html";
+
     private Button btnAccept;
     private boolean creating;
 
@@ -46,6 +48,10 @@ public class PrivacyActivity extends AppCompatActivity {
 
         final CheckBox cb = findViewById(R.id.cbAcceptPrivacy);
         btnAccept = findViewById(R.id.btnAcceptPrivacy);
+        findViewById(R.id.tvPrivacyFull).setOnClickListener(v -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(POLICY_URL))); }
+            catch (Exception e) { Toast.makeText(this, "Impossible d'ouvrir la page.", Toast.LENGTH_SHORT).show(); }
+        });
         findViewById(R.id.tvPrivacyBack).setOnClickListener(v -> finish());
 
         setAcceptEnabled(false);
