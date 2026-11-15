@@ -32,7 +32,7 @@ public class PrivacyActivity extends AppCompatActivity {
         static boolean has() { return email != null && password != null; }
     }
 
-    public static final String POLICY_URL = "https://virtixstudio-pro.github.io/KruxAI/privacy.html";
+    public static final String POLICY_URL = "https://virtix-studio.kruxvirtix.workers.dev/privacy.html";
 
     private Button btnAccept;
     private boolean creating;
