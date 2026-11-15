@@ -1245,6 +1245,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         g.setColor(card);
         g.setCornerRadius(17 * context.getResources().getDisplayMetrics().density);
         pill.setBackground(g);
+        stack.setRingColor(card);
         label.setTextColor(com.virtixstudio.kruxai.ui.KruxTheme.get(context, "text"));
         label.setText(src.size() == 1 ? "1 source" : src.size() + " sources");
 

@@ -42,7 +42,7 @@ public class KruxStatusView extends View {
 
     private void init() {
         dotPaint.setStyle(Paint.Style.FILL);
-        dotPaint.setColor(0xFFEBD8FF);
+        dotPaint.setColor(KruxTheme.get(getContext(), "accent"));
 
         startAnimation();
     }

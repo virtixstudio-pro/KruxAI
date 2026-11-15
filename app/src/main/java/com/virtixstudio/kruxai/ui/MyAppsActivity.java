@@ -36,6 +36,7 @@ public class MyAppsActivity extends AppCompatActivity {
 
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg));
         boolean light = ColorUtils.calculateLuminance(bg) > 0.5;
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(light);
 

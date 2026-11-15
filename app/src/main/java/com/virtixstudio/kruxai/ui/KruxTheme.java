@@ -21,6 +21,7 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -133,10 +134,28 @@ public final class KruxTheme {
         prefs(c).edit().putString("palette", palette).apply();
     }
 
+    /** Vrai si le fond choisi est clair (palettes Blanc, Sable ou fond personnalisé clair). */
+    public static boolean isLight(Context c) {
+        return ColorUtils.calculateLuminance(get(c, "bg")) > 0.5;
+    }
+
+    /**
+     * Aligne le mode clair/sombre d'AppCompat sur la palette : tout ce qui vient du système
+     * (dialogues, champs, menus, curseurs, poignées de sélection) suit le blanc ou le noir.
+     * Ne fait rien si le mode est déjà le bon ; sinon les écrans ouverts se recréent une fois.
+     */
+    public static void syncNightMode(Context c) {
+        int mode = isLight(c) ? AppCompatDelegate.MODE_NIGHT_NO : AppCompatDelegate.MODE_NIGHT_YES;
+        if (AppCompatDelegate.getDefaultNightMode() != mode) AppCompatDelegate.setDefaultNightMode(mode);
+    }
+
     /** À appeler juste après setContentView(...). */
     public static void apply(Activity a) {
         View content = a.findViewById(android.R.id.content);
         if (content == null) return;
+        // fond derrière les vues : plus de bande sombre ou claire à l'ouverture, au clavier ou en défilement
+        a.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(get(a, "bg")));
+        syncNightMode(a);
         walk(content, a);
         if (content instanceof ViewGroup && ((ViewGroup) content).getChildCount() > 0) {
             View root = ((ViewGroup) content).getChildAt(0);
