@@ -1351,23 +1351,47 @@ private final ActivityResultLauncher<String[]> filePicker =
         tvWelcomeSubtitle.setText(subtitle);
     }
 
-    /** Galerie d'images libres dans le chat. En cas d'échec : onFail (ou un simple message si onFail est null). */
-    private void runImageGallery(final String query, final Runnable onFail) {
-        com.virtixstudio.kruxai.api.ImageSearch.search(query, new com.virtixstudio.kruxai.api.ImageSearch.Callback() {
-            @Override public void onResult(java.util.List<com.virtixstudio.kruxai.utils.ImageGallery.Hit> hits) {
-                String text = "Voici des images de « " + query + " ». Touche une image pour l'agrandir, la télécharger ou voir sa source.\n\n"
-                        + com.virtixstudio.kruxai.utils.ImageGallery.encode(hits);
-                ChatMessage reply = new ChatMessage(text, false);
-                reply.setStreaming(false);
-                saveMessageToDatabase(reply);
-                runOnUiThread(() -> { setGeneratingState(false); setKruxState(KruxState.IDLE); });
+    /** Galerie d'images libres dans le chat, avec un message « Je cherche… » visible tout de suite. */
+    private void runImageGallery(final String query, final ChatMessage existing, final Runnable onFail) {
+        runOnUiThread(() -> {
+            ChatMessage h = existing;
+            if (h == null) {
+                h = new ChatMessage("", false);
+                messageList.add(h);
+                chatAdapter.notifyItemInserted(messageList.size() - 1);
             }
-            @Override public void onError(String message) {
-                runOnUiThread(() -> {
-                    if (onFail != null) onFail.run();
-                    else Toast.makeText(MainActivity.this, "Aucune image trouvée pour « " + query + " ».", Toast.LENGTH_LONG).show();
-                });
-            }
+            h.setText("Je cherche des images de « " + query + " »…");
+            h.setStreaming(true);
+            int pos = messageList.indexOf(h);
+            if (pos >= 0) { chatAdapter.notifyItemChanged(pos); rvChat.smoothScrollToPosition(pos); }
+            final ChatMessage holder = h;
+            com.virtixstudio.kruxai.api.ImageSearch.search(query, new com.virtixstudio.kruxai.api.ImageSearch.Callback() {
+                private void removeHolder() {
+                    int p = messageList.indexOf(holder);
+                    if (p >= 0) { messageList.remove(p); chatAdapter.notifyItemRemoved(p); }
+                }
+                @Override public void onResult(java.util.List<com.virtixstudio.kruxai.utils.ImageGallery.Hit> hits) {
+                    runOnUiThread(() -> {
+                        removeHolder();
+                        String text = "Voici des images de « " + query + " ». Touche une image pour l'agrandir, la télécharger ou voir sa source.\n\n"
+                                + com.virtixstudio.kruxai.utils.ImageGallery.encode(hits);
+                        ChatMessage reply = new ChatMessage(text, false);
+                        reply.setStreaming(false);
+                        saveMessageToDatabase(reply);
+                        setGeneratingState(false);
+                        setKruxState(KruxState.IDLE);
+                    });
+                }
+                @Override public void onError(String message) {
+                    runOnUiThread(() -> {
+                        removeHolder();
+                        setGeneratingState(false);
+                        setKruxState(KruxState.IDLE);
+                        if (onFail != null) onFail.run();
+                        else Toast.makeText(MainActivity.this, "Aucune image trouvée pour « " + query + " ».", Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
         });
     }
 
@@ -1398,7 +1422,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         final String imageQuery = com.virtixstudio.kruxai.utils.ImageGallery.extractQuery(prompt);
         if (imageQuery != null && (net == null || net.isOnline())) {
             setKruxState(KruxState.SEARCHING);
-            runImageGallery(imageQuery, () -> executeAiQuery(prompt, "", new ArrayList<>(), fileNameForRequest, fileContentForRequest));
+            runImageGallery(imageQuery, null, () -> executeAiQuery(prompt, "", new ArrayList<>(), fileNameForRequest, fileContentForRequest));
             return;
         }
 
@@ -1645,7 +1669,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     }
                     if (!mediaQuery.isEmpty() && !wantVideo) dropInterim = true;
                     if (!mediaQuery.isEmpty()) {
-                        runOnUiThread(() -> { if (wantVideo) MediaGallery.show(MainActivity.this, true, mediaQuery); else runImageGallery(mediaQuery, null); });
+                        runOnUiThread(() -> { if (wantVideo) MediaGallery.show(MainActivity.this, true, mediaQuery); else runImageGallery(mediaQuery, aiMessage, null); });
                     }
                 }
 
@@ -1738,15 +1762,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setKruxState(KruxState.IDLE);
                 }
 
-                if (dropInterim) {
-                    // la galerie d'images est la réponse : pas de message « Je cherche… » avec ses boutons
-                    aiMessage.setStreaming(false);
-                    runOnUiThread(() -> {
-                        int pos = messageList.indexOf(aiMessage);
-                        if (pos >= 0) { messageList.remove(pos); chatAdapter.notifyItemRemoved(pos); }
-                    });
-                    return;
-                }
+                if (dropInterim) return; // la galerie d'images prend la place de ce message (voir runImageGallery)
                 aiMessage.setText(cleanResponse);
                 aiMessage.setModel(modelBrand);
                 aiMessage.setStreaming(false);

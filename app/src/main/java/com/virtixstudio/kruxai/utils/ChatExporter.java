@@ -3,6 +3,7 @@ package com.virtixstudio.kruxai.utils;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -330,6 +331,8 @@ public final class ChatExporter {
                     out.gap(4);
                 }
             }
+            java.util.List<ImageGallery.Hit> pics = ImageGallery.parse(m.getText());
+            if (!pics.isEmpty()) out.images(pics);
             out.gap(10);
         }
         return out.finish();
@@ -414,6 +417,42 @@ public final class ChatExporter {
         }
 
         void gap(float h) { y += h; }
+
+        /** Images d'une galerie : 3 par ligne, avec titre, auteur et licence sous chaque image. */
+        void images(java.util.List<ImageGallery.Hit> hits) {
+            final int cols = 3;
+            final float gapX = 8f;
+            final float cell = (PAGE_W - 2 * MARGIN - gapX * (cols - 1)) / cols;
+            final float capH = 24f;
+            TextPaint cp = paint(6.5f, Typeface.DEFAULT, Color.rgb(90, 90, 90));
+            Paint bg = new Paint();
+            bg.setColor(Color.rgb(235, 236, 240));
+            Paint ip = new Paint(Paint.FILTER_BITMAP_FLAG);
+            for (int i = 0; i < hits.size(); i += cols) {
+                keepWithNext(cell + capH + 6);
+                for (int k = 0; k < cols && i + k < hits.size(); k++) {
+                    ImageGallery.Hit h = hits.get(i + k);
+                    float x = MARGIN + k * (cell + gapX);
+                    Bitmap b = com.virtixstudio.kruxai.ui.ImageGalleryView.fetchSync(h.thumb, h.full, 500);
+                    android.graphics.RectF dst = new android.graphics.RectF(x, y, x + cell, y + cell);
+                    if (b != null) {
+                        float s = Math.min(b.getWidth(), b.getHeight());
+                        int sx = (int) ((b.getWidth() - s) / 2f), sy = (int) ((b.getHeight() - s) / 2f);
+                        c.drawBitmap(b, new android.graphics.Rect(sx, sy, sx + (int) s, sy + (int) s), dst, ip);
+                    } else {
+                        c.drawRect(dst, bg);
+                        TextPaint np = paint(7, Typeface.DEFAULT, Color.rgb(120, 120, 120));
+                        np.setTextAlign(Paint.Align.CENTER);
+                        c.drawText("image indisponible", x + cell / 2f, y + cell / 2f, np);
+                    }
+                    String cap1 = android.text.TextUtils.ellipsize(h.title, cp, cell, android.text.TextUtils.TruncateAt.END).toString();
+                    String cap2 = android.text.TextUtils.ellipsize(h.credit(), cp, cell, android.text.TextUtils.TruncateAt.END).toString();
+                    c.drawText(cap1, x, y + cell + 9, cp);
+                    c.drawText(cap2, x, y + cell + 18, cp);
+                }
+                y += cell + capH + 4;
+            }
+        }
 
         /** Passe à la page suivante s'il reste moins de `need` points (évite un titre isolé en bas). */
         void keepWithNext(float need) {

@@ -22,19 +22,46 @@ public final class ImageSearch {
     public interface Callback { void onResult(List<Hit> hits); void onError(String message); }
 
     private static final OkHttpClient HTTP = new OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS).build();
+            .connectTimeout(6, TimeUnit.SECONDS).readTimeout(8, TimeUnit.SECONDS).build();
     private static final String UA = "KruxAI/2.10 (application Android ; Virtix Studio)";
     private static final int MAX = 8;
 
+    /** Openverse et Wikimedia sont interrogés en même temps : on répond dès qu'une source donne assez d'images. */
     public static void search(final String query, final Callback cb) {
+        final Object lock = new Object();
+        final List<Hit>[] res = new List[]{null, null};   // 0 : Openverse, 1 : Wikimedia (null = pas encore fini)
+        Thread t1 = new Thread(() -> {
+            List<Hit> r = new ArrayList<>();
+            try { r = openverse(query); } catch (Exception ignored) { }
+            synchronized (lock) { res[0] = r; lock.notifyAll(); }
+        }, "krux-img-openverse");
+        Thread t2 = new Thread(() -> {
+            List<Hit> r = new ArrayList<>();
+            try { r = wikimedia(query); } catch (Exception ignored) { }
+            synchronized (lock) { res[1] = r; lock.notifyAll(); }
+        }, "krux-img-wikimedia");
+        t1.start();
+        t2.start();
         new Thread(() -> {
-            List<Hit> hits = new ArrayList<>();
-            try { hits = openverse(query); } catch (Exception ignored) { }
-            if (hits.size() < 3) {
-                try { hits.addAll(wikimedia(query)); } catch (Exception ignored) { }
+            List<Hit> out = new ArrayList<>();
+            long end = System.currentTimeMillis() + 10000;
+            synchronized (lock) {
+                while (true) {
+                    boolean ov = res[0] != null, wk = res[1] != null;
+                    if (ov && res[0].size() >= 4) { out.addAll(res[0]); break; }
+                    if (wk && res[1].size() >= 4) { out.addAll(res[1]); break; }
+                    if (ov && wk) { out.addAll(res[0]); out.addAll(res[1]); break; }
+                    long left = end - System.currentTimeMillis();
+                    if (left <= 0) {
+                        if (ov) out.addAll(res[0]);
+                        if (wk) out.addAll(res[1]);
+                        break;
+                    }
+                    try { lock.wait(left); } catch (InterruptedException e) { break; }
+                }
             }
-            if (hits.size() > MAX) hits = hits.subList(0, MAX);
-            if (hits.isEmpty()) cb.onError("aucune image trouvée"); else cb.onResult(hits);
+            if (out.size() > MAX) out = new ArrayList<>(out.subList(0, MAX));
+            if (out.isEmpty()) cb.onError("aucune image trouvée"); else cb.onResult(out);
         }, "krux-image-search").start();
     }
 

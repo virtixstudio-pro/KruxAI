@@ -308,6 +308,16 @@ public final class ImageGalleryView {
         });
     }
 
+    /** Pour l'export PDF (à appeler hors du thread principal) : miniature en cache ou téléchargée, sinon l'image d'origine réduite. */
+    public static Bitmap fetchSync(String thumb, String full, int maxPx) {
+        Bitmap b = CACHE.get(thumb + "@" + maxPx);
+        if (b != null) return b;
+        b = fetch(thumb, maxPx);
+        if (b == null && full != null && !full.equals(thumb)) b = fetch(full, maxPx);
+        if (b != null) CACHE.put(thumb + "@" + maxPx, b);
+        return b;
+    }
+
     /** Traitement final avant l'enregistrement. Point d'accroche du futur filigrane. */
     static byte[] finalizeImage(byte[] data) { return data; }
 
