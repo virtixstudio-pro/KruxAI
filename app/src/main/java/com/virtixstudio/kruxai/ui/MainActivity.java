@@ -1631,6 +1631,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 final String forFiles = cleanResponse;
                 runOnUiThread(() -> { announceFiles(forFiles); deliverToWorkspace(forFiles); });
 
+                boolean dropInterim = false;
                 java.util.regex.Matcher kruxMedia = java.util.regex.Pattern
                         .compile("<KRUX_TOOL>(?:\\s|\\\\n)*(image_search|video_search)(?:\\s|\\\\n)*(.*?)(?:\\s|\\\\n)*</KRUX_TOOL>",
                                 java.util.regex.Pattern.DOTALL)
@@ -1642,6 +1643,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     if (cleanResponse.isEmpty()) {
                         cleanResponse = wantVideo ? "Je cherche des vidéos libres de droits." : "Je cherche des images libres de droits.";
                     }
+                    if (!mediaQuery.isEmpty() && !wantVideo) dropInterim = true;
                     if (!mediaQuery.isEmpty()) {
                         runOnUiThread(() -> { if (wantVideo) MediaGallery.show(MainActivity.this, true, mediaQuery); else runImageGallery(mediaQuery, null); });
                     }
@@ -1736,6 +1738,15 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setKruxState(KruxState.IDLE);
                 }
 
+                if (dropInterim) {
+                    // la galerie d'images est la réponse : pas de message « Je cherche… » avec ses boutons
+                    aiMessage.setStreaming(false);
+                    runOnUiThread(() -> {
+                        int pos = messageList.indexOf(aiMessage);
+                        if (pos >= 0) { messageList.remove(pos); chatAdapter.notifyItemRemoved(pos); }
+                    });
+                    return;
+                }
                 aiMessage.setText(cleanResponse);
                 aiMessage.setModel(modelBrand);
                 aiMessage.setStreaming(false);

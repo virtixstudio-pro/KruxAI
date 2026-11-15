@@ -70,7 +70,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private int aiBubbleColor = Color.TRANSPARENT;
         private int aiTextColor = Color.parseColor("#FAF7FF");
         private float bubbleRadius = 12f;
-        private float messageTextSize = 15f;
+        private float messageTextSize = 14f;
         private String messageFont = "sans-serif";
 
     public interface OnSpeechRequestedListener {

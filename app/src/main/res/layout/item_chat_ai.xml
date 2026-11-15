@@ -149,8 +149,9 @@
 
         <ImageButton
             android:id="@+id/btnCopy"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_copy"
             android:tint="#766A8A"
@@ -158,9 +159,10 @@
 
         <ImageButton
             android:id="@+id/btnShare"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
+            android:layout_marginStart="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_share"
             android:tint="#766A8A"
@@ -168,9 +170,10 @@
 
         <ImageButton
             android:id="@+id/btnDownload"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
+            android:layout_marginStart="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_download"
             android:tint="#766A8A"
@@ -178,9 +181,10 @@
 
         <ImageButton
             android:id="@+id/btnSpeak"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
+            android:layout_marginStart="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_speaker"
             android:tint="#766A8A"
@@ -188,9 +192,10 @@
 
         <ImageButton
             android:id="@+id/btnFeedbackPositive"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
+            android:layout_marginStart="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_thumb_up"
             android:tint="#B9AFCB"
@@ -198,9 +203,10 @@
 
         <ImageButton
             android:id="@+id/btnFeedbackNegative"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="4dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="5dp"
+            android:layout_marginStart="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_thumb_down"
             android:tint="#B9AFCB"

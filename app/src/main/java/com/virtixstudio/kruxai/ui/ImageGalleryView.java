@@ -47,7 +47,7 @@ public final class ImageGalleryView {
 
     private static final OkHttpClient HTTP = new OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS).build();
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(3);
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(6);
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final LruCache<String, Bitmap> CACHE = new LruCache<String, Bitmap>(16 * 1024 * 1024) {
         @Override protected int sizeOf(String k, Bitmap b) { return b.getByteCount(); }
@@ -66,19 +66,32 @@ public final class ImageGalleryView {
         row.setOrientation(LinearLayout.HORIZONTAL);
         hs.addView(row);
         for (final Hit h : hits) {
-            ImageView iv = new ImageView(c);
-            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            android.widget.FrameLayout tile = new android.widget.FrameLayout(c);
             GradientDrawable ph = new GradientDrawable();
             ph.setColor(KruxTheme.get(c, "input"));
             ph.setCornerRadius(16 * d);
-            iv.setBackground(ph);
-            iv.setClipToOutline(true);
+            tile.setBackground(ph);
+            tile.setClipToOutline(true);
+            ImageView iv = new ImageView(c);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
             iv.setContentDescription(h.title);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (150 * d), (int) (150 * d));
+            tile.addView(iv, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            android.widget.ProgressBar spin = new android.widget.ProgressBar(c);
+            spin.setIndeterminate(true);
+            spin.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(KruxTheme.get(c, "text2")));
+            tile.addView(spin, new android.widget.FrameLayout.LayoutParams((int) (22 * d), (int) (22 * d), Gravity.CENTER));
+            TextView fail = new TextView(c);
+            fail.setText("Image\nindisponible");
+            fail.setGravity(Gravity.CENTER);
+            fail.setTextSize(11);
+            fail.setTextColor(KruxTheme.get(c, "text2"));
+            fail.setVisibility(View.GONE);
+            tile.addView(fail, new android.widget.FrameLayout.LayoutParams(-1, -1));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (128 * d), (int) (128 * d));
             lp.rightMargin = (int) (8 * d);
-            row.addView(iv, lp);
-            load(h.thumb, 400, iv);
-            iv.setOnClickListener(v -> showViewer(c, h));
+            row.addView(tile, lp);
+            load(h.thumb, 400, iv, h.full, spin, fail);
+            tile.setOnClickListener(v -> showViewer(c, h));
         }
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2);
         hp.topMargin = (int) (6 * d);
@@ -91,35 +104,45 @@ public final class ImageGalleryView {
         host.addView(note);
     }
 
-    /** Charge une image en arrière-plan, la réduit à maxPx, la garde en cache mémoire. */
-    private static void load(final String url, final int maxPx, final ImageView target) {
+    /** Charge une image en arrière-plan (miniature, puis l'image d'origine réduite si la miniature échoue). */
+    private static void load(final String url, final int maxPx, final ImageView target, final String fallback,
+                             final View spinner, final View failed) {
         target.setTag(url);
         Bitmap hit = CACHE.get(url + "@" + maxPx);
-        if (hit != null) { target.setImageBitmap(hit); return; }
+        if (hit != null) { target.setImageBitmap(hit); if (spinner != null) spinner.setVisibility(View.GONE); return; }
         target.setImageDrawable(null);
         POOL.execute(() -> {
-            Bitmap bmp = null;
-            try {
-                byte[] data = download(url);
-                BitmapFactory.Options o = new BitmapFactory.Options();
-                o.inJustDecodeBounds = true;
-                BitmapFactory.decodeByteArray(data, 0, data.length, o);
-                int sample = 1;
-                while (o.outWidth / (sample * 2) >= maxPx && o.outHeight / (sample * 2) >= maxPx) sample *= 2;
-                o = new BitmapFactory.Options();
-                o.inSampleSize = sample;
-                bmp = BitmapFactory.decodeByteArray(data, 0, data.length, o);
-            } catch (Throwable ignored) { }
+            Bitmap bmp = fetch(url, maxPx);
+            String used = url;
+            if (bmp == null && fallback != null && !fallback.equals(url)) { bmp = fetch(fallback, maxPx); used = fallback; }
             final Bitmap result = bmp;
             if (result != null) CACHE.put(url + "@" + maxPx, result);
             MAIN.post(() -> {
-                if (result != null && url.equals(target.getTag())) {
+                if (spinner != null) spinner.setVisibility(View.GONE);
+                if (result == null) { if (failed != null) failed.setVisibility(View.VISIBLE); return; }
+                if (url.equals(target.getTag())) {
                     target.setAlpha(0f);
                     target.setImageBitmap(result);
                     target.animate().alpha(1f).setDuration(200).start();
                 }
             });
         });
+    }
+
+    private static Bitmap fetch(String url, int maxPx) {
+        try {
+            byte[] data = download(url);
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(data, 0, data.length, o);
+            int sample = 1;
+            while (o.outWidth / (sample * 2) >= maxPx && o.outHeight / (sample * 2) >= maxPx) sample *= 2;
+            o = new BitmapFactory.Options();
+            o.inSampleSize = sample;
+            return BitmapFactory.decodeByteArray(data, 0, data.length, o);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private static byte[] download(String url) throws Exception {
