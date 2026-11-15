@@ -8,3 +8,9 @@ FIREBASE_PROJECT_ID = "krux-9fd33"
 
 # Les clés se déposent avec : npx wrangler secret put NOM  (voir README.md)
 # GROQ_API_KEY, CEREBRAS_API_KEY, MISTRAL_API_KEY, HF_API_KEY, GEMINI_API_KEY
+
+# Compteur d'appels par utilisateur (même base que le Worker de stockage)
+[[d1_databases]]
+binding = "DB"
+database_name = "krux-db"
+database_id = "13117c58-22fe-4f6b-a7c3-85c414dd55bd"

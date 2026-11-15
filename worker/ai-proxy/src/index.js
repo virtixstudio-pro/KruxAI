@@ -11,6 +11,42 @@ const OPENAI_STYLE = {
   mistral: { url: "https://api.mistral.ai/v1/chat/completions", secret: "MISTRAL_API_KEY" },
 };
 
+// Limites par utilisateur (compte Firebase) : protègent tes clés si quelqu'un s'acharne.
+const LIMIT_HOUR = 120;
+const LIMIT_DAY = 800;
+let usageTableReady = false;
+
+/** Compte l'appel de cet utilisateur (base D1 « DB »). Retourne un message d'erreur s'il dépasse sa limite, sinon null. */
+async function rateLimit(env, uid) {
+  if (!env.DB) return null; // sans base D1, pas de limite (à éviter : voir README)
+  try {
+    if (!usageTableReady) {
+      await env.DB.prepare(
+        "CREATE TABLE IF NOT EXISTS ai_usage (uid TEXT NOT NULL, bucket TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (uid, bucket))"
+      ).run();
+      usageTableReady = true;
+    }
+    const iso = new Date().toISOString();
+    const hour = "h" + iso.slice(0, 13);
+    const day = "d" + iso.slice(0, 10);
+    const up = "INSERT INTO ai_usage (uid, bucket, n) VALUES (?, ?, 1) ON CONFLICT (uid, bucket) DO UPDATE SET n = n + 1 RETURNING n";
+    const res = await env.DB.batch([env.DB.prepare(up).bind(uid, hour), env.DB.prepare(up).bind(uid, day)]);
+    const nHour = res[0].results[0].n;
+    const nDay = res[1].results[0].n;
+    if (Math.random() < 0.02) {
+      const old = new Date(Date.now() - 3 * 86400000).toISOString();
+      await env.DB.prepare(
+        "DELETE FROM ai_usage WHERE (bucket LIKE 'h%' AND bucket < ?) OR (bucket LIKE 'd%' AND bucket < ?)"
+      ).bind("h" + old.slice(0, 13), "d" + old.slice(0, 10)).run();
+    }
+    if (nHour > LIMIT_HOUR) return "Trop de demandes cette heure. Réessaie un peu plus tard.";
+    if (nDay > LIMIT_DAY) return "Limite journalière atteinte. Reviens demain.";
+  } catch (e) {
+    console.log("rateLimit: " + e.message); // en cas de panne de la base, on laisse passer
+  }
+  return null;
+}
+
 const JWK_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
@@ -90,11 +126,14 @@ export default {
     // 1) Authentification Firebase
     const auth = request.headers.get("authorization") || "";
     if (!auth.startsWith("Bearer ")) return json(401, { error: "connexion requise" });
+    let uid;
     try {
-      await verifyFirebaseToken(auth.slice(7), env.FIREBASE_PROJECT_ID);
+      uid = await verifyFirebaseToken(auth.slice(7), env.FIREBASE_PROJECT_ID);
     } catch (e) {
       return json(401, { error: "jeton refusé : " + e.message });
     }
+    const limited = await rateLimit(env, uid);
+    if (limited) return json(429, { error: limited }, { "retry-after": "3600" });
 
     // 2) Corps de la requête
     let body;
