@@ -56,3 +56,12 @@ header.top nav{align-items:center}
 .feat b{font-weight:600}
 .acct dl{margin:24px 0;display:grid;grid-template-columns:140px 1fr;gap:12px 24px}
 .acct dt{color:var(--mute)}.acct dd{margin:0;word-break:break-all}
+
+/* --- Logo --- */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+header.top a.brand{display:inline-flex;align-items:center;gap:10px}
+header.top a.brand img{height:26px;width:auto;display:block}
+.hero{text-align:center}
+.hero-logo{display:block;margin:0 auto;width:clamp(220px,52vw,380px);height:auto}
+.hero .sub{text-indent:.42em}
+.hero .lede{margin-left:auto;margin-right:auto}
