@@ -18,7 +18,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 
 ## Fonctionnalités
 
-- **Chat IA multi-fournisseurs** avec routage et repli automatique entre Groq, Cerebras, Mistral, Hugging Face et Gemini (`router/ModelRouter`, `api/ApiClient`).
+- **Chat IA multi-fournisseurs** avec routage et repli automatique entre Groq, Cerebras, Mistral, Hugging Face et Gemini (`api/ApiClient`).
 - **Recherche web et sources** : recherche, classement et scraping de pages, avec affichage des sources (`api/WebSearchEngine`, `api/SearchRanker`, `web/WebScraper`).
 - **Mode vocal et Live** : reconnaissance vocale, synthèse vocale, avatar animé et service flottant (`live/`).
 - **Voix plus vivante** : meilleure voix française installée, lecture phrase par phrase avec pauses et intonation, sans lire les emojis, astérisques ni liens (`utils/VoiceStyler`).
@@ -26,8 +26,8 @@ Application Android de chat IA, de création d'applications et de conversation v
 - **Boutons de lien** : l'IA écrit `[btn:Texte|https://…]`, l'app affiche un bouton arrondi aux couleurs du thème (`utils/LinkButtons`).
 - **Navigateur intégré** : les liens (boutons, texte, sources) s'ouvrent dans l'app, avec retour, actualiser et « Chrome » (`ui/HtmlPreviewActivity`, `ui/LinkOpener`).
 - **Blocs de code** : coloration syntaxique, couleurs personnalisables (Personnaliser, Réglage détaillé) et actions séparées : Copier, Télécharger, Partager, et Visualiser pour le HTML.
-- **Studio / App Builder** : génération d'applications, modèles de build, validation, suivi de progression, stockage Cloudinary / Worker (`AppBuilder`, `builder/`, `core/`).
-- **Mémoire et historique** : base Room, extraction et sélection de souvenirs, synchronisation cloud (`db/`, `utils/MemoryExtractor`, `utils/ChatHistoryManager`, `core/CloudSync`).
+- **Studio / App Builder** : génération d'applications, modèles de build, validation, suivi de progression, stockage Worker (`AppBuilder`, `builder/`, `core/`).
+- **Mémoire et historique** : base SQLite (`database/KruxDatabaseHelper`), extraction et sélection de souvenirs, synchronisation cloud (`database/`, `utils/MemoryExtractor`, `utils/ChatHistoryManager`, `core/CloudSync`).
 - **Personnalisation** : palettes et couleurs modifiables via un système de thème par tags `krux:*` (`ui/KruxTheme`).
 - **Thème clair ou sombre complet** : le thème de base (`Theme.Krux`, DayNight) suit la palette choisie ; dialogues, champs, menus et curseurs prennent le blanc ou le noir (`KruxApp`, `KruxTheme.syncNightMode`).
 - **Multilingue** : français, anglais, espagnol et chinois (`utils/LanguageManager`, `res/values-*`).
@@ -45,7 +45,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 | Build | Gradle, Android Gradle Plugin `8.2.2` |
 | UI | AppCompat `1.6.1`, Material Components `1.11.0`, ConstraintLayout `2.1.4` |
 | Backend | Firebase Auth + Firestore (BOM `32.7.2`) |
-| Base locale | Room `2.6.1` |
+| Base locale | SQLite (`KruxDatabaseHelper`) |
 | Réseau | OkHttp `4.12.0` |
 | JSON | Gson `2.10.1` |
 | Markdown | Markwon `4.6.1` |
@@ -73,10 +73,8 @@ Application Android de chat IA, de création d'applications et de conversation v
 │       │   ├── api/                  # Clients IA, recherche web, classement
 │       │   ├── builder/              # Moteur de génération d'applications
 │       │   ├── core/                 # Config, sync, quota, réflexion, worker
-│       │   ├── db/                   # Room (mémoire)
 │       │   ├── live/                 # Mode vocal, avatar, service flottant
 │       │   ├── models/               # Modèles de données
-│       │   ├── router/               # Routage des modèles IA
 │       │   ├── ui/                   # Activités, vues et thème custom
 │       │   ├── utils/                # Langue, fichiers, mémoire, markdown
 │       │   └── web/                  # Scraping HTTP
@@ -245,7 +243,6 @@ Workflow manuel destiné à la compilation de dépôts publics.
 - **Google Sign-In** : bouton présent, configuration Firebase à finaliser.
 - **Build local** : non vérifié faute de SDK Android dans l'environnement actuel.
 - **Configuration de build** : `krux_config.json` documente des versions plus récentes (AGP 8.13, compileSdk 36) que celles réellement utilisées par le projet (AGP 8.2.2, compileSdk 34).
-- De nombreux fichiers de sauvegarde (`*.bak`, `*.before-*`, `*.old`) restent présents dans les sources ; ils sont ignorés par Gradle mais pourraient être archivés ou supprimés lors d'un nettoyage dédié.
 
 ---
 
@@ -270,6 +267,9 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 ---
 
 ## Journal des mises à jour
+
+**15/11/2026 (ménage)**
+- Suppression des doublons : ancien routeur `ModelRouter`, couche Room, recherche `WebSearchService` / `TavilyApiClient`, `ReflectionEngine`, `CloudinaryStore`, `KruxDotsView`, anciens helpers de code et de médias, 7 layouts orphelins et les fichiers de sauvegarde suivis par Git. Le code actif est inchangé.
 
 **15/11/2026 (thème)**
 - Thème : le blanc ou le noir choisi dans Personnaliser s'applique à toute l'app, y compris aux éléments système.

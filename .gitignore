@@ -11,3 +11,9 @@ local.properties
 app/src/main/assets/krux_builder.json
 *.bak
 app/src/main/assets/krux_media.json
+*.before_*
+*.ui-old
+*.auto.bak
+.krux_backup_*/
+.krux_prompt_backup_*/
+backups/

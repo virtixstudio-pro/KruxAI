@@ -329,3 +329,9 @@ cd tools/builder-tests && ./run.sh
 
 *Doc généré à partir du code réel, pas du README. Si un point te semble faux, dis-le, je
 vérifie la ligne et je corrige.*
+
+---
+
+## Ménage du 15/11/2026
+
+Les doublons des points 6 et 13 sont supprimés : `ModelRouter` (et `ModelRoute`), couche `db/` Room (et ses dépendances Gradle), `WebSearchService`, `TavilyApiClient`, `ReflectionEngine`, `CloudinaryStore`, `KruxDotsView`, `MarkdownCodeFormatter`, `CodeHelper`, `MediaHelper`, `SourcesAdapter`, 7 layouts orphelins et les sauvegardes suivies par Git. `WebScraper` est conservé pour la lecture de pages web. Pour retrouver un fichier supprimé : `git log --diff-filter=D -- chemin`.

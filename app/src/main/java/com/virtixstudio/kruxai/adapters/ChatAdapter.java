@@ -777,29 +777,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return androidx.core.graphics.ColorUtils.calculateLuminance(background) > 0.5 ? Color.BLACK : Color.WHITE;
     }
 
-    private ImageButton createCodeAction(
-            Context context,
-            int icon,
-            String description,
-            int tint
-    ) {
-        ImageButton button = new ImageButton(context);
-        button.setImageResource(icon);
-        button.setColorFilter(tint);
-        button.setBackgroundColor(Color.TRANSPARENT);
-        button.setContentDescription(description);
-        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        int pad = dp(context, 6);
-        button.setPadding(pad, pad, pad, pad);
-
-        LinearLayout.LayoutParams actionParams =
-                new LinearLayout.LayoutParams(dp(context, 28), dp(context, 28));
-        actionParams.setMargins(dp(context, 1), 0, dp(context, 1), 0);
-        button.setLayoutParams(actionParams);
-
-        return button;
-    }
-
     private void addTable(
             LinearLayout container,
             List<String> lines
@@ -1124,26 +1101,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     Toast.LENGTH_SHORT
             ).show();
         }
-    }
-
-    private void loadThemePreferences(Context context) {
-        android.content.SharedPreferences preferences =
-                context.getSharedPreferences("krux_theme", Context.MODE_PRIVATE);
-
-        accentColor = parseThemeColor(
-                preferences.getString("accent", "#A855F7"),
-                Color.parseColor("#A855F7")
-        );
-
-        secondaryTextColor = Color.rgb(185, 175, 203);
-
-        codeBackgroundColor = parseThemeColor(
-                preferences.getString("aiBubble", "#171126"),
-                Color.parseColor("#171126")
-        );
-
-        codeTextColor = accentColor;
-        codeBorderColor = accentColor;
     }
 
     private Markwon buildMarkwon(Context context) {
@@ -1650,16 +1607,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     itemView.findViewById(
                             R.id.btnFeedbackNegative
                     );
-        }
-    }
-    private int parseThemeColor(String hex, int fallback) {
-        if (hex == null || hex.trim().isEmpty()) return fallback;
-        try {
-            String cleaned = hex.trim();
-            if (!cleaned.startsWith("#")) cleaned = "#" + cleaned;
-            return android.graphics.Color.parseColor(cleaned);
-        } catch (IllegalArgumentException e) {
-            return fallback;
         }
     }
 }

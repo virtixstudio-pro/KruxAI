@@ -92,7 +92,7 @@
   ],
 
   "models": {
-    "_note": "Noms de modèles tels qu'écrits dans ModelRouter. NON vérifiés auprès des fournisseurs : à contrôler avant de s'y fier.",
+    "_note": "Noms de modèles repris de l'ancien routeur (supprimé), le routage réel est dans ApiClient. NON vérifiés auprès des fournisseurs : à contrôler avant de s'y fier.",
     "gemini_flash": { "provider": "GEMINI", "id": "gemini-3.6-flash", "verifie": false },
     "hf_qwen_coder": { "provider": "HUGGINGFACE", "id": "Qwen/Qwen2.5-Coder-32B-Instruct:fastest", "verifie": false },
     "groq_oss": { "provider": "GROQ", "id": "openai/gpt-oss-120b", "verifie": false },
