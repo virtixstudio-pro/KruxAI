@@ -246,6 +246,28 @@ Workflow manuel destiné à la compilation de dépôts publics.
 
 ---
 
+## Site web (`docs/`)
+
+Site statique servi par Cloudflare (Worker avec fichiers statiques, sortie `docs`). Un push sur `main` le redéploie.
+
+| Page | Rôle |
+|---|---|
+| `index.html` | Accueil Virtix Studio |
+| `krux.html` | Présentation de Krux |
+| `connexion.html` | Connexion Google ou e-mail / mot de passe (compte Krux) |
+| `compte.html` | Profil et déconnexion |
+| `privacy.html` | Politique de confidentialité (lien dans l'app : `PrivacyActivity.POLICY_URL`) |
+
+La configuration Firebase web est dans `docs/firebase-config.js` (clé publique par conception). Le domaine du site doit figurer dans Firebase, Authentication, Paramètres, Domaines autorisés. Les comptes avec la même adresse e-mail sont associés.
+
+---
+
+## Proxy IA (`worker/ai-proxy`)
+
+Cloudflare Worker placé entre l'app et les fournisseurs d'IA : les clés restent côté serveur. Il vérifie le jeton Firebase de l'utilisateur, limite le corps des requêtes (256 Ko) et `max_tokens` (16384), et applique une limite par utilisateur. Voir `worker/ai-proxy/README.md` pour le déploiement depuis le tableau de bord Cloudflare.
+
+---
+
 ## Auteur
 
 **Virtix Studio** — projet privé.
@@ -276,6 +298,11 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 
 **15/11/2026 (blocs de code)**
 - Blocs de code : actions séparées avec libellés (« Visualiser » pour le HTML), couleurs du code personnalisables dans Personnaliser.
+
+**15/11/2026 (migration, site web)**
+- Migration API 36 / AGP 8.13.0, visage flottant (écoute, voix, lecture d'écran, tuile), personnalisation, bouton « Réessayer » hors réseau, aperçu HTML, recherche d'images, limites du proxy IA.
+- Inscription avec écran de confidentialité (`PrivacyActivity`).
+- Site web Virtix Studio avec connexion Google / compte Krux, en ligne sur workers.dev.
 
 **14/11/2026**
 - Voix : `VoiceStyler` (voix, pauses, intonation, nettoyage du markdown et des emojis) branché sur le chat, le mode Live et la bulle flottante.
