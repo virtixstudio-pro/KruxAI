@@ -95,60 +95,9 @@ public class SignupActivity extends AppCompatActivity {
             return;
         }
 
-        btnSignup.setEnabled(false);
-        btnSignup.setText("Création...");
-
-        auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-
-                    if (!task.isSuccessful()) {
-                        btnSignup.setEnabled(true);
-                        btnSignup.setText("S'inscrire");
-
-                        if (task.getException() != null) {
-                            showFirebaseError(task.getException());
-                        } else {
-                            showMessage("Impossible de créer le compte.");
-                        }
-
-                        return;
-                    }
-
-                    FirebaseUser user = auth.getCurrentUser();
-
-                    if (user == null) {
-                        btnSignup.setEnabled(true);
-                        btnSignup.setText("S'inscrire");
-                        showMessage("Le compte n'a pas pu être récupéré.");
-                        return;
-                    }
-
-                    String uid = user.getUid();
-
-                    Map<String, Object> profile = new HashMap<>();
-                    profile.put("uid", uid);
-                    profile.put("firstName", firstName);
-                    profile.put("email", email);
-                    profile.put("createdAt", FieldValue.serverTimestamp());
-
-                    db.collection("users")
-                            .document(uid)
-                            .set(profile)
-                            .addOnCompleteListener(profileTask -> {
-
-                                btnSignup.setEnabled(true);
-                                btnSignup.setText("S'inscrire");
-
-                                if (profileTask.isSuccessful()) {
-                                    showMessage("Compte créé avec succès.");
-                                    navigateToMain();
-                                } else {
-                                    showMessage(
-                                            "Compte créé, mais le profil n'a pas pu être enregistré."
-                                    );
-                                }
-                            });
-                });
+        // Tout est correct : on passe tout de suite à l'écran suivant (confidentialité), le compte se crée là-bas.
+        PrivacyActivity.Pending.set(firstName, email, password);
+        startActivity(new Intent(this, PrivacyActivity.class));
     }
 
     private void navigateToMain() {
