@@ -241,7 +241,7 @@ Ils se font un par un, dans cet ordre, avec ce README mis à jour à chaque éta
 
 1. ~~Blocs de code : icônes seules dans l'en-tête~~ (fait le 16/11).
 2. **Recherche** (étape 1 faite le 16/11) : règle « interdiction de deviner » dans le prompt, plus de balise brute ni de devinette quand la recherche échoue (le modèle l'avoue), délai de recherche porté à 25 s, Wikipédia (fr puis en) en complément quand il y a peu de résultats. À faire : deuxième moteur de recherche indépendant, plusieurs recherches enchaînées, lecture de plus de pages, vérification croisée des sources.
-3. **Création d'apps et de sites** : retirer les restrictions ; Krux regarde d'abord ce qui se fait de mieux, propose des idées innovantes et produit du sérieux (pas une simple page de CSS).
+3. **Création d'apps et de sites** (étape 1 faite le 16/11) : fin de la limite « application simple, 3 écrans » ; plafonds relevés (40 fichiers, 20 000 caractères par fichier, 110 000 au total) ; méthode « recherche, concept innovant, construction, relecture » ; sites en plusieurs fichiers avec vraies interactions. Gardés : quota de 2 créations par semaine et interdits de sécurité (espionnage, usurpation de banque ou de marque, code dangereux). À faire : bibliothèques supplémentaires (Room, Gson) et permissions (notifications) via le gabarit Gradle, plan multi-passes pour les gros projets, aperçu multi-pages des sites.
 4. **Réflexion** : un vrai système de réflexion avant de répondre (plan, vérification), au niveau d'un assistant professionnel.
 5. **Mémoire** : un vrai système où Krux décide de ce qu'il retient, dès l'inscription.
 
@@ -303,6 +303,7 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 ## Journal des mises à jour
 
 **16/11/2026**
+- Création d'apps et de sites : limites « simple » levées, méthode professionnelle dans le prompt, plafonds relevés.
 - Recherche : « interdiction de deviner », échec de recherche annoncé au lieu d'une réponse inventée, Wikipédia en complément.
 - Blocs de code : les actions (aperçu, partager, copier, télécharger) reviennent en icônes dans l'en-tête du bloc.
 

@@ -37,7 +37,7 @@ public final class BuildEstimator {
         double score = words / 25.0 + hits * 1.2 + Math.max(0, parts - 1) * 0.4;
         int files = (int) Math.round(Math.min(40, 8 + score * 3));
         int min = 2 + (int) Math.round(score), max = min + 3 + (int) Math.round(score / 2);
-        return new Estimate(score, files, min, max, score >= 6.0);
+        return new Estimate(score, files, min, max, score >= 10.0);
     }
 
     /** Même demande, réduite aux fonctions essentielles. */

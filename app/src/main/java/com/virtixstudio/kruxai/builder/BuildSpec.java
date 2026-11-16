@@ -28,9 +28,9 @@ public final class BuildSpec {
     // --- Limites ---
     public int maxFixes = 2;          // corrections après un build GitHub en échec
     public int maxLocalFixes = 2;     // corrections demandées à l'IA avant d'envoyer le code
-    public int maxFiles = 25;
-    public int maxFileChars = 15000;
-    public int maxTotalChars = 60000;
+    public int maxFiles = 40;
+    public int maxFileChars = 20000;
+    public int maxTotalChars = 110000;
 
     // --- Reprise sur erreur ---
     public int generateRetries = 2;   // nouvelles tentatives si l'IA échoue (réseau, quota, JSON coupé)

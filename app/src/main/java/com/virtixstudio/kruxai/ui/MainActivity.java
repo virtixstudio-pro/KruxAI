@@ -1957,7 +1957,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Créer cette application ?")
                 .setMessage(shown + "\n\nCréations restantes cette semaine : " + (quota - used) + "/" + quota
-                        + "\nApplication simple : 25 fichiers maximum.")
+                       )
                 .setNegativeButton("Annuler", null)
                 .setPositiveButton("Lancer", (d, w) -> startAppBuild(fToken, desc))
                 .show(), this);
