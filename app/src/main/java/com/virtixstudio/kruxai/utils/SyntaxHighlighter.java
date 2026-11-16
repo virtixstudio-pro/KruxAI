@@ -123,7 +123,7 @@ public final class SyntaxHighlighter {
 
     // ---------------------------------------------------------------- familles de langages
 
-    private enum Family { CLIKE, HASH, SQL, JSON, MARKUP, CSS, PLAIN }
+    private enum Family { CLIKE, HASH, SQL, JSON, MARKUP, CSS, TERMINAL, PLAIN }
 
     private static final int G_COMMENT = 1, G_STRING = 2, G_ANNOT = 3, G_NUMBER = 4,
             G_TAG = 5, G_ATTR = 6, G_KEYWORD = 7, G_TYPE = 8, G_FUNC = 9;
@@ -148,6 +148,8 @@ public final class SyntaxHighlighter {
                 return Family.MARKUP;
             case "css": case "scss": case "less":
                 return Family.CSS;
+            case "terminal":
+                return Family.TERMINAL;
             case "":
                 return guess(code);
             default:
@@ -266,6 +268,13 @@ public final class SyntaxHighlighter {
                 attr = "[A-Za-z-]+(?=\\s*:)";
                 kw = "\\b(?:" + join(KW_CSS) + ")\\b";
                 type = "(?<![\\w-])[.#][A-Za-z_][\\w-]*";
+                break;
+            case TERMINAL:
+                comment = "(?m)^…[^\\n]*";
+                string = "✓";
+                annot = "↻";
+                number = "\\b\\d+(?:[.,]\\d+)? (?:o|Ko|Mo)\\b";
+                tag = "✗";
                 break;
             default:
                 comment = none;

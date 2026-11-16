@@ -56,16 +56,6 @@ public class KruxTerminalView extends LinearLayout {
         bar.setOrientation(HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(Math.round(10 * d), Math.round(6 * d), Math.round(6 * d), Math.round(4 * d));
-        for (int col : new int[]{0xFFF87171, 0xFFFBBF24, 0xFF34D399}) {
-            View dot = new View(c);
-            GradientDrawable g = new GradientDrawable();
-            g.setShape(GradientDrawable.OVAL);
-            g.setColor(col);
-            dot.setBackground(g);
-            LayoutParams lp = new LayoutParams(Math.round(8 * d), Math.round(8 * d));
-            lp.rightMargin = Math.round(5 * d);
-            bar.addView(dot, lp);
-        }
         title = new TextView(c);
         title.setText("krux — terminal");
         title.setTextSize(11);

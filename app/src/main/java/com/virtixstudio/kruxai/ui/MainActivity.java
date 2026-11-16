@@ -2053,6 +2053,9 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void runAppBuild(String token, String desc) {
         final com.virtixstudio.kruxai.builder.BuildProgress progress = new com.virtixstudio.kruxai.builder.BuildProgress();
         final ChatMessage bubble = new ChatMessage(progress.render(), false);
+        bubble.setStreaming(true); // copier, partager, avis : seulement une fois l'app terminée
+        if (rvChat.getItemAnimator() instanceof androidx.recyclerview.widget.SimpleItemAnimator)
+            ((androidx.recyclerview.widget.SimpleItemAnimator) rvChat.getItemAnimator()).setSupportsChangeAnimations(false);
         runOnUiThread(() -> {
             messageList.add(bubble);
             chatAdapter.notifyItemInserted(messageList.size() - 1);
@@ -2062,9 +2065,18 @@ private final ActivityResultLauncher<String[]> filePicker =
             bubble.setText(progress.render());
             int pos = messageList.indexOf(bubble);
             if (pos >= 0) {
+                boolean atBottom = !rvChat.canScrollVertically(1);
                 chatAdapter.notifyItemChanged(pos);
-                rvChat.scrollToPosition(messageList.size() - 1);
+                if (atBottom) rvChat.scrollToPosition(messageList.size() - 1);
             }
+        });
+        // Mise à jour du chrono : aucun défilement, et rien si le texte n'a pas changé
+        final Runnable refreshQuiet = () -> runOnUiThread(() -> {
+            String t = progress.render();
+            if (t.equals(bubble.getText())) return;
+            bubble.setText(t);
+            int pos = messageList.indexOf(bubble);
+            if (pos >= 0) chatAdapter.notifyItemChanged(pos);
         });
 
         final boolean[] consumed = {false};
@@ -2079,23 +2091,17 @@ private final ActivityResultLauncher<String[]> filePicker =
             @Override public void run() {
                 if (!building[0]) return;
                 progress.setPulse(ticks[0]++, (int) ((System.currentTimeMillis() - started) / 1000));
-                refresh.run();
-                pulse.postDelayed(this, 700);
+                refreshQuiet.run();
+                pulse.postDelayed(this, 1000);
             }
         });
         final Runnable endBuild = () -> {
             building[0] = false;
+            bubble.setStreaming(false);
             progress.setPulse(0, (int) ((System.currentTimeMillis() - started) / 1000));
             runOnUiThread(() -> setBuildMode(false));
         };
-        runOnUiThread(() -> {
-            setBuildMode(true);
-            if (terminal != null) {
-                terminal.clear();
-                String d1 = desc == null ? "" : desc.replace('\n', ' ').trim();
-                terminal.println("krux build \"" + (d1.length() > 50 ? d1.substring(0, 47) + "…" : d1) + "\"", KruxTerminalView.CMD);
-            }
-        });
+        runOnUiThread(() -> setBuildMode(true));
 
         com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
         AppBuilder.run(token, desc, outDir,
@@ -2158,9 +2164,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                                 ? "Création du projet…"
                                 : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
                         refresh.run();
-                        final String shown = status.startsWith("Création du repo") ? "création du projet"
-                                : status.replace("sur GitHub", "sur Virtix Studio").replace("GitHub", "Virtix Studio");
-                        runOnUiThread(() -> { if (terminal != null) terminal.println(shown, KruxTerminalView.INFO); });
                     }
 
                     @Override
@@ -2215,14 +2218,11 @@ private final ActivityResultLauncher<String[]> filePicker =
                     public void onFile(final String path, final int bytes, final boolean fixed) {
                         progress.addFile(path, bytes, fixed);
                         refresh.run();
-                        final String fl = path + "  (" + (bytes < 1024 ? bytes + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", bytes / 1024.0)) + ")";
-                        runOnUiThread(() -> { if (terminal != null) terminal.println(fl, fixed ? KruxTerminalView.FIX : KruxTerminalView.OK); });
                     }
 
                     @Override
                     public void onDone(final java.io.File apk, final String repoUrl) {
                         endBuild.run();
-                        runOnUiThread(() -> { if (terminal != null) { terminal.println("application prête", KruxTerminalView.OK); terminal.hideLater(8000); } });
                         progress.finish("Ton application est prête",
                                 "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
                         refresh.run();
@@ -2240,7 +2240,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                         android.util.Log.e("KRUX_BUILD", String.valueOf(message));
                         countFailedBuild(message);
                         endBuild.run();
-                        runOnUiThread(() -> { if (terminal != null) { terminal.println(friendlyBuildError(message), KruxTerminalView.ERR); terminal.hideLater(8000); } });
                         progress.fail(friendlyBuildError(message));
                         refresh.run();
                     }

@@ -638,7 +638,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
 
         // Actions : icônes seules, à droite de l'en-tête du bloc.
-        boolean isHtml = com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code);
+        final boolean term = "terminal".equals(language);
+        boolean isHtml = !term && com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code);
         ImageButton preview = isHtml
                 ? createCodeAction(context, R.drawable.ic_play, "Aperçu de la page", text2)
                 : null;
@@ -649,9 +650,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             preview.setOnClickListener(v -> com.virtixstudio.kruxai.ui.HtmlPreviewActivity.open(context, fileName, code));
             header.addView(preview);
         }
-        header.addView(share);
-        header.addView(copy);
-        header.addView(download);
+        if (!term) {
+            header.addView(share);
+            header.addView(copy);
+            header.addView(download);
+        }
 
         HorizontalScrollView scroll = new HorizontalScrollView(context);
         scroll.setHorizontalScrollBarEnabled(false);
@@ -668,7 +671,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         codeView.setGravity(Gravity.TOP | Gravity.START);
         codeView.setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 10));
         codeView.setHorizontallyScrolling(true);
-        codeView.setTextIsSelectable(true);
+        codeView.setTextIsSelectable(!term);
 
         scroll.addView(
                 codeView,

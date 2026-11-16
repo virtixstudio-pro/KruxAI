@@ -52,26 +52,50 @@ public final class BuildProgress {
         return (k < 10 ? String.format(java.util.Locale.FRANCE, "%.1f", k) : String.valueOf(Math.round(k))) + " Ko";
     }
 
+    /** Nom court affiché : le fichier seul, ou « dossier/fichier » pour les ressources (layout/activity_main.xml). */
+    static String shortName(String path) {
+        String p = path.replace('\\', '/');
+        String[] seg = p.split("/");
+        String name = seg[seg.length - 1];
+        int ri = p.indexOf("/res/");
+        if (ri >= 0 && seg.length >= 2) name = seg[seg.length - 2] + "/" + name;
+        return name.length() > 28 ? "…" + name.substring(name.length() - 27) : name;
+    }
+
+    private static String pad(String s, int w, boolean left) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = s.length(); i < w; i++) sb.append(' ');
+        return left ? sb + s : s + sb;
+    }
+
     public synchronized String render() {
         StringBuilder sb = new StringBuilder();
         sb.append("**").append(title).append("**\n\n");
         if (!done && !failed) {
             sb.append(step);
-            if (tick >= 0) sb.append(" ").append(".".repeat(1 + tick % 3));
             if (elapsed >= 0) sb.append("  ·  ⏱ ").append(clock(elapsed));
             sb.append("\n\n");
         }
         else if (!note.isEmpty()) sb.append(note).append("\n\n");
 
-        int total = files.size(), skip = Math.max(0, total - MAX_LINES), i = 0;
-        if (skip > 0) sb.append("… ").append(skip).append(skip == 1 ? " fichier plus haut\n" : " fichiers plus haut\n");
-        for (Map.Entry<String, Entry> e : files.entrySet()) {
-            if (i++ < skip) continue;
-            sb.append("✓ `").append(e.getKey()).append("` · ").append(size(e.getValue().bytes));
-            if (e.getValue().fixed) sb.append(" · corrigé");
-            sb.append('\n');
+        int total = files.size();
+        if (total > 0) {
+            int skip = Math.max(0, total - MAX_LINES), i = 0, width = 0;
+            for (Map.Entry<String, Entry> e : files.entrySet()) {
+                if (i++ < skip) continue;
+                width = Math.max(width, shortName(e.getKey()).length());
+            }
+            sb.append("```terminal\n");
+            if (skip > 0) sb.append("… ").append(skip).append(skip == 1 ? " fichier plus haut\n" : " fichiers plus haut\n");
+            i = 0;
+            for (Map.Entry<String, Entry> e : files.entrySet()) {
+                if (i++ < skip) continue;
+                sb.append(e.getValue().fixed ? "↻ " : "✓ ")
+                  .append(pad(shortName(e.getKey()), width, false)).append("  ")
+                  .append(pad(size(e.getValue().bytes), 7, true)).append('\n');
+            }
+            sb.append("```\n\n").append(total).append(total == 1 ? " fichier" : " fichiers");
         }
-        if (total > 0) sb.append('\n').append(total).append(total == 1 ? " fichier" : " fichiers").append('\n');
         return sb.toString().trim();
     }
 }
