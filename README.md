@@ -1,338 +1,49 @@
-# Krux
+CONTEXTE KRUX (dépôt virtixstudio-pro/KruxAI, Termux ~/KruxAI)
+
+PRÉFÉRENCES DE L'UTILISATEUR
+- Un patch à la fois. Pour chaque patch : le fichier .patch + UNE commande complète :
+  git apply --check ... && git apply ... && git add -A && git commit -m "..." && git push origin main
+  (fichiers dans ~/storage/downloads)
+- Mettre le README à jour à chaque patch, par commandes sed/printf (pas par patch : son README local diverge).
+- Ne recloner GitHub que s'il dit « mise à jour ».
+- Ne jamais déplacer ni supprimer de fichiers ou fonctionnalités sans son accord.
+- Rien n'est compilé (pas de SDK Android) : toujours le dire. Vérifier avec git apply --check et javac (syntaxe seule).
+
+DÉJÀ POUSSÉ SUR GITHUB
+Voix vivante, menu d'appui long, boutons de lien [btn:Texte|url], navigateur intégré,
+export (txt, PDF, CSV, ZIP), blocs de code (couleurs personnalisables, actions séparées),
+thème blanc/noir sur toute l'app, ménage des doublons, + les patchs de l'autre session
+(icônes de code, recherche sans deviner, apps/sites sans limites).
+
+PATCHS PRÊTS MAIS À APPLIQUER PAR L'UTILISATEUR (dans cet ordre)
+1. reflexion-analyse.patch : analyse préalable des demandes (core/Reflection), délai 6 s.
+2. reflexion-verification.patch : relecture avant envoi (core/AnswerCheck), délai 8 s, 1 révision max.
+Les deux touchent MainActivity (envoi) et ApiClient. Après leur push, l'utilisateur dit « mise à jour ».
+
+RESTE À FAIRE, DANS L'ORDRE
+1. Restrictions des apps générées (EN ATTENTE DE SON « GO » sur ces valeurs) :
+   - tailles : 60 fichiers, 40 000 car./fichier, 200 000 au total, 4 corrections auto
+     (plafonds de BuildSpec, limits dans krux_config.json)
+   - quota de créations : réglable, 20/semaine par défaut (aujourd'hui 2, lu dans krux_builder.json
+     ignoré par Git, contrôle côté app seulement)
+   - autoriser : notifications, alarmes/WorkManager, localisation, caméra, lecture des médias
+     (BuildValidator : ALLOWED_PERMS et BANNED_CODE)
+   - GARDER BLOQUÉ : exécution de commandes, chargement de code à la volée, réflexion, SMS,
+     accessibilité, admin d'appareil, superposition, démarrage au boot, contacts.
+2. Reprise d'apps : (a) création interrompue visible dans « Mes apps » (BuildCheckpoint existe,
+   24 h, même description exacte) ; (b) sauvegarder le code en zip à côté de l'APK (WorkerStore ne
+   garde que l'APK) + bouton « Modifier » dans MyAppsActivity.
+3. Recherche web mieux structurée : affichage des résultats et des sources, plusieurs recherches
+   enchaînées, deuxième moteur, plus de pages lues. WebScraper existe, non branché, à conserver.
+4. Affichage de l'envoi de fichiers (DeliveredFileCards, ChatAdapter). À préciser avec lui.
+5. Mémoire : Krux décide de ce qu'il retient, dès l'inscription (MemoryRepository, MemoryBook,
+   MemoryExtractor, PrivacyActivity).
+6. Patch d'économie de quotas : s'inspirer du mode économique de l'ancien ModelRouter (supprimé,
+   retrouvable avec git log --diff-filter=D) ; le vrai routage est dans ApiClient.
+7. Vérifier la bannière hors ligne « Réessayer ».
+8. Backlog : déployer le proxy IA puis retirer et renouveler les clés de l'APK ; README « État actuel » ;
+   mode Live (conversation continue, mémoire, recherche) ; images (filigrane, partage en fichier) ;
+   préparation Google Play ; test de la connexion Google du site.
+9. Optionnel, à lui proposer : supprimer ses fichiers de sauvegarde locaux non suivis par Git
+   (commande de liste déjà donnée, find ... -print).
 
-Application Android de chat IA, de création d'applications et de conversation vocale, développée par **Virtix Studio**.
-
-> Anciennement « KRUX AI ». Le nom affiché dans l'application est désormais **Krux**.
-
-| | |
-|---|---|
-| **Nom affiché** | Krux |
-| **Package / applicationId** | `com.virtixstudio.kruxai` |
-| **Version** | `2.10.0` (versionCode 38) |
-| **Android minimum** | API 24 (Android 7.0) |
-| **Cible / compilation** | API 34 (Android 14) |
-| **Langage** | Java 8 |
-| **Interface** | XML + AppCompat, thème personnalisé |
-
----
-
-## Fonctionnalités
-
-- **Chat IA multi-fournisseurs** avec routage et repli automatique entre Groq, Cerebras, Mistral, Hugging Face et Gemini (`api/ApiClient`).
-- **Analyse préalable des demandes** : avant de répondre aux demandes de fond, un petit modèle rapide détermine le type, la complexité, le besoin de recherche web et un plan en étapes ; ces consignes sont ajoutées au prompt, sans changer l'affichage (`core/Reflection`). Si l'analyse échoue ou dépasse 6 s, la réponse part normalement.
-- **Vérification avant envoi** : pour les demandes de fond, un relecteur léger relit la réponse et Krux la corrige une fois en cas de problème grave (`core/AnswerCheck`).
-- **Recherche web et sources** : recherche, classement et scraping de pages, avec affichage des sources (`api/WebSearchEngine`, `api/SearchRanker`, `web/WebScraper`).
-- **Mode vocal et Live** : reconnaissance vocale, synthèse vocale, avatar animé et service flottant (`live/`).
-- **Voix plus vivante** : meilleure voix française installée, lecture phrase par phrase avec pauses et intonation, sans lire les emojis, astérisques ni liens (`utils/VoiceStyler`).
-- **Menu d'appui long sur les réponses** : copier, tout sélectionner, partager (`ui/MessageActions`).
-- **Boutons de lien** : l'IA écrit `[btn:Texte|https://…]`, l'app affiche un bouton arrondi aux couleurs du thème (`utils/LinkButtons`).
-- **Navigateur intégré** : les liens (boutons, texte, sources) s'ouvrent dans l'app, avec retour, actualiser et « Chrome » (`ui/HtmlPreviewActivity`, `ui/LinkOpener`).
-- **Blocs de code** : coloration syntaxique, couleurs personnalisables (Personnaliser, Réglage détaillé) et actions séparées : Copier, Télécharger, Partager, et Visualiser pour le HTML.
-- **Studio / App Builder** : génération d'applications, modèles de build, validation, suivi de progression, stockage Worker (`AppBuilder`, `builder/`, `core/`).
-- **Mémoire et historique** : base SQLite (`database/KruxDatabaseHelper`), extraction et sélection de souvenirs, synchronisation cloud (`database/`, `utils/MemoryExtractor`, `utils/ChatHistoryManager`, `core/CloudSync`).
-- **Personnalisation** : palettes et couleurs modifiables via un système de thème par tags `krux:*` (`ui/KruxTheme`).
-- **Thème clair ou sombre complet** : le thème de base (`Theme.Krux`, DayNight) suit la palette choisie ; dialogues, champs, menus et curseurs prennent le blanc ou le noir (`KruxApp`, `KruxTheme.syncNightMode`).
-- **Multilingue** : français, anglais, espagnol et chinois (`utils/LanguageManager`, `res/values-*`).
-- **Comptes et synchronisation** : Firebase Auth (email / mot de passe) et Firestore (`firestore.rules`).
-- **Export et partage** : export de la discussion en texte, PDF, CSV ou archive ZIP (PDF + CSV + texte + fichiers créés par Krux), à enregistrer dans Téléchargements ou à partager (`utils/ChatExporter`) ; copie de code, partage de fichiers et gestion des médias.
-
----
-
-## Stack technique
-
-| Domaine | Technologie |
-|---|---|
-| Plateforme | Android SDK 34, minSdk 24 |
-| Langage | Java 8 |
-| Build | Gradle, Android Gradle Plugin `8.2.2` |
-| UI | AppCompat `1.6.1`, Material Components `1.11.0`, ConstraintLayout `2.1.4` |
-| Backend | Firebase Auth + Firestore (BOM `32.7.2`) |
-| Base locale | SQLite (`KruxDatabaseHelper`) |
-| Réseau | OkHttp `4.12.0` |
-| JSON | Gson `2.10.1` |
-| Markdown | Markwon `4.6.1` |
-| HTML / scraping | Jsoup `1.16.1` |
-| CI | GitHub Actions, JDK 17, Gradle 8.13 |
-
----
-
-## Architecture du projet
-
-```text
-.
-├── app/
-│   ├── google-services.json          # Configuration Firebase
-│   ├── build.gradle                  # Config Android, clés API, dépendances
-│   └── src/main/
-│       ├── AndroidManifest.xml
-│       ├── assets/
-│       │   ├── krux_config.json      # Build, limites, worker, Cloudinary, modèles
-│       │   ├── codebar.js            # Barre d'outils des blocs de code
-│       │   ├── krux_media.json       # Généré par la CI (non versionné)
-│       │   └── krux_builder.json     # Généré par la CI (non versionné)
-│       ├── java/com/virtixstudio/kruxai/
-│       │   ├── adapters/             # Adaptateurs RecyclerView
-│       │   ├── api/                  # Clients IA, recherche web, classement
-│       │   ├── builder/              # Moteur de génération d'applications
-│       │   ├── core/                 # Config, sync, quota, réflexion, worker
-│       │   ├── live/                 # Mode vocal, avatar, service flottant
-│       │   ├── models/               # Modèles de données
-│       │   ├── ui/                   # Activités, vues et thème custom
-│       │   ├── utils/                # Langue, fichiers, mémoire, markdown
-│       │   └── web/                  # Scraping HTTP
-│       └── res/
-│           ├── drawable/             # Icônes et formes vectorielles
-│           ├── layout/               # Écrans et composants XML
-│           ├── values/               # Chaînes FR, couleurs, styles
-│           └── values-{en,es,zh}/    # Traductions
-├── tools/builder-tests/              # Tests Java du moteur de build
-├── firestore.rules                   # Règles de sécurité Firestore
-├── build.gradle
-├── settings.gradle
-└── .github/workflows/                # CI Android
-```
-
-### Écrans principaux
-
-- `SplashActivity` : écran de démarrage et routage selon l'état de connexion.
-- `AuthWelcomeActivity` : accueil avant authentification.
-- `LoginActivity` : connexion (et mode inscription intégré).
-- `SignupActivity` : écran d'inscription dédié.
-- `MainActivity` : chat, historique, réglages rapides, vocal, export.
-- `StudioActivity` : agents et création d'applications.
-- `LiveActivity` : conversation vocale et avatar.
-- `HtmlPreviewActivity` : aperçu plein écran des pages HTML créées par l'IA, et navigateur intégré pour les sites.
-- `SettingsActivity` : thème, langue, compte, informations.
-
----
-
-## Prérequis
-
-- **JDK 17** (utilisé par la CI).
-- **Android SDK Platform 34** et les Build Tools associés.
-- **Gradle 8.x** installé localement : le dépôt ne contient pas de wrapper `gradlew`.
-- Un projet **Firebase** avec `app/google-services.json`.
-- Les clés API des fournisseurs IA (voir ci-dessous).
-
----
-
-## Configuration
-
-### Variables d'environnement / fichier `.env`
-
-Le fichier `.env` est **ignoré par Git** et ne doit jamais être publié. Gradle lit les clés depuis `.env`, avec repli sur les variables d'environnement système.
-
-```dotenv
-GROQ_API_KEY=...
-CEREBRAS_API_KEY=...
-MISTRAL_API_KEY=...
-HF_API_KEY=...
-GEMINI_API_KEY=...
-```
-
-Ces valeurs sont injectées dans `BuildConfig` au moment du build.
-
-### Fichiers d'assets générés
-
-Ces fichiers sont ignorés par Git et créés par la CI ou manuellement :
-
-| Fichier | Contenu | Secret CI |
-|---|---|---|
-| `app/src/main/assets/krux_media.json` | Clé Pexels pour la galerie média | `PEXELS_API_KEY` |
-| `app/src/main/assets/krux_builder.json` | Token et quota du builder | `KRUX_BUILDER_TOKEN` |
-
-### Configuration applicative
-
-`app/src/main/assets/krux_config.json` centralise :
-
-- les versions et limites de build ;
-- le nombre de tentatives ;
-- l'URL du Worker Cloudflare ;
-- la configuration Cloudinary (sans secret) ;
-- la liste documentaire des modèles IA.
-
-Aucune clé d'API ne doit être placée dans ce fichier.
-
-### Firebase
-
-- `app/google-services.json` : configuration du projet Firebase.
-- Authentification : email / mot de passe.
-- Firestore : profils, chats, mémoire, quotas et feedbacks.
-- Les règles de sécurité sont dans `firestore.rules`.
-
-Déploiement des règles (avec Firebase CLI) :
-
-```bash
-firebase deploy --only firestore:rules
-```
-
----
-
-## Build
-
-```bash
-# Depuis la racine du projet
-export ANDROID_HOME="$HOME/Android/Sdk"
-export JAVA_HOME="/chemin/vers/jdk-17"
-
-gradle assembleDebug
-```
-
-APK généré :
-
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-Build de release (non signé par défaut) :
-
-```bash
-gradle assembleRelease
-```
-
-> En l'absence de SDK Android configuré, le build échoue avant la compilation. Le projet n'a pas été compilé dans l'environnement de développement actuel.
-
----
-
-## Tests
-
-Les tests du moteur de build sont des classes Java autonomes :
-
-```bash
-cd tools/builder-tests
-./run.sh
-```
-
----
-
-## Intégration continue
-
-### `.github/workflows/build.yml`
-
-Déclenché sur `push` vers `main` et `agent/api-unification`, ainsi que sur les pull requests vers `main`.
-
-Étapes :
-
-1. Checkout du dépôt.
-2. Installation de **JDK 17** (Temurin).
-3. Installation de **Gradle 8.13**.
-4. Génération de `krux_media.json` et `krux_builder.json` depuis les secrets GitHub.
-5. `gradle assembleDebug`.
-6. Affichage des empreintes du certificat de debug.
-7. Upload de l'APK en artefact `KruxAI-debug-apk`.
-
-### `.github/workflows/android-builder.yml`
-
-Workflow manuel destiné à la compilation de dépôts publics.
-
----
-
-## Sécurité
-
-- `.env`, `local.properties`, les builds et les fichiers `*.bak` sont ignorés par Git.
-- Les clés API sont intégrées dans `BuildConfig` : **ne pas distribuer publiquement un APK de debug**.
-- `google-services.json` contient la configuration Firebase du projet ; il est nécessaire au build.
-- Les règles Firestore limitent l'accès aux documents de l'utilisateur connecté.
-- Le quota d'usage est plafonné à 20 requêtes par jour dans les règles Firestore.
-
----
-
-## Chantiers « qualité Krux » (retour test du 16/11 : 6,5/10)
-
-Ils se font un par un, dans cet ordre, avec ce README mis à jour à chaque étape.
-
-1. ~~Blocs de code : icônes seules dans l'en-tête~~ (fait le 16/11).
-2. **Recherche** (étape 1 faite le 16/11) : règle « interdiction de deviner » dans le prompt, plus de balise brute ni de devinette quand la recherche échoue (le modèle l'avoue), délai de recherche porté à 25 s, Wikipédia (fr puis en) en complément quand il y a peu de résultats. À faire : deuxième moteur de recherche indépendant, plusieurs recherches enchaînées, lecture de plus de pages, vérification croisée des sources.
-3. **Création d'apps et de sites** (étape 1 faite le 16/11) : fin de la limite « application simple, 3 écrans » ; plafonds relevés (40 fichiers, 20 000 caractères par fichier, 110 000 au total) ; méthode « recherche, concept innovant, construction, relecture » ; sites en plusieurs fichiers avec vraies interactions. Gardés : quota de 2 créations par semaine et interdits de sécurité (espionnage, usurpation de banque ou de marque, code dangereux). À faire : bibliothèques supplémentaires (Room, Gson) et permissions (notifications) via le gabarit Gradle, plan multi-passes pour les gros projets, aperçu multi-pages des sites.
-4. **Réflexion** : un vrai système de réflexion avant de répondre (plan, vérification), au niveau d'un assistant professionnel.
-5. **Mémoire** : un vrai système où Krux décide de ce qu'il retient, dès l'inscription.
-
----
-
-## État actuel et limites connues
-
-- **Nom** : renommé de « KRUX AI » en **Krux** dans le manifeste, les chaînes et les textes visibles.
-- **Inscription** : le bouton S inscrire ouvre l ecran Confidentialite (PrivacyActivity) ; le compte est cree seulement apres acceptation.
-- **Splash** : écran custom de 4,5 s encore en place ; une migration vers l'API `SplashScreen` Android 12+ est recommandée mais pas encore implémentée.
-- **Connexion Google** : active sur le site web (docs/connexion.html). Cote application Android, a finaliser (verifier l empreinte SHA-1 dans Firebase).
-- **Build local** : non vérifié faute de SDK Android dans l'environnement actuel.
-- **Configuration de build** : AGP 8.13.0, compileSdk et targetSdk 36 (migration faite le 15/11/2026).
-
----
-
-## Site web (`docs/`)
-
-Site statique servi par Cloudflare (Worker avec fichiers statiques, sortie `docs`). Un push sur `main` le redéploie.
-
-| Page | Rôle |
-|---|---|
-| `index.html` | Accueil Virtix Studio |
-| `krux.html` | Présentation de Krux |
-| `connexion.html` | Connexion Google ou e-mail / mot de passe (compte Krux) |
-| `compte.html` | Profil et déconnexion |
-| `privacy.html` | Politique de confidentialité (lien dans l'app : `PrivacyActivity.POLICY_URL`) |
-
-La configuration Firebase web est dans `docs/firebase-config.js` (clé publique par conception). Le domaine du site doit figurer dans Firebase, Authentication, Paramètres, Domaines autorisés. Les comptes avec la même adresse e-mail sont associés.
-
----
-
-## Proxy IA (`worker/ai-proxy`)
-
-Cloudflare Worker placé entre l'app et les fournisseurs d'IA : les clés restent côté serveur. Il vérifie le jeton Firebase de l'utilisateur, limite le corps des requêtes (256 Ko) et `max_tokens` (16384), et applique une limite par utilisateur. Voir `worker/ai-proxy/README.md` pour le déploiement depuis le tableau de bord Cloudflare.
-
----
-
-## Auteur
-
-**Virtix Studio** — projet privé.
-
----
-
-## Boutons de lien
-
-L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
-
-```text
-[btn:Ouvrir la documentation|https://exemple.com/doc]
-```
-
-- Texte du bouton : 40 caractères maximum.
-- Seules les adresses `http://` et `https://` sont acceptées.
-- Le bouton n'est pas lu à voix haute ; copié ou partagé, il devient `Texte : lien`.
-
----
-
-## Journal des mises à jour
-
-**16/11/2026 (réflexion, étape 2)**
-- Réflexion : vérification avant l'envoi. Pour les demandes de fond, un relecteur léger relit la réponse (faits inventés, code incomplet, consigne ignorée, contradiction) ; en cas de problème grave, Krux réécrit sa réponse une fois. La réponse d'origine part toujours si la relecture ou la révision échoue (délai de 8 s). Les réponses avec fichiers ou outils ne sont pas relues.
-
-**16/11/2026 (réflexion, étape 1)**
-- Réflexion : analyse préalable des demandes de fond (type, complexité, recherche web, plan en étapes) avant la réponse, par un modèle léger, avec délai maximal de 6 s. Les demandes courtes et simples ne coûtent aucun appel de plus. Étapes suivantes : plan exécuté étape par étape, puis vérification avant envoi.
-
-**16/11/2026**
-- Création d'apps et de sites : limites « simple » levées, méthode professionnelle dans le prompt, plafonds relevés.
-- Recherche : « interdiction de deviner », échec de recherche annoncé au lieu d'une réponse inventée, Wikipédia en complément.
-- Blocs de code : les actions (aperçu, partager, copier, télécharger) reviennent en icônes dans l'en-tête du bloc.
-
-**15/11/2026 (ménage)**
-- Suppression des doublons : ancien routeur `ModelRouter`, couche Room, recherche `WebSearchService` / `TavilyApiClient`, `ReflectionEngine`, `CloudinaryStore`, `KruxDotsView`, anciens helpers de code et de médias, 7 layouts orphelins et les fichiers de sauvegarde suivis par Git. Le code actif est inchangé.
-
-**15/11/2026 (thème)**
-- Thème : le blanc ou le noir choisi dans Personnaliser s'applique à toute l'app, y compris aux éléments système.
-
-**15/11/2026 (blocs de code)**
-- Blocs de code : actions séparées avec libellés (« Visualiser » pour le HTML), couleurs du code personnalisables dans Personnaliser.
-
-**15/11/2026 (migration, site web)**
-- Migration API 36 / AGP 8.13.0, visage flottant (écoute, voix, lecture d'écran, tuile), personnalisation, bouton « Réessayer » hors réseau, aperçu HTML, recherche d'images, limites du proxy IA.
-- Inscription avec écran de confidentialité (`PrivacyActivity`).
-- Site web Virtix Studio avec connexion Google / compte Krux, en ligne sur workers.dev.
-
-**14/11/2026**
-- Voix : `VoiceStyler` (voix, pauses, intonation, nettoyage du markdown et des emojis) branché sur le chat, le mode Live et la bulle flottante.
-- Réponses : menu d'appui long (copier, tout sélectionner, partager) et boutons de lien.
-- Liens : navigateur intégré, réutilise `HtmlPreviewActivity`.
-- Export : menu « Exporter la discussion » avec 4 formats (texte, PDF, CSV, ZIP), chacun à « Enregistrer » ou « Partager ». Le CSV a les colonnes numero, date, auteur, modele, message.
-- Fichiers créés par Krux : le bouton « Aperçu » devient « Visualiser ».
-- À venir : blocs de code (couleurs personnalisables, coloration syntaxique, actions séparées), patch d'économie de quotas, vérification de la bannière hors ligne, écran Mémoire v2.
