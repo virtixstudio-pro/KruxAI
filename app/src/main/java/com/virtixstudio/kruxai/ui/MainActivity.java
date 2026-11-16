@@ -1639,11 +1639,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         // La nouvelle réponse existe maintenant : l'état s'affiche enfin dessus.
         setKruxState(KruxState.GENERATING);
 
-        ApiClient.sendRequest(
-                selectedKruxModel,
-                systemPrompt,
-                promptWithContext.toString(),
-                new ApiClient.ApiCallback() {
+        final ApiClient.ApiCallback kruxCallback = new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String rawResponse, String modelBrand) {
                 runOnUiThread(() -> {
@@ -1843,7 +1839,22 @@ private final ActivityResultLauncher<String[]> filePicker =
                     }
                 });
             }
-        });
+        };
+
+        // Analyse préalable de la demande (seulement si elle le mérite), puis envoi avec les consignes.
+        ApiClient.beginPending(kruxCallback);
+        com.virtixstudio.kruxai.core.Reflection.analyze(
+                userPrompt,
+                fileContent != null && !fileContent.trim().isEmpty(),
+                isThinkingMode,
+                guidance -> {
+                    if (ApiClient.wasCancelled()) return;
+                    ApiClient.sendRequest(
+                            selectedKruxModel,
+                            systemPrompt + guidance,
+                            promptWithContext.toString(),
+                            kruxCallback);
+                });
     }
 
     private String quotaWeek() {

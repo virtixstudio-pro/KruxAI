@@ -219,6 +219,18 @@ public class ApiClient {
         }).start();
     }
 
+    /** Prépare une demande qui démarre après l'analyse : un clic sur Stop pendant l'analyse l'annule proprement. */
+    public static void beginPending(ApiCallback callback) {
+        activeRequestThread = null;
+        activeCallback = callback;
+        cancellationNotified = false;
+    }
+
+    /** Vrai si l'utilisateur a annulé depuis beginPending(...). */
+    public static boolean wasCancelled() {
+        return cancellationNotified;
+    }
+
     public static void cancelCurrentRequest() {
         Thread requestThread = activeRequestThread;
         if (requestThread != null) {
