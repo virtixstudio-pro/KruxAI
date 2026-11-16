@@ -1849,11 +1849,13 @@ private final ActivityResultLauncher<String[]> filePicker =
                 isThinkingMode,
                 guidance -> {
                     if (ApiClient.wasCancelled()) return;
-                    ApiClient.sendRequest(
-                            selectedKruxModel,
-                            systemPrompt + guidance,
-                            promptWithContext.toString(),
-                            kruxCallback);
+                    final String fullSystem = systemPrompt + guidance;
+                    final String fullUser = promptWithContext.toString();
+                    // Demande de fond (consignes non vides) : la réponse est relue avant d'être livrée.
+                    final ApiClient.ApiCallback target = guidance.isEmpty()
+                            ? kruxCallback
+                            : com.virtixstudio.kruxai.core.AnswerCheck.wrap(kruxCallback, selectedKruxModel, fullSystem, fullUser);
+                    ApiClient.sendRequest(selectedKruxModel, fullSystem, fullUser, target);
                 });
     }
 

@@ -20,6 +20,7 @@ Application Android de chat IA, de création d'applications et de conversation v
 
 - **Chat IA multi-fournisseurs** avec routage et repli automatique entre Groq, Cerebras, Mistral, Hugging Face et Gemini (`api/ApiClient`).
 - **Analyse préalable des demandes** : avant de répondre aux demandes de fond, un petit modèle rapide détermine le type, la complexité, le besoin de recherche web et un plan en étapes ; ces consignes sont ajoutées au prompt, sans changer l'affichage (`core/Reflection`). Si l'analyse échoue ou dépasse 6 s, la réponse part normalement.
+- **Vérification avant envoi** : pour les demandes de fond, un relecteur léger relit la réponse et Krux la corrige une fois en cas de problème grave (`core/AnswerCheck`).
 - **Recherche web et sources** : recherche, classement et scraping de pages, avec affichage des sources (`api/WebSearchEngine`, `api/SearchRanker`, `web/WebScraper`).
 - **Mode vocal et Live** : reconnaissance vocale, synthèse vocale, avatar animé et service flottant (`live/`).
 - **Voix plus vivante** : meilleure voix française installée, lecture phrase par phrase avec pauses et intonation, sans lire les emojis, astérisques ni liens (`utils/VoiceStyler`).
@@ -302,6 +303,9 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 ---
 
 ## Journal des mises à jour
+
+**16/11/2026 (réflexion, étape 2)**
+- Réflexion : vérification avant l'envoi. Pour les demandes de fond, un relecteur léger relit la réponse (faits inventés, code incomplet, consigne ignorée, contradiction) ; en cas de problème grave, Krux réécrit sa réponse une fois. La réponse d'origine part toujours si la relecture ou la révision échoue (délai de 8 s). Les réponses avec fichiers ou outils ne sont pas relues.
 
 **16/11/2026 (réflexion, étape 1)**
 - Réflexion : analyse préalable des demandes de fond (type, complexité, recherche web, plan en étapes) avant la réponse, par un modèle léger, avec délai maximal de 6 s. Les demandes courtes et simples ne coûtent aucun appel de plus. Étapes suivantes : plan exécuté étape par étape, puis vérification avant envoi.
