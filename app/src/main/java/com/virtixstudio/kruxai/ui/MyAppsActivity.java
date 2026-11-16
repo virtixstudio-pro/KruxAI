@@ -87,7 +87,7 @@ public class MyAppsActivity extends AppCompatActivity {
             byte[] buf = new byte[is.available()];
             is.read(buf);
             is.close();
-            return new JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8)).optInt("weekly_quota", 2);
+            return new JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8)).optInt("weekly_quota", 5);
         } catch (Exception e) {
             return 2;
         }

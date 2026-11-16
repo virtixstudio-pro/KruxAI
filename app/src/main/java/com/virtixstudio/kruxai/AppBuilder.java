@@ -79,7 +79,13 @@ public class AppBuilder {
             + "Réseau possible avec HttpURLConnection et org.json si la demande l'exige (permission INTERNET). "
             + "LIMITES : " + s.maxFiles + " fichiers maximum, "
             + s.maxFileChars + " caractères maximum par fichier et " + s.maxTotalChars + " au total. "
-            + "INTERDIT : toute permission autre qu'INTERNET, ACCESS_NETWORK_STATE et VIBRATE ; services, receivers, providers ; "
+            + "PERMISSIONS AUTORISÉES : INTERNET, ACCESS_NETWORK_STATE, VIBRATE, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, "
+            + "ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, CAMERA, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, READ_MEDIA_AUDIO, "
+            + "READ_EXTERNAL_STORAGE. Ne déclare que celles dont l'app a besoin et demande les permissions sensibles à l'exécution "
+            + "(registerForActivityResult), avec une explication à l'écran et un comportement correct en cas de refus. "
+            + "Alarmes et notifications : AlarmManager et NotificationManager, avec un BroadcastReceiver déclaré android:exported=\"false\". "
+            + "INTERDIT : toute autre permission ; services et providers ; WorkManager et JobScheduler ; démarrage au démarrage de l'appareil ; "
+            + "contacts, SMS et journal d'appels ; "
             + "exécution de commandes ; chargement de code dynamique ; imitation d'une banque, d'une marque ou d'un écran de connexion ; "
             + "surveillance, collecte de données personnelles, contenu adulte, jeux d'argent, publicités. "
             + "Si la demande est interdite ou impossible dans ces limites, réponds UNIQUEMENT {\"refuse\":\"raison courte en français\"}.";
@@ -104,14 +110,18 @@ public class AppBuilder {
     // ------------------------------------------------------------------ politique de sécurité (bloquante)
 
     static final Set<String> ALLOWED_PERMS = new HashSet<>(Arrays.asList(
-        "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE", "android.permission.VIBRATE"));
+        "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE", "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS", "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO", "android.permission.READ_EXTERNAL_STORAGE"));
 
     static final String[] BANNED_CODE = {
         "Runtime.getRuntime", "ProcessBuilder", "DexClassLoader", "PathClassLoader", "InMemoryDexClassLoader",
         "AccessibilityService", "DevicePolicyManager", "DeviceAdminReceiver", "SmsManager", "TelephonyManager",
         "System.loadLibrary", "System.load(", "TYPE_APPLICATION_OVERLAY", "SYSTEM_ALERT_WINDOW",
         "Class.forName", "getDeclaredMethod", "getMethod(", "setAccessible", "BOOT_COMPLETED",
-        "WorkManager", "AlarmManager", "JobScheduler", "ContentResolver", "READ_CONTACTS", "ACCESS_FINE_LOCATION"};
+        "WorkManager", "JobScheduler", "READ_CONTACTS", "ContactsContract", "content://sms", "content://contacts"};
 
     /** Retire commentaires et chaînes pour que la détection ne soit pas contournée ni déclenchée à tort. */
     static String codeOnly(String src) {
@@ -142,7 +152,11 @@ public class AppBuilder {
             while (mt.find())
                 if (!ALLOWED_PERMS.contains(mt.group(1)))
                     throw new Refusal("Application refusée : permission non autorisée (" + mt.group(1) + ")");
-            if (mm.contains("<service") || mm.contains("<receiver") || mm.contains("<provider") || mm.contains("BOOT_COMPLETED"))
+            Matcher rc = Pattern.compile("<receiver(?=[\\s/>])([^>]*)>").matcher(mm);
+            while (rc.find())
+                if (!rc.group(1).matches("(?s).*android:exported\\s*=\\s*\"false\".*"))
+                    throw new Refusal("Application refusée : un récepteur doit être déclaré avec android:exported=\"false\"");
+            if (mm.contains("<service") || mm.contains("<provider") || mm.contains("BOOT_COMPLETED"))
                 throw new Refusal("Application refusée : services et tâches de fond non autorisés");
             if (mm.contains("<uses-permission-sdk-23") || mm.contains("<queries"))
                 throw new Refusal("Application refusée : déclaration non autorisée dans le manifeste");

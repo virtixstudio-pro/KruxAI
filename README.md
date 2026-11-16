@@ -21,10 +21,10 @@ PATCHS PRÊTS MAIS À APPLIQUER PAR L'UTILISATEUR (dans cet ordre)
 Les deux touchent MainActivity (envoi) et ApiClient. Après leur push, l'utilisateur dit « mise à jour ».
 
 RESTE À FAIRE, DANS L'ORDRE
-1. Restrictions des apps générées (EN ATTENTE DE SON « GO » sur ces valeurs) :
+1. Restrictions des apps générées (VALIDÉ : 5 par semaine ; patch restrictions-apps appliqué ; WorkManager reste bloqué) :
    - tailles : 60 fichiers, 40 000 car./fichier, 200 000 au total, 4 corrections auto
      (plafonds de BuildSpec, limits dans krux_config.json)
-   - quota de créations : réglable, 20/semaine par défaut (aujourd'hui 2, lu dans krux_builder.json
+   - quota de créations : réglable, 5/semaine (avant 2, lu dans krux_builder.json
      ignoré par Git, contrôle côté app seulement)
    - autoriser : notifications, alarmes/WorkManager, localisation, caméra, lecture des médias
      (BuildValidator : ALLOWED_PERMS et BANNED_CODE)

@@ -20,11 +20,11 @@
   },
 
   "limits": {
-    "max_fixes": 2,
+    "max_fixes": 4,
     "max_local_fixes": 2,
-    "max_files": 40,
-    "max_file_chars": 20000,
-    "max_total_chars": 110000
+    "max_files": 60,
+    "max_file_chars": 40000,
+    "max_total_chars": 200000
   },
 
   "retries": {
