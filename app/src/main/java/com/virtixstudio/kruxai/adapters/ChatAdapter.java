@@ -637,34 +637,21 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             );
         }
 
-        // Actions : en bas du bloc, séparées, avec leur libellé.
+        // Actions : icônes seules, à droite de l'en-tête du bloc.
         boolean isHtml = com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code);
-        int pillFill = androidx.core.graphics.ColorUtils.blendARGB(blockBg, textColor, 0.12f);
-        TextView preview = isHtml
-                ? codeActionPill(context, R.drawable.ic_play, "Visualiser", readableOnColor(accent), accent)
+        ImageButton preview = isHtml
+                ? createCodeAction(context, R.drawable.ic_play, "Aperçu de la page", text2)
                 : null;
-        TextView copy = codeActionPill(context, R.drawable.ic_copy, "Copier", textColor, pillFill);
-        TextView download = codeActionPill(context, R.drawable.ic_download, "Télécharger", textColor, pillFill);
-        TextView share = codeActionPill(context, R.drawable.ic_share, "Partager", textColor, pillFill);
+        ImageButton share = createCodeAction(context, R.drawable.ic_share, "Partager le code", text2);
+        ImageButton copy = createCodeAction(context, R.drawable.ic_copy, "Copier le code", text2);
+        ImageButton download = createCodeAction(context, R.drawable.ic_download, "Télécharger le code", text2);
         if (preview != null) {
             preview.setOnClickListener(v -> com.virtixstudio.kruxai.ui.HtmlPreviewActivity.open(context, fileName, code));
+            header.addView(preview);
         }
-
-        LinearLayout actions = new LinearLayout(context);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.CENTER_VERTICAL);
-        actions.setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 10));
-        if (preview != null) actions.addView(preview);
-        actions.addView(copy);
-        actions.addView(download);
-        actions.addView(share);
-
-        HorizontalScrollView actionsScroll = new HorizontalScrollView(context);
-        actionsScroll.setHorizontalScrollBarEnabled(false);
-        actionsScroll.addView(actions);
-
-        View divider = new View(context);
-        divider.setBackgroundColor(androidx.core.graphics.ColorUtils.setAlphaComponent(textColor, 28));
+        header.addView(share);
+        header.addView(copy);
+        header.addView(download);
 
         HorizontalScrollView scroll = new HorizontalScrollView(context);
         scroll.setHorizontalScrollBarEnabled(false);
@@ -693,8 +680,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         card.addView(header);
         card.addView(scroll);
-        card.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(context, 0.7f))));
-        card.addView(actionsScroll);
 
         LinearLayout.LayoutParams cp =
                 new LinearLayout.LayoutParams(
@@ -742,39 +727,20 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         );
     }
 
-    /** Pastille d'action du bloc de code : icône + libellé, bien arrondie. */
-    private TextView codeActionPill(Context context, int icon, String label, int fg, int fill) {
-        TextView pill = new TextView(context);
-        pill.setText(label);
-        pill.setTextSize(12);
-        pill.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        pill.setTextColor(fg);
-        pill.setSingleLine(true);
-        pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setPadding(dp(context, 12), dp(context, 7), dp(context, 14), dp(context, 7));
-        android.graphics.drawable.Drawable d = androidx.core.content.ContextCompat.getDrawable(context, icon);
-        if (d != null) {
-            d = d.mutate();
-            d.setTint(fg);
-            int size = dp(context, 15);
-            d.setBounds(0, 0, size, size);
-            pill.setCompoundDrawablesRelative(d, null, null, null);
-            pill.setCompoundDrawablePadding(dp(context, 6));
-        }
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(fill);
-        bg.setCornerRadius(dp(context, 999));
-        pill.setBackground(bg);
-        pill.setContentDescription(label);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.rightMargin = dp(context, 8);
-        pill.setLayoutParams(lp);
-        return pill;
-    }
-
-    private static int readableOnColor(int background) {
-        return androidx.core.graphics.ColorUtils.calculateLuminance(background) > 0.5 ? Color.BLACK : Color.WHITE;
+    private ImageButton createCodeAction(Context context, int icon, String description, int tint) {
+        ImageButton button = new ImageButton(context);
+        button.setImageResource(icon);
+        button.setColorFilter(tint);
+        button.setBackgroundColor(Color.TRANSPARENT);
+        button.setContentDescription(description);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int pad = dp(context, 6);
+        button.setPadding(pad, pad, pad, pad);
+        LinearLayout.LayoutParams actionParams =
+                new LinearLayout.LayoutParams(dp(context, 28), dp(context, 28));
+        actionParams.setMargins(dp(context, 1), 0, dp(context, 1), 0);
+        button.setLayoutParams(actionParams);
+        return button;
     }
 
     private void addTable(

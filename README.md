@@ -235,6 +235,18 @@ Workflow manuel destiné à la compilation de dépôts publics.
 
 ---
 
+## Chantiers « qualité Krux » (retour test du 16/11 : 6,5/10)
+
+Ils se font un par un, dans cet ordre, avec ce README mis à jour à chaque étape.
+
+1. ~~Blocs de code : icônes seules dans l'en-tête~~ (fait le 16/11).
+2. **Recherche** : un vrai système de recherche ; quand Krux ne sait pas, il cherche et cite ses sources, il ne devine jamais.
+3. **Création d'apps et de sites** : retirer les restrictions ; Krux regarde d'abord ce qui se fait de mieux, propose des idées innovantes et produit du sérieux (pas une simple page de CSS).
+4. **Réflexion** : un vrai système de réflexion avant de répondre (plan, vérification), au niveau d'un assistant professionnel.
+5. **Mémoire** : un vrai système où Krux décide de ce qu'il retient, dès l'inscription.
+
+---
+
 ## État actuel et limites connues
 
 - **Nom** : renommé de « KRUX AI » en **Krux** dans le manifeste, les chaînes et les textes visibles.
@@ -289,6 +301,9 @@ L'IA affiche un lien en bouton avec ce format, seul sur sa ligne :
 ---
 
 ## Journal des mises à jour
+
+**16/11/2026**
+- Blocs de code : les actions (aperçu, partager, copier, télécharger) reviennent en icônes dans l'en-tête du bloc.
 
 **15/11/2026 (ménage)**
 - Suppression des doublons : ancien routeur `ModelRouter`, couche Room, recherche `WebSearchService` / `TavilyApiClient`, `ReflectionEngine`, `CloudinaryStore`, `KruxDotsView`, anciens helpers de code et de médias, 7 layouts orphelins et les fichiers de sauvegarde suivis par Git. Le code actif est inchangé.
