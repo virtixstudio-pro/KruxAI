@@ -2169,33 +2169,106 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public boolean confirmPreview(final String html) {
                         progress.setTitle("Voici l'aperçu de ton app");
-                        progress.setStep("Vérifie la maquette, puis valide pour continuer.");
+                        progress.setStep("Teste la maquette, puis valide pour continuer.");
                         refresh.run();
                         final boolean[] accepted = {false};
-                        final androidx.appcompat.app.AlertDialog[] shown = {null};
+                        final android.app.Dialog[] shown = {null};
                         final java.util.concurrent.CountDownLatch decided = new java.util.concurrent.CountDownLatch(1);
                         runOnUiThread(() -> {
-                            android.webkit.WebView web = new android.webkit.WebView(MainActivity.this);
+                            final int bg = KruxTheme.get(MainActivity.this, "bg");
+                            final int accent = KruxTheme.get(MainActivity.this, "accent");
+                            final int tx = KruxTheme.get(MainActivity.this, "text");
+                            final int tx2 = KruxTheme.get(MainActivity.this, "text2");
+                            final android.app.Dialog dlg = new android.app.Dialog(MainActivity.this);
+                            dlg.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+                            dlg.setCancelable(false);
+
+                            android.widget.LinearLayout root = new android.widget.LinearLayout(MainActivity.this);
+                            root.setOrientation(android.widget.LinearLayout.VERTICAL);
+                            root.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(14));
+                            android.graphics.drawable.GradientDrawable sheet = new android.graphics.drawable.GradientDrawable();
+                            sheet.setColor(bg);
+                            sheet.setCornerRadius(dpToPx(24));
+                            root.setBackground(sheet);
+
+                            TextView title = new TextView(MainActivity.this);
+                            title.setText("Aperçu de ton application");
+                            title.setTextColor(tx);
+                            title.setTextSize(18);
+                            title.setTypeface(null, android.graphics.Typeface.BOLD);
+                            root.addView(title);
+                            TextView hint = new TextView(MainActivity.this);
+                            hint.setText("Touche les boutons : l'aperçu est interactif, comme dans l'app finale.");
+                            hint.setTextColor(tx2);
+                            hint.setTextSize(13);
+                            hint.setPadding(0, dpToPx(4), 0, dpToPx(12));
+                            root.addView(hint);
+
+                            // Maquette interactive : JavaScript permis, mais réseau, fichiers et stockage bloqués.
+                            final android.webkit.WebView web = new android.webkit.WebView(MainActivity.this);
                             android.webkit.WebSettings ws = web.getSettings();
-                            ws.setJavaScriptEnabled(false);
+                            ws.setJavaScriptEnabled(true);
+                            ws.setJavaScriptCanOpenWindowsAutomatically(false);
+                            ws.setSupportMultipleWindows(false);
                             ws.setBlockNetworkLoads(true);
                             ws.setAllowFileAccess(false);
                             ws.setAllowContentAccess(false);
+                            ws.setDomStorageEnabled(false);
+                            ws.setDatabaseEnabled(false);
+                            ws.setGeolocationEnabled(false);
+                            web.setWebViewClient(new android.webkit.WebViewClient() {
+                                @Override
+                                public boolean shouldOverrideUrlLoading(android.webkit.WebView v, android.webkit.WebResourceRequest r) {
+                                    return true; // aucune navigation hors de la maquette
+                                }
+                            });
                             web.setBackgroundColor(android.graphics.Color.WHITE);
                             web.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
-                            android.widget.FrameLayout holder = new android.widget.FrameLayout(MainActivity.this);
-                            holder.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), 0);
-                            holder.addView(web, new android.widget.FrameLayout.LayoutParams(
-                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(460)));
-                            shown[0] = new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("Aperçu de ton application")
-                                    .setView(holder)
-                                    .setCancelable(false)
-                                    .setPositiveButton("Créer l'app", (d, w) -> { accepted[0] = true; decided.countDown(); })
-                                    .setNegativeButton("Annuler", (d, w) -> decided.countDown())
-                                    .create();
-                            shown[0].show();
-                            KruxTheme.skin(shown[0], MainActivity.this);
+
+                            // cadre arrondi façon téléphone
+                            final android.widget.FrameLayout frame = new android.widget.FrameLayout(MainActivity.this);
+                            android.graphics.drawable.GradientDrawable fg = new android.graphics.drawable.GradientDrawable();
+                            fg.setColor(android.graphics.Color.WHITE);
+                            fg.setCornerRadius(dpToPx(20));
+                            fg.setStroke(dpToPx(2), (accent & 0x00FFFFFF) | 0x99000000);
+                            frame.setBackground(fg);
+                            frame.setClipToOutline(true);
+                            frame.addView(web, new android.widget.FrameLayout.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+                            root.addView(frame, new android.widget.LinearLayout.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+                            android.widget.LinearLayout row = new android.widget.LinearLayout(MainActivity.this);
+                            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                            row.setGravity(android.view.Gravity.END);
+                            row.setPadding(0, dpToPx(12), 0, 0);
+                            TextView cancel = previewButton("Annuler", tx2, android.graphics.Color.TRANSPARENT);
+                            int onAccent = androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.5
+                                    ? android.graphics.Color.BLACK : android.graphics.Color.WHITE;
+                            TextView ok = previewButton("Créer l'app", onAccent, accent);
+                            cancel.setOnClickListener(v -> { decided.countDown(); dlg.dismiss(); });
+                            ok.setOnClickListener(v -> { accepted[0] = true; decided.countDown(); dlg.dismiss(); });
+                            row.addView(cancel);
+                            android.widget.LinearLayout.LayoutParams okLp = new android.widget.LinearLayout.LayoutParams(
+                                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+                            okLp.leftMargin = dpToPx(8);
+                            row.addView(ok, okLp);
+                            root.addView(row);
+
+                            dlg.setContentView(root);
+                            dlg.setOnDismissListener(d -> {
+                                web.stopLoading();
+                                frame.removeAllViews();
+                                web.destroy();
+                                decided.countDown(); // sécurité : jamais d'attente infinie
+                            });
+                            shown[0] = dlg;
+                            dlg.show();
+                            if (dlg.getWindow() != null) {
+                                android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+                                dlg.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+                                dlg.getWindow().setLayout(dm.widthPixels - dpToPx(20), (int) (dm.heightPixels * 0.88f));
+                            }
                         });
                         try {
                             if (!decided.await(10, java.util.concurrent.TimeUnit.MINUTES)) {
@@ -2244,6 +2317,22 @@ private final ActivityResultLauncher<String[]> filePicker =
                         refresh.run();
                     }
                 });
+    }
+
+    private TextView previewButton(String label, int textColor, int fill) {
+        TextView b = new TextView(this);
+        b.setText(label);
+        b.setTextSize(15);
+        b.setTypeface(null, android.graphics.Typeface.BOLD);
+        b.setTextColor(textColor);
+        b.setGravity(android.view.Gravity.CENTER);
+        b.setPadding(dpToPx(20), dpToPx(12), dpToPx(20), dpToPx(12));
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(dpToPx(14));
+        b.setBackground(g);
+        b.setClickable(true);
+        return b;
     }
 
     private String friendlyBuildError(String m) {
