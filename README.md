@@ -250,11 +250,11 @@ Ils se font un par un, dans cet ordre, avec ce README mis à jour à chaque éta
 ## État actuel et limites connues
 
 - **Nom** : renommé de « KRUX AI » en **Krux** dans le manifeste, les chaînes et les textes visibles.
-- **Écran de connexion** : nettoyage visuel en cours (espacements, tailles, icône de visibilité du mot de passe, autofill).
+- **Inscription** : le bouton S inscrire ouvre l ecran Confidentialite (PrivacyActivity) ; le compte est cree seulement apres acceptation.
 - **Splash** : écran custom de 4,5 s encore en place ; une migration vers l'API `SplashScreen` Android 12+ est recommandée mais pas encore implémentée.
-- **Google Sign-In** : bouton présent, configuration Firebase à finaliser.
+- **Connexion Google** : active sur le site web (docs/connexion.html). Cote application Android, a finaliser (verifier l empreinte SHA-1 dans Firebase).
 - **Build local** : non vérifié faute de SDK Android dans l'environnement actuel.
-- **Configuration de build** : `krux_config.json` documente des versions plus récentes (AGP 8.13, compileSdk 36) que celles réellement utilisées par le projet (AGP 8.2.2, compileSdk 34).
+- **Configuration de build** : AGP 8.13.0, compileSdk et targetSdk 36 (migration faite le 15/11/2026).
 
 ---
 
