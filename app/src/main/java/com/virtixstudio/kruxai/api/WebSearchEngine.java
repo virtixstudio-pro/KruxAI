@@ -76,9 +76,10 @@ public class WebSearchEngine {
                 pool.shutdown();
                 pool.awaitTermination(10, TimeUnit.SECONDS);
 
-                if (aggregatedResults.isEmpty()) {
-                    progress(callback, "  moteur principal vide, j'essaie Wikipédia");
-                    fetchWikipedia(userQuery, aggregatedResults, seenUrls);
+                if (aggregatedResults.size() < 3) {
+                    progress(callback, "  peu de résultats, j'ajoute Wikipédia");
+                    fetchWikipedia("fr", userQuery, aggregatedResults, seenUrls);
+                    if (aggregatedResults.size() < 3) fetchWikipedia("en", userQuery, aggregatedResults, seenUrls);
                 }
 
                 // Classement par pertinence, 2 pages maximum par site, 8 sources au plus
@@ -162,9 +163,9 @@ public class WebSearchEngine {
     }
 
     /** Secours si le moteur principal ne répond pas : l'API de recherche de Wikipédia (gratuite, stable). */
-    private void fetchWikipedia(String query, List<SearchResult> out, Set<String> seen) {
+    private void fetchWikipedia(String lang, String query, List<SearchResult> out, Set<String> seen) {
         try {
-            String u = "https://fr.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=5&utf8=1&srsearch="
+            String u = "https://" + lang + ".wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=5&utf8=1&srsearch="
                     + URLEncoder.encode(query, "UTF-8");
             Request request = new Request.Builder().url(u).header("User-Agent", "KruxAI/1.0 (Android)").build();
             try (Response r = client.newCall(request).execute()) {
@@ -173,7 +174,7 @@ public class WebSearchEngine {
                 for (int i = 0; i < arr.length(); i++) {
                     org.json.JSONObject o = arr.getJSONObject(i);
                     String title = o.getString("title");
-                    String url = "https://fr.wikipedia.org/wiki/" + URLEncoder.encode(title.replace(' ', '_'), "UTF-8");
+                    String url = "https://" + lang + ".wikipedia.org/wiki/" + URLEncoder.encode(title.replace(' ', '_'), "UTF-8");
                     if (seen.add(url)) out.add(new SearchResult(title, Jsoup.parse(o.optString("snippet", "")).text(), url));
                 }
             }

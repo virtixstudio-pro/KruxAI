@@ -1460,12 +1460,13 @@ private final ActivityResultLauncher<String[]> filePicker =
                 @Override
                 public void onError(String error) {
                     if (terminal != null) {
-                        terminal.println("recherche impossible, je réponds avec ce que je sais", KruxTerminalView.ERR);
+                        terminal.println("recherche impossible, je le dirai dans la réponse", KruxTerminalView.ERR);
                         terminal.hideLater(2500);
                     }
                     executeAiQuery(
                             prompt,
-                            "",
+                            "=== RECHERCHE WEB IMPOSSIBLE ===\nLa recherche n'a rien rapporté. Réponds seulement avec ce dont tu es certain, "
+                                    + "dis clairement ce que tu n'as pas pu vérifier, et n'invente aucun fait ni aucune source.\n",
                             new ArrayList<>(),
                             fileNameForRequest,
                             fileContentForRequest

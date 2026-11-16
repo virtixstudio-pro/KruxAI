@@ -427,16 +427,24 @@ public class ApiClient {
                 }
             });
 
-            if (!latch.await(15, TimeUnit.SECONDS)) {
-                Log.w(TAG, "Recherche Web expirée.");
-                return response;
-            }
+            boolean finished = latch.await(25, TimeUnit.SECONDS);
 
-            if (webError[0] != null
+            if (!finished
+                    || webError[0] != null
                     || webContext[0] == null
                     || webContext[0].trim().isEmpty()) {
-                Log.w(TAG, "Recherche Web échouée.");
-                return response;
+                Log.w(TAG, "Recherche Web expirée ou échouée.");
+                // On ne renvoie jamais la balise brute et on ne laisse pas le modèle deviner.
+                return sendWithModel(
+                        model,
+                        systemPrompt,
+                        userMessage
+                                + "\n\n"
+                                + "RECHERCHE WEB IMPOSSIBLE : la recherche pour \"" + query + "\" n'a rien rapporté. "
+                                + "Réponds seulement avec ce dont tu es certain. Pour tout le reste, dis clairement que tu n'as pas pu le vérifier "
+                                + "et propose de réessayer. N'invente aucun fait, aucune source, aucun chiffre. Ne demande pas de nouvelle recherche.",
+                        callback
+                );
             }
 
             if (callback != null && webResults[0] != null) {
