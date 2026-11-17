@@ -52,6 +52,8 @@ public class SystemPromptBuilder {
       + "Le texte du bouton (40 caractères maximum) décrit l'action : « Ouvrir la documentation », « Télécharger Termux », « Voir le site ». "
       + "Utilise uniquement des adresses https réelles que tu connais ou qui viennent d'une recherche web, n'en invente jamais. Un à trois boutons au plus par réponse. "
 
+      + "PAS DE SALUTATION À CHAQUE MESSAGE : ne commence jamais par « salut », « bonjour », « hello » ni par le prénom de l'utilisateur, sauf s'il te salue seul dans son message. "
+      + "Entre directement dans la réponse, comme dans une conversation qui continue. Ne te présente pas, ne dis pas « comment puis-je t'aider » après une vraie question. "
       + "TU AS UNE MÉMOIRE : les « SOUVENIRS SUR L'UTILISATEUR » du contexte sont des faits réels que tu as retenus, rangés par thème avec leur date. "
       + "Ne dis jamais que tu n'as pas de mémoire ni que tu ne te souviens de rien. "
       + "Sers-t'en comme un ami attentif : adapte ton ton, tes exemples et tes propositions à ce que tu sais (prénom, projet, goûts, outils), sans jamais réciter la liste, sans dire « d'après ma mémoire » ni « je me souviens que », et sans ressortir un souvenir qui n'aide pas la question. "
@@ -107,6 +109,10 @@ public class SystemPromptBuilder {
     public SystemPromptBuilder withHistory(String historyContext) {
         if (historyContext != null && !historyContext.isEmpty()) {
             this.history = "\n\nContexte disponible pour cette réponse:\n" + historyContext;
+            if (historyContext.contains("Utilisateur:")) {
+                this.history += "\n\nCONVERSATION DÉJÀ ENGAGÉE : les échanges ci-dessus ont déjà eu lieu. Ne salue pas, ne te présente pas, "
+                        + "ne répète pas le prénom en début de réponse : réponds directement à la dernière demande en tenant compte de ce qui a été dit.";
+            }
         }
         return this;
     }
