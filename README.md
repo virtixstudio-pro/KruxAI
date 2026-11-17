@@ -35,7 +35,7 @@ RESTE À FAIRE, DANS L'ORDRE
    garde que l'APK) + bouton « Modifier » dans MyAppsActivity.
 3. Recherche web mieux structurée : affichage des résultats et des sources, plusieurs recherches
    enchaînées, deuxième moteur, plus de pages lues. WebScraper existe, non branché, à conserver.
-4. Affichage de l'envoi de fichiers (DeliveredFileCards, ChatAdapter). À préciser avec lui.
+4. FAIT : fichiers livrés en bloc compact avec Tout enregistrer (ZIP), DeliveredFileCards.
 5. Mémoire : Krux décide de ce qu'il retient, dès l'inscription (MemoryRepository, MemoryBook,
    MemoryExtractor, PrivacyActivity).
 6. Patch d'économie de quotas : s'inspirer du mode économique de l'ancien ModelRouter (supprimé,
