@@ -67,6 +67,12 @@ public final class DesignDirection {
             NAVIGATION[r.nextInt(NAVIGATION.length)]);
     }
 
+    /** Couleur d'accent imposée (#RRGGBB) tirée de la palette, ou null. */
+    public String accentHex() {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("accent\\s+(#[0-9A-Fa-f]{6})").matcher(palette);
+        return m.find() ? m.group(1).toUpperCase(java.util.Locale.ROOT) : null;
+    }
+
     /** Texte ajouté au prompt système de création. */
     public String toPrompt() {
         return "DIRECTION VISUELLE IMPOSÉE (chaque application a la sienne : ne retombe pas sur le violet Material par défaut) : "

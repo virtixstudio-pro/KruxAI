@@ -30,7 +30,7 @@ RESTE À FAIRE, DANS L'ORDRE
      (BuildValidator : ALLOWED_PERMS et BANNED_CODE)
    - GARDER BLOQUÉ : exécution de commandes, chargement de code à la volée, réflexion, SMS,
      accessibilité, admin d'appareil, superposition, démarrage au boot, contacts.
-2. Reprise d'apps : (a) création interrompue visible dans « Mes apps » (BuildCheckpoint existe,
+2. FAIT : bouton Modifier dans Mes apps, palette imposée vérifiée. Reste : clé de signature stable pour remplacer l'ancienne app.
    24 h, même description exacte) ; (b) sauvegarder le code en zip à côté de l'APK (WorkerStore ne
    garde que l'APK) + bouton « Modifier » dans MyAppsActivity.
 3. Recherche web mieux structurée : affichage des résultats et des sources, plusieurs recherches

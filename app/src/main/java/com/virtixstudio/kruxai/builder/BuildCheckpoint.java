@@ -98,6 +98,27 @@ public final class BuildCheckpoint {
         }
     }
 
+    /** Code source d'une app terminée (rangé à côté de l'APK) : sans limite d'âge et sans comparer la description. */
+    public static Saved loadAny(File dir) {
+        if (dir == null) return null;
+        File f = new File(dir, FILE);
+        if (!f.isFile()) return null;
+        try (DataInputStream in = new DataInputStream(new GZIPInputStream(new FileInputStream(f)))) {
+            if (in.readInt() != MAGIC) return null;
+            in.readLong();
+            str(in);
+            String name = str(in);
+            int n = in.readInt();
+            if (n <= 0 || n > MAX_FILES) return null;
+            Map<String, String> files = new LinkedHashMap<>();
+            for (int i = 0; i < n; i++) files.put(str(in), str(in));
+            if (!files.containsKey(BuildValidator.MANIFEST)) return null;
+            return new Saved(name, files);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static void clear(File dir) {
         if (dir == null) return;
         new File(dir, FILE).delete();

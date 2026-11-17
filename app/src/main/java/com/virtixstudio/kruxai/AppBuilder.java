@@ -354,40 +354,47 @@ public class AppBuilder {
 
     public static void run(final String githubToken, final String description, final File outDir,
                            final Generator gen, final Listener l) {
+        run(githubToken, description, outDir, null, gen, l);
+    }
+
+    /** modifyFrom != null : modification d'une app existante (dossier de son APK) ; description = la modification demandée. */
+    public static void run(final String githubToken, final String description, final File outDir, final File modifyFrom,
+                           final Generator gen, final Listener l) {
         new Thread(() -> {
             try {
                 final BuildSpec s = KruxConfig.build();
 
                 String name;
                 Map<String, String> current;
-                BuildCheckpoint.Saved saved = BuildCheckpoint.load(outDir, description, System.currentTimeMillis());
-                if (saved != null) {
+                String metaDesc = description;
+                BuildCheckpoint.Saved saved = modifyFrom != null ? null : BuildCheckpoint.load(outDir, description, System.currentTimeMillis());
+                if (modifyFrom != null) {
+                    BuildCheckpoint.Saved src = BuildCheckpoint.loadAny(modifyFrom);
+                    if (src == null) throw new Refusal("Le code de cette app n'est plus sur ce téléphone : impossible de la modifier.");
+                    String before = readMeta(modifyFrom, "description");
+                    l.onStatus("Génération du code : j'applique ta modification…");
+                    name = src.name;
+                    current = new LinkedHashMap<>(src.files);
+                    Parsed fx = generateParsed(gen, modifySystemPrompt(s), buildModifyPrompt(before, description, current), false, s, l);
+                    applyFix(current, fx.files, s);
+                    l.onStatus("Vérification du code…");
+                    localFixes(gen, s, description, current, l, null);
+                    metaDesc = before.isEmpty() ? description : before + "\nMODIFICATION : " + description;
+                } else if (saved != null) {
                     l.onStatus("Reprise : le code déjà écrit est retrouvé…");
                     name = saved.name;
                     current = new LinkedHashMap<>(saved.files);
                 } else {
                     l.onStatus("Génération du code…");
-                    String design = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random()).toPrompt();
+                    com.virtixstudio.kruxai.builder.DesignDirection direction = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random());
+                    String design = direction.toPrompt();
                     Parsed p = generateParsed(gen, systemPrompt(s) + " " + design, description, true, s, l);
 
                     // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
                     l.onStatus("Vérification du code…");
                     current = BuildValidator.normalize(p.files, new ArrayList<String>());
                     checkPolicy(current, s);
-                    for (int round = 0; round < s.maxLocalFixes; round++) {
-                        List<String> problems = BuildValidator.validate(current);
-                        if (problems.isEmpty()) break;
-                        l.onStatus("Vérification du code : correction " + (round + 1) + "/" + s.maxLocalFixes + "…");
-                        try {
-                            Parsed fx = generateParsed(gen, fixSystemPrompt(s),
-                                buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l);
-                            applyFix(current, fx.files, s);
-                        } catch (Refusal r) {
-                            throw r;
-                        } catch (Exception e) {
-                            break; // vérification locale = aide, pas un blocage : le build GitHub tranchera
-                        }
-                    }
+                    localFixes(gen, s, description, current, l, direction.accentHex());
                     name = p.name;
                     BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
                     String previewHtml = PreviewHtml.prepare(p.preview);
@@ -397,6 +404,95 @@ public class AppBuilder {
                     }
                 }
 
+                deliver(githubToken, metaDesc, name, outDir, current, s, gen, l);
+            } catch (Exception e) {
+                String m = e.getMessage();
+                l.onError(m == null || m.isEmpty() ? e.getClass().getSimpleName() : m);
+            }
+        }).start();
+    }
+
+    // ------------------------------------------------------------------ modification d'une app existante
+
+    static String modifySystemPrompt(BuildSpec s) {
+        String fix = fixSystemPrompt(s);
+        return "Tu modifies une application Android existante (Java, XML) selon la demande de l'utilisateur. "
+            + "On te donne la description d'origine, la modification demandée et les fichiers actuels. "
+            + "Applique la modification demandée et rien d'autre : garde l'identité visuelle, les couleurs et la navigation existantes sauf si la demande les change. "
+            + fix.substring(fix.indexOf("Réponds UNIQUEMENT"));
+    }
+
+    static String buildModifyPrompt(String before, String request, Map<String, String> current) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("DESCRIPTION D'ORIGINE : ").append(before.isEmpty() ? "(inconnue)" : before)
+          .append("\n\nMODIFICATION DEMANDÉE : ").append(request)
+          .append("\n\nFICHIERS ACTUELS :\n");
+        int budget = 60000;
+        StringBuilder skipped = new StringBuilder();
+        for (Map.Entry<String, String> e : current.entrySet()) {
+            if (e.getValue().length() > budget) { skipped.append("\n- ").append(e.getKey()); continue; }
+            sb.append("=== ").append(e.getKey()).append(" ===\n").append(e.getValue()).append("\n");
+            budget -= e.getValue().length();
+        }
+        if (skipped.length() > 0) sb.append("\nFICHIERS NON MONTRÉS (trop longs, ne les réécris pas) :").append(skipped);
+        return sb.toString();
+    }
+
+    static void writeMeta(File dir, String description, String name, String appId) {
+        try {
+            JSONObject o = new JSONObject().put("description", description).put("name", name).put("appId", appId);
+            try (java.io.FileOutputStream os = new java.io.FileOutputStream(new File(dir, "krux-app.json"))) {
+                os.write(o.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+        } catch (Exception ignored) { }
+    }
+
+    static String readMeta(File dir, String key) {
+        try {
+            File f = new File(dir, "krux-app.json");
+            if (!f.isFile()) return "";
+            byte[] b = new byte[(int) Math.min(f.length(), 200000)];
+            try (java.io.FileInputStream in = new java.io.FileInputStream(f)) { in.read(b); }
+            return new JSONObject(new String(b, java.nio.charset.StandardCharsets.UTF_8)).optString(key, "");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** Vérification locale puis corrections par l'IA (aucun quota GitHub utilisé). */
+    /** Vrai si la couleur d'accent imposée apparaît dans au moins un fichier (couleurs, thème ou écrans). */
+    static boolean usesColor(Map<String, String> files, String hex) {
+        if (hex == null) return true;
+        for (Map.Entry<String, String> e : files.entrySet())
+            if (e.getKey().contains("/res/") && e.getValue().toUpperCase(java.util.Locale.ROOT).contains(hex)) return true;
+        return false;
+    }
+
+    /** accent != null : la couleur d'accent de la direction visuelle imposée doit être réellement utilisée dans res/. */
+    static void localFixes(Generator gen, BuildSpec s, String description, Map<String, String> current, Listener l, String accent) throws Exception {
+        for (int round = 0; round < s.maxLocalFixes; round++) {
+            List<String> problems = new ArrayList<>(BuildValidator.validate(current));
+            if (!usesColor(current, accent))
+                problems.add("DIRECTION VISUELLE : la couleur d'accent imposée " + accent + " n'est utilisée dans aucun fichier res/. "
+                    + "Définis la palette imposée dans res/values/colors.xml, applique-la dans themes.xml (colorPrimary, colorSecondary, colorSurface) "
+                    + "et utilise ces couleurs dans les écrans, à la place du violet par défaut.");
+            if (problems.isEmpty()) break;
+            l.onStatus("Vérification du code : correction " + (round + 1) + "/" + s.maxLocalFixes + "…");
+            try {
+                Parsed fx = generateParsed(gen, fixSystemPrompt(s),
+                    buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l);
+                applyFix(current, fx.files, s);
+            } catch (Refusal r) {
+                throw r;
+            } catch (Exception e) {
+                break; // vérification locale = aide, pas un blocage : le build GitHub tranchera
+            }
+        }
+    }
+
+    /** Envoi sur GitHub, compilation, corrections automatiques, téléchargement de l'APK. */
+    private static void deliver(String githubToken, String description, String name, File outDir,
+                                Map<String, String> current, BuildSpec s, Generator gen, Listener l) throws Exception {
                 GithubClient gh = new GithubClient(githubToken, s.githubRetries);
                 gh.init();
                 String repo = "krux-" + name + "-" + (System.currentTimeMillis() / 1000 % 100000);
@@ -432,6 +528,7 @@ public class AppBuilder {
                         BuildCheckpoint.clear(outDir);
                         // Code source compressé (quelques Ko) rangé à côté de l'APK, pour pouvoir reconstruire l'app.
                         BuildCheckpoint.save(new File(outDir, repo), description, name, current, System.currentTimeMillis());
+                        writeMeta(new File(outDir, repo), description, name, appId);
                         l.onDone(apk, url);
                         return;
                     }
@@ -454,11 +551,6 @@ public class AppBuilder {
                         l.onFile(e.getKey(), e.getValue().getBytes(java.nio.charset.StandardCharsets.UTF_8).length, true);
                     }
                 }
-            } catch (Exception e) {
-                String m = e.getMessage();
-                l.onError(m == null || m.isEmpty() ? e.getClass().getSimpleName() : m);
-            }
-        }).start();
     }
 
     static String shorten(String t, int max) {

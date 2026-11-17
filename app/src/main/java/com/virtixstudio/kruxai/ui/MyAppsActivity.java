@@ -163,6 +163,14 @@ public class MyAppsActivity extends AppCompatActivity {
         install.setOnClickListener(v -> install(apk));
         row.addView(install);
 
+        final File appDir = apk.getParentFile();
+        Button edit = new Button(this);
+        edit.setText("Modifier");
+        edit.setAllCaps(false);
+        edit.setEnabled(appDir != null && new File(appDir, "krux-checkpoint.bin").isFile());
+        edit.setOnClickListener(v -> askModification(appDir));
+        row.addView(edit);
+
         Button del = new Button(this);
         del.setText("Supprimer");
         del.setAllCaps(false);
@@ -171,6 +179,27 @@ public class MyAppsActivity extends AppCompatActivity {
 
         card.addView(row);
         list.addView(card);
+    }
+
+    /** Demande ce qu'il faut changer, puis confie la modification à la discussion (même progression que la création). */
+    private void askModification(final File appDir) {
+        final android.widget.EditText in = new android.widget.EditText(this);
+        in.setHint("Ex. : ajoute un mode sombre, change l'écran d'accueil");
+        in.setMinLines(2);
+        KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Que veux-tu changer ?")
+                .setView(in)
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Continuer", (d, w) -> {
+                    String t = in.getText().toString().trim();
+                    if (t.isEmpty()) return;
+                    startActivity(new android.content.Intent(this, MainActivity.class)
+                            .putExtra("modify_dir", appDir.getAbsolutePath())
+                            .putExtra("modify_text", t)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
+                    finish();
+                })
+                .show(), this);
     }
 
     private void install(File apk) {

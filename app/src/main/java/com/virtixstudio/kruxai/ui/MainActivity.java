@@ -430,6 +430,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         android.util.Log.e("KRUX_BOOT", "BOOT 16: loadCurrentSession OK");
         syncCloudData();
         android.util.Log.e("KRUX_BOOT", "BOOT 17: syncCloudData OK");
+        if (etInput != null) etInput.post(() -> handleModifyIntent(getIntent()));
     }
 
     private void showKruxModelSelector() {
@@ -2022,6 +2023,62 @@ private final ActivityResultLauncher<String[]> filePicker =
         if (currentUser != null) com.virtixstudio.kruxai.core.QuotaStore.consume(currentUser.getUid(), quotaWeek());
     }
 
+    /** Dossier de l'APK de l'app à modifier ; lu puis remis à null au lancement de la création. */
+    private java.io.File modifyFrom;
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleModifyIntent(intent);
+    }
+
+    /** « Modifier » dans Mes apps : dossier de l'app + texte de la modification. */
+    private void handleModifyIntent(android.content.Intent intent) {
+        if (intent == null) return;
+        String dir = intent.getStringExtra("modify_dir"), text = intent.getStringExtra("modify_text");
+        intent.removeExtra("modify_dir");
+        intent.removeExtra("modify_text");
+        if (dir == null || text == null || text.trim().isEmpty()) return;
+        autoModifyApp(new java.io.File(dir), text.trim());
+    }
+
+    private void autoModifyApp(final java.io.File dir, final String request) {
+        String token = "";
+        int quota = 5;
+        try {
+            java.io.InputStream is = getAssets().open("krux_builder.json");
+            byte[] buf = new byte[is.available()];
+            is.read(buf);
+            is.close();
+            org.json.JSONObject cfg = new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8));
+            token = cfg.optString("token", "").trim();
+            quota = cfg.optInt("weekly_quota", 5);
+        } catch (Exception ignored) { }
+        if (token.isEmpty()) {
+            Toast.makeText(this, "La création d'apps n'est pas configurée dans cette version de KRUX.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        int used = quotaUsed();
+        if (used >= quota) {
+            Toast.makeText(this, "Limite atteinte : " + quota + " créations par semaine. Elles reviennent la semaine prochaine.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (failedBuilds() >= MAX_FAILED_BUILDS) {
+            Toast.makeText(this, "Trop d'échecs de compilation cette semaine. Réessaie plus tard ou change la demande.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        final String fToken = token;
+        String shown = request.length() > 300 ? request.substring(0, 300) + "…" : request;
+        KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Modifier cette application ?")
+                .setMessage(shown + "\n\nLa version modifiée s'installe à côté de l'ancienne. Elle compte comme une création : "
+                        + (quota - used) + "/" + quota + " restantes cette semaine.")
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Lancer", (d, w) -> { modifyFrom = dir; runAppBuild(fToken, request); })
+                .show(), this);
+    }
+
     private void autoCreateApp(final String desc) {
         String token = "";
         int quota = 5;
@@ -2163,6 +2220,8 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         final boolean[] consumed = {false};
         java.io.File outDir = getExternalFilesDir("generated");
+        final java.io.File modSrc = modifyFrom;
+        modifyFrom = null;
 
         // Pendant la création : options du bas masquées, bouton carré (stop), et une bulle « vivante »
         final android.os.Handler pulse = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -2186,7 +2245,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         runOnUiThread(() -> setBuildMode(true));
 
         com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
-        AppBuilder.run(token, desc, outDir,
+        AppBuilder.run(token, desc, outDir, modSrc,
                 (system, prompt) -> {
                     final String[] out = new String[2];
                     final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
