@@ -92,6 +92,61 @@ public final class FileDelivery {
         }
     }
 
+    private static final Pattern ASKED = Pattern.compile(
+            "(?iu)(fichiers?|\\bfiles?\\b|t[ée]l[ée]charg|download|export|enregistr|sauvegard"
+          + "|\\.(?:md|txt|csv|json|html?|xml|css|js|ts|py|java|kt|sql|sh|ya?ml|ini|toml|svg|tex|log|gradle|properties|cpp|cs|go|rs|php|rb|swift)\\b"
+          + "|\\ben (?:md|txt|csv|json|html|xml|markdown|yaml|yml)\\b)");
+
+    /** Vrai si la demande de l'utilisateur parle d'un fichier (mot « fichier », téléchargement, export, extension…). */
+    public static boolean userAskedForFile(String prompt) {
+        return prompt != null && ASKED.matcher(prompt).find();
+    }
+
+    /**
+     * Garde-fou : si l'utilisateur n'a pas demandé de fichier, les blocs KRUX_FILE de la réponse deviennent
+     * de simples blocs de code (nom en gras, puis code) au lieu de cartes de fichier.
+     */
+    public static String demoteUnlessAsked(String text, String userPrompt) {
+        if (text == null || text.indexOf("<KRUX_FIL") < 0 || userAskedForFile(userPrompt)) return text;
+        Matcher m = BLOCK.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(fenced(m.group(1), m.group(2))));
+        m.appendTail(sb);
+        String s = sb.toString();
+        Matcher o = OPEN.matcher(s);
+        if (o.find()) {
+            // bloc encore en cours d'écriture : on ouvre le bloc de code, la suite du fichier vient s'y ajouter
+            String name = safeName(o.group(1));
+            s = s.substring(0, o.start()) + "**" + name + "**\n```" + langOf(name) + "\n"
+                    + s.substring(o.end()).replaceFirst("^\\r?\\n", "");
+        } else {
+            int i = s.lastIndexOf("<KRUX_FIL");
+            if (i >= 0 && s.indexOf('>', i) < 0) s = s.substring(0, i);
+        }
+        return s;
+    }
+
+    private static String fenced(String rawName, String content) {
+        String name = safeName(rawName);
+        String c = content == null ? "" : content;
+        String t = c.trim();
+        if (t.startsWith("```") && t.endsWith("```") && t.length() > 6) {
+            int nl = t.indexOf('\n');
+            if (nl > 0) c = t.substring(nl + 1, t.length() - 3);
+        }
+        c = c.replaceAll("\\s+$", "");
+        String fence = c.contains("```") ? "````" : "```";
+        return "**" + name + "**\n" + fence + langOf(name) + "\n" + c + "\n" + fence;
+    }
+
+    private static String langOf(String name) {
+        int d = name.lastIndexOf('.');
+        String e = d > 0 ? name.substring(d + 1).toLowerCase(Locale.ROOT) : "";
+        if (e.equals("htm")) return "html";
+        if (e.equals("yml")) return "yaml";
+        return e;
+    }
+
     /** Texte à afficher : blocs complets retirés, bloc encore en cours d'écriture masqué (pas de contenu brut qui défile). */
     public static String stripForDisplay(String text) {
         if (text == null) return "";

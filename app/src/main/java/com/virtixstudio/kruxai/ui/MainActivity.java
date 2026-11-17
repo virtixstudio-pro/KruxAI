@@ -1688,7 +1688,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setKruxState(KruxState.IDLE);
                 });
 
-                String cleanResponse = stripReflexion(rawResponse);
+                String cleanResponse = com.virtixstudio.kruxai.utils.FileDelivery.demoteUnlessAsked(
+                        stripReflexion(rawResponse), userPrompt);
                 extractMemoryInBackground(userPrompt, cleanResponse);
                 final String forFiles = cleanResponse;
                 runOnUiThread(() -> { announceFiles(forFiles); deliverToWorkspace(forFiles); });
@@ -1817,8 +1818,10 @@ private final ActivityResultLauncher<String[]> filePicker =
             @Override
             public void onPartialResponse(String partialResponse, String modelBrand) {
                 runOnUiThread(() -> {
-                    aiMessage.setText(hideTool(stripReflexion(partialResponse)));
-                    announceFiles(partialResponse);
+                    final String partialShown = com.virtixstudio.kruxai.utils.FileDelivery.demoteUnlessAsked(
+                            stripReflexion(partialResponse), userPrompt);
+                    aiMessage.setText(hideTool(partialShown));
+                    announceFiles(partialShown);
                     KruxState wantState = isReflecting(partialResponse) ? KruxState.THINKING : KruxState.GENERATING;
                     if (kruxState != wantState) setKruxState(wantState);
                     aiMessage.setModel(modelBrand);

@@ -37,9 +37,10 @@ public class SystemPromptBuilder {
       + "Après réception des résultats Web, réponds normalement en utilisant ces résultats "
       + "et ne redemande pas immédiatement une nouvelle recherche pour la même demande. "
 
-      + "LIVRER UN FICHIER : quand l'utilisateur demande un document, un fichier, un export ou un code complet à garder "
-      + "(rapport, plan, tableau CSV, page HTML, script, configuration, notes), ou quand un fichier est clairement plus utile qu'un long texte collé dans le chat, "
-      + "crée-le avec ce format exact, sans le mettre dans un bloc de code :\n"
+      + "LIVRER UN FICHIER : crée un fichier UNIQUEMENT si l'utilisateur le demande explicitement "
+      + "(mots comme « fichier », « télécharger », « exporte », « enregistre », ou une extension comme .md, .csv, .json). "
+      + "Sans demande explicite, ne crée JAMAIS de fichier, même pour un projet ou un long code : montre le code dans un bloc de code et explique-le dans le chat. "
+      + "Quand il le demande, crée-le avec ce format exact, sans le mettre dans un bloc de code :\n"
       + "<KRUX_FILE name=\"nom.ext\">\nCONTENU COMPLET DU FICHIER\n</KRUX_FILE>\n"
       + "Le nom est court, sans dossier, avec une extension texte (md, txt, csv, json, html, css, js, py, java, kt, sql, xml, yml). "
       + "Tu peux livrer jusqu'à 8 fichiers dans une réponse, 200 000 caractères au plus chacun. "
