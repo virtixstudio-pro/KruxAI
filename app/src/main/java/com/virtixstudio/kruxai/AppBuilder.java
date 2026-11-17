@@ -367,7 +367,8 @@ public class AppBuilder {
                     current = new LinkedHashMap<>(saved.files);
                 } else {
                     l.onStatus("Génération du code…");
-                    Parsed p = generateParsed(gen, systemPrompt(s), description, true, s, l);
+                    String design = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random()).toPrompt();
+                    Parsed p = generateParsed(gen, systemPrompt(s) + " " + design, description, true, s, l);
 
                     // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
                     l.onStatus("Vérification du code…");
@@ -404,7 +405,8 @@ public class AppBuilder {
                 String branch = gh.defaultBranch(repo);
                 String url = "https://github.com/" + gh.owner + "/" + repo;
 
-                Map<String, String> all = new LinkedHashMap<>(BuildTemplates.gradleFiles(s));
+                final String appId = BuildTemplates.uniqueAppId(name);
+                Map<String, String> all = new LinkedHashMap<>(BuildTemplates.gradleFiles(s, appId));
                 all.put(".github/workflows/build.yml", BuildTemplates.workflow(s));
                 all.putAll(current);
                 int n = 0;

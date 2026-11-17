@@ -8,7 +8,22 @@ public final class BuildTemplates {
 
     private BuildTemplates() { }
 
+    /**
+     * Identifiant d'installation unique par application (com.krux.&lt;nom&gt;&lt;6 hexadécimaux&gt;), pour que deux apps
+     * créées par KRUX puissent coexister sur le téléphone. Le namespace interne du code reste BuildSpec.NAMESPACE.
+     */
+    public static String uniqueAppId(String name) {
+        String slug = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        if (slug.length() > 16) slug = slug.substring(0, 16);
+        if (slug.isEmpty() || !Character.isLetter(slug.charAt(0))) slug = "app" + slug;
+        return "com.krux." + slug + String.format(java.util.Locale.ROOT, "%06x", new java.util.Random().nextInt(0x1000000));
+    }
+
     public static Map<String, String> gradleFiles(BuildSpec s) {
+        return gradleFiles(s, BuildSpec.NAMESPACE);
+    }
+
+    public static Map<String, String> gradleFiles(BuildSpec s, String applicationId) {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("settings.gradle",
             "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\n"
@@ -21,7 +36,7 @@ public final class BuildTemplates {
         m.put("app/build.gradle",
             "plugins { id 'com.android.application' }\n"
             + "android {\n namespace '" + BuildSpec.NAMESPACE + "'\n compileSdk " + s.compileSdk + "\n"
-            + " defaultConfig { applicationId '" + BuildSpec.NAMESPACE + "'; minSdk " + s.minSdk
+            + " defaultConfig { applicationId '" + applicationId + "'; minSdk " + s.minSdk
             + "; targetSdk " + s.targetSdk + "; versionCode 1; versionName '1.0' }\n"
             + " compileOptions { sourceCompatibility JavaVersion.VERSION_" + s.jdk
             + "; targetCompatibility JavaVersion.VERSION_" + s.jdk + " }\n}\n"
