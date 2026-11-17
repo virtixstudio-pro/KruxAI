@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private FirebaseUser currentUser;
     private String currentUserFirstName = "";
     private String currentUserEmail = "";
+private AttachmentStrip attachmentStrip;
 private String selectedFileName = "";
 private String selectedFileContent = "";
 
@@ -1647,6 +1648,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         selectedFileName = "";
         selectedFileContent = "";
+        hideAttachmentStrip();
 
         ChatMessage aiMessage = new ChatMessage("", false, sources);
         aiMessage.setStreaming(true);
@@ -3371,6 +3373,31 @@ private final ActivityResultLauncher<String[]> filePicker =
         KruxTheme.skin(dialog, this);
     }
 
+    /** Pièce jointe affichée au-dessus du champ de saisie (carte arrondie avec une croix). */
+    private void showFileAttachment(String name, int chars) {
+        if (attachmentStrip == null) {
+            android.view.ViewGroup composer = findViewById(R.id.composerBar);
+            if (composer == null) return;
+            attachmentStrip = new AttachmentStrip(this);
+            attachmentStrip.setVisibility(android.view.View.GONE);
+            attachmentStrip.setListener(item -> {
+                selectedFileName = "";
+                selectedFileContent = "";
+                hideAttachmentStrip();
+                attachmentStrip.clear();
+            });
+            composer.addView(attachmentStrip, 0, new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        java.util.List<AttachmentStrip.Item> items = new java.util.ArrayList<>();
+        items.add(new AttachmentStrip.Item(name, AttachmentStrip.detailFor(name, chars), null, name));
+        attachmentStrip.setItems(items);
+    }
+
+    private void hideAttachmentStrip() {
+        if (attachmentStrip != null) attachmentStrip.clear();
+    }
+
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -4143,6 +4170,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             if (!supported) {
                 selectedFileName = "";
                 selectedFileContent = "";
+                hideAttachmentStrip();
 
                 Toast.makeText(
                         MainActivity.this,
@@ -4186,6 +4214,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             selectedFileName = fileName;
             selectedFileContent = content.toString();
+            showFileAttachment(fileName, selectedFileContent.length());
 
             Toast.makeText(
                     MainActivity.this,
@@ -4196,6 +4225,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         } catch (Exception e) {
             selectedFileName = "";
             selectedFileContent = "";
+            hideAttachmentStrip();
 
             android.util.Log.e(
                     "KRUX_FILE",
