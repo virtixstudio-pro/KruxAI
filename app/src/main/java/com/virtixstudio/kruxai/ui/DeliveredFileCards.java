@@ -31,10 +31,15 @@ public final class DeliveredFileCards {
     private DeliveredFileCards() { }
 
     public static void fill(LinearLayout host, List<FileDelivery.DFile> files) {
+        fill(host, files, true);
+    }
+
+    /** finished = false : Krux écrit encore, on montre une ligne compacte (nom à gauche, taille à droite) sans boutons. */
+    public static void fill(LinearLayout host, List<FileDelivery.DFile> files, boolean finished) {
         host.removeAllViews();
         if (files == null || files.isEmpty()) { host.setVisibility(View.GONE); return; }
         host.setVisibility(View.VISIBLE);
-        for (FileDelivery.DFile f : files) host.addView(card(host.getContext(), f));
+        for (FileDelivery.DFile f : files) host.addView(card(host.getContext(), f, finished));
     }
 
     private static TextView button(Context c, String label, int accent, int fill, float d) {
@@ -53,7 +58,7 @@ public final class DeliveredFileCards {
         return b;
     }
 
-    private static View card(final Context c, final FileDelivery.DFile f) {
+    private static View card(final Context c, final FileDelivery.DFile f, boolean finished) {
         final float d = c.getResources().getDisplayMetrics().density;
         int bg = KruxTheme.get(c, "input"), text = KruxTheme.get(c, "text"), text2 = KruxTheme.get(c, "text2"), accent = KruxTheme.get(c, "accent");
         int pale = (accent & 0x00FFFFFF) | 0x26000000;
@@ -70,18 +75,46 @@ public final class DeliveredFileCards {
         lp.topMargin = Math.round(6 * d);
         box.setLayoutParams(lp);
 
+        // Le long chemin (app/src/main/java/com/…) est masqué : on garde le nom du fichier, le dossier est résumé.
+        String full = f.name.replace('\\', '/');
+        int slash = full.lastIndexOf('/');
+        String base = slash >= 0 ? full.substring(slash + 1) : full;
+        String dir = slash > 0 ? full.substring(0, slash) : "";
+
+        int b = f.bytes();
+        String size = b < 1024 ? b + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", b / 1024.0);
+
+        LinearLayout head = new LinearLayout(c);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
         TextView name = new TextView(c);
-        name.setText("📄  " + f.name);
+        name.setText("📄  " + base);
         name.setTextColor(text);
         name.setTextSize(14);
         name.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        box.addView(name);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        head.addView(name, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView sizeView = new TextView(c);
+        sizeView.setText(size);
+        sizeView.setTextColor(text2);
+        sizeView.setTextSize(11);
+        sizeView.setGravity(Gravity.END);
+        sizeView.setPadding(Math.round(10 * d), 0, 0, 0);
+        head.addView(sizeView, new LinearLayout.LayoutParams(-2, -2));
+        box.addView(head);
 
-        int b = f.bytes();
+        // Pendant que Krux écrit : aucune action (Enregistrer, Partager…), seulement la ligne alignée.
+        if (!finished) return box;
+
+        String[] seg = dir.split("/");
+        String shortDir = seg.length > 2 ? "…/" + seg[seg.length - 2] + "/" + seg[seg.length - 1] : dir;
         TextView meta = new TextView(c);
-        meta.setText((b < 1024 ? b + " o" : String.format(java.util.Locale.FRANCE, "%.1f Ko", b / 1024.0)) + " · fichier créé par Krux");
+        meta.setText(dir.isEmpty() ? "fichier créé par Krux" : shortDir);
         meta.setTextColor(text2);
-        meta.setTextSize(11);
+        meta.setTextSize(10.5f);
+        meta.setSingleLine(true);
+        meta.setEllipsize(android.text.TextUtils.TruncateAt.START);
         meta.setPadding(0, Math.round(2 * d), 0, Math.round(8 * d));
         box.addView(meta);
 

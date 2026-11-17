@@ -227,6 +227,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         AiViewHolder aiHolder = (AiViewHolder) holder;
         Context context = aiHolder.itemView.getContext();
 
+        writing = message.isStreaming(); // copier, partager, etc. : seulement quand Krux a fini d'écrire
         renderMessage(
                 aiHolder,
                 com.virtixstudio.kruxai.utils.FileDelivery.stripForDisplay(message.getText())
@@ -244,7 +245,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         LinearLayout filesHost = aiHolder.itemView.findViewById(R.id.layoutFiles);
         if (filesHost != null) {
             com.virtixstudio.kruxai.ui.DeliveredFileCards.fill(filesHost,
-                    com.virtixstudio.kruxai.utils.FileDelivery.parse(message.getText()));
+                    com.virtixstudio.kruxai.utils.FileDelivery.parse(message.getText()), !message.isStreaming());
             java.util.List<com.virtixstudio.kruxai.utils.ImageGallery.Hit> pics =
                     com.virtixstudio.kruxai.utils.ImageGallery.parse(message.getText());
             if (!pics.isEmpty()) com.virtixstudio.kruxai.ui.ImageGalleryView.append(filesHost, pics);
@@ -372,6 +373,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             return false;
         });
     }
+
+    /** Vrai pendant que Krux écrit le message : les boutons d'action des blocs de code restent cachés. */
+    private boolean writing = false;
 
     private void renderMessage(
             AiViewHolder holder,
@@ -639,7 +643,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         // Actions : icônes seules, à droite de l'en-tête du bloc.
         final boolean term = "terminal".equals(language);
-        boolean isHtml = !term && com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code);
+        final boolean hideActions = term || writing;
+        boolean isHtml = !hideActions && com.virtixstudio.kruxai.ui.HtmlPreviewActivity.looksLikeHtml(language, code);
         ImageButton preview = isHtml
                 ? createCodeAction(context, R.drawable.ic_play, "Aperçu de la page", text2)
                 : null;
@@ -650,7 +655,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             preview.setOnClickListener(v -> com.virtixstudio.kruxai.ui.HtmlPreviewActivity.open(context, fileName, code));
             header.addView(preview);
         }
-        if (!term) {
+        if (!hideActions) {
             header.addView(share);
             header.addView(copy);
             header.addView(download);

@@ -3717,6 +3717,13 @@ private final ActivityResultLauncher<String[]> filePicker =
                             ? R.drawable.bg_send_button_active
                             : R.drawable.bg_send_button_round
             );
+            // Les ressources sont violettes (#9B5CFF) : sans ça le bouton change de couleur à chaque envoi.
+            if (btnSend.getBackground() instanceof android.graphics.drawable.GradientDrawable) {
+                android.graphics.drawable.GradientDrawable bgSend =
+                        (android.graphics.drawable.GradientDrawable) btnSend.getBackground().mutate();
+                bgSend.setColor(KruxTheme.get(this, "button"));
+                bgSend.setCornerRadius(KruxTheme.radiusDp(this) * getResources().getDisplayMetrics().density);
+            }
         }
     }
 
