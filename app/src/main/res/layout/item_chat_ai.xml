@@ -44,35 +44,42 @@
         android:id="@+id/layoutReasoning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#120B24"
         android:orientation="vertical"
-        android:padding="8dp"
         android:visibility="gone"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="6dp">
 
         <LinearLayout
             android:id="@+id/btnToggleReasoning"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:id="@+id/ivReasoningIcon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_reasoning_clock" />
+
+            <TextView
+                android:id="@+id/tvReasoningTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Réflexion"
+                android:textSize="13sp" />
 
             <ImageView
                 android:id="@+id/ivArrowReasoning"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:src="@drawable/ic_plus"
-                android:tint="#A855F7" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:id="@+id/tvReasoningTitle"
-                android:text="Processus de réflexion"
-                android:textColor="#A855F7"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_chevron_right" />
 
         </LinearLayout>
 
@@ -80,8 +87,9 @@
             android:id="@+id/tvReasoningContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textColor="#B9AFCB"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="2dp"
+            android:lineSpacingMultiplier="1.15"
             android:textSize="13sp"
             android:visibility="gone" />
 

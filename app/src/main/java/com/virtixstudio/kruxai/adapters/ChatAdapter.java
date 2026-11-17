@@ -53,6 +53,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final OnUserActionListener userActionListener;
 
     private final Map<String, String> feedbackStates = new HashMap<>();
+    /** Messages dont l'utilisateur a déplié le détail de la réflexion (replié par défaut, comme une ligne discrète). */
+    private final java.util.Set<Object> expandedReasoning =
+            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 
     private static final String PAYLOAD_STATUS = "status";
     private String activeStatusMessageId = null;
@@ -1110,16 +1113,24 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     private void applyAiTheme(AiViewHolder holder) {
-        holder.layoutReasoning.setBackgroundColor(userBubbleColor);
+        // Réflexion discrète : une ligne grise sans fond, comme les résumés de réflexion de Claude.
+        holder.layoutReasoning.setBackgroundColor(android.graphics.Color.TRANSPARENT);
 
-        holder.ivArrowReasoning.setColorFilter(accentColor);
+        holder.ivArrowReasoning.setColorFilter(secondaryTextColor);
+
+        View clock = holder.btnToggleReasoning.getChildCount() > 0
+                ? holder.btnToggleReasoning.getChildAt(0)
+                : null;
+        if (clock instanceof ImageView) {
+            ((ImageView) clock).setColorFilter(secondaryTextColor);
+        }
 
         View title = holder.btnToggleReasoning.getChildCount() > 1
                 ? holder.btnToggleReasoning.getChildAt(1)
                 : null;
 
         if (title instanceof TextView) {
-            ((TextView) title).setTextColor(accentColor);
+            ((TextView) title).setTextColor(secondaryTextColor);
         }
 
         holder.tvReasoningContent.setTextColor(secondaryTextColor);
@@ -1190,6 +1201,25 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         pill.setOnClickListener(v -> com.virtixstudio.kruxai.ui.SourcesSheet.show(v.getContext(), src));
     }
 
+    /** Titre d'une ligne : étape en cours (live) ou nombre d'étapes (terminé). */
+    static String reasoningTitle(String reasoning, boolean live) {
+        int steps = 0;
+        String last = "";
+        for (String line : reasoning.split("\\n")) {
+            String t = line.replaceAll("^[\\s•·*\\-–—✓✔✅☑⋯…>]+", "").trim();
+            if (t.isEmpty()) continue;
+            steps++;
+            last = t;
+        }
+        if (live) {
+            if (last.isEmpty()) return "Réflexion en cours…";
+            if (last.length() > 70) last = last.substring(0, 70).trim();
+            return (last.endsWith("…") || last.endsWith(".")) ? last : last + "…";
+        }
+        if (steps == 0) return "Processus de réflexion";
+        return "Réflexion · " + steps + (steps > 1 ? " étapes" : " étape");
+    }
+
     private void setupReasoning(
             AiViewHolder holder,
             ChatMessage message
@@ -1198,20 +1228,24 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         if (reasoning != null && !reasoning.trim().isEmpty()) {
 
-            // Pendant que Krux travaille, les étapes sont visibles ; la réponse terminée, le bloc se replie.
+            // Une seule ligne grise : l'étape en cours pendant que Krux travaille, puis « Réflexion · N étapes ».
+            // Le détail ne s'ouvre que si l'utilisateur appuie dessus.
             boolean live = message.isStreaming();
+            boolean open = expandedReasoning.contains(message);
             holder.layoutReasoning.setVisibility(View.VISIBLE);
             holder.tvReasoningContent.setText(reasoning);
-            holder.tvReasoningContent.setVisibility(live ? View.VISIBLE : View.GONE);
-            holder.ivArrowReasoning.setRotation(live ? 90 : 0);
+            holder.tvReasoningContent.setVisibility(open ? View.VISIBLE : View.GONE);
+            holder.ivArrowReasoning.setRotation(open ? 90 : 0);
             TextView stepsTitle = holder.btnToggleReasoning.findViewById(R.id.tvReasoningTitle);
-            if (stepsTitle != null) stepsTitle.setText(live ? "Réflexion en cours…" : "Processus de réflexion");
+            if (stepsTitle != null) stepsTitle.setText(reasoningTitle(reasoning, live));
 
             holder.btnToggleReasoning.setOnClickListener(v -> {
 
                 boolean expanded =
                         holder.tvReasoningContent.getVisibility()
                                 == View.VISIBLE;
+
+                if (expanded) expandedReasoning.remove(message); else expandedReasoning.add(message);
 
                 holder.tvReasoningContent.setVisibility(
                         expanded ? View.GONE : View.VISIBLE
