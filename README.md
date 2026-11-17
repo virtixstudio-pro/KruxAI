@@ -1,49 +1,62 @@
-CONTEXTE KRUX (dépôt virtixstudio-pro/KruxAI, Termux ~/KruxAI)
+# KRUX AI
 
-PRÉFÉRENCES DE L'UTILISATEUR
-- Un patch à la fois. Pour chaque patch : le fichier .patch + UNE commande complète :
-  git apply --check ... && git apply ... && git add -A && git commit -m "..." && git push origin main
-  (fichiers dans ~/storage/downloads)
-- Mettre le README à jour à chaque patch, par commandes sed/printf (pas par patch : son README local diverge).
-- Ne recloner GitHub que s'il dit « mise à jour ».
-- Ne jamais déplacer ni supprimer de fichiers ou fonctionnalités sans son accord.
-- Rien n'est compilé (pas de SDK Android) : toujours le dire. Vérifier avec git apply --check et javac (syntaxe seule).
+Application Android native (Java) de Virtix Studio : discussion avec plusieurs modèles d'IA, création d'applications Android, recherche web, voix, mémoire.
+Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 17 novembre 2026.
 
-DÉJÀ POUSSÉ SUR GITHUB
-Voix vivante, menu d'appui long, boutons de lien [btn:Texte|url], navigateur intégré,
-export (txt, PDF, CSV, ZIP), blocs de code (couleurs personnalisables, actions séparées),
-thème blanc/noir sur toute l'app, ménage des doublons, + les patchs de l'autre session
-(icônes de code, recherche sans deviner, apps/sites sans limites).
+## Règles de travail (à respecter)
 
-PATCHS PRÊTS MAIS À APPLIQUER PAR L'UTILISATEUR (dans cet ordre)
-1. reflexion-analyse.patch : analyse préalable des demandes (core/Reflection), délai 6 s.
-2. reflexion-verification.patch : relecture avant envoi (core/AnswerCheck), délai 8 s, 1 révision max.
-Les deux touchent MainActivity (envoi) et ApiClient. Après leur push, l'utilisateur dit « mise à jour ».
+- Un patch à la fois. Pour chaque patch : le fichier `.patch` (dans `~/storage/downloads`) et UNE commande complète :
+  `git apply --check ... && git apply ... && git add -A && git commit -m "..." && git push origin main`
+- Le README se met à jour par commandes `sed` ou `printf`, pas par patch (le README local diverge).
+- Ne recloner GitHub que si l'utilisateur dit « mise à jour ».
+- Ne jamais déplacer ni supprimer de fichiers ou de fonctionnalités sans son accord.
+- Rien n'est compilé en local (pas de SDK Android) : toujours le dire. Vérifications : `git apply --check` et `javac` (syntaxe seule). La vraie compilation se fait sur GitHub Actions (artefact `KruxAI-debug-apk`).
+- Pas de carte bancaire : uniquement des services gratuits sans carte.
+- Interface compacte, réponses courtes, commandes prêtes à copier, honnêteté sur ce qui est testé ou non.
+- Ne jamais enregistrer qu'un utilisateur est mineur. Ne pas publier l'APK tant que des clés API sont dedans.
 
-RESTE À FAIRE, DANS L'ORDRE
-1. Restrictions des apps générées (VALIDÉ : 5 par semaine ; patch restrictions-apps appliqué ; WorkManager reste bloqué) :
-   - tailles : 60 fichiers, 40 000 car./fichier, 200 000 au total, 4 corrections auto
-     (plafonds de BuildSpec, limits dans krux_config.json)
-   - quota de créations : réglable, 5/semaine (avant 2, lu dans krux_builder.json
-     ignoré par Git, contrôle côté app seulement)
-   - autoriser : notifications, alarmes/WorkManager, localisation, caméra, lecture des médias
-     (BuildValidator : ALLOWED_PERMS et BANNED_CODE)
-   - GARDER BLOQUÉ : exécution de commandes, chargement de code à la volée, réflexion, SMS,
-     accessibilité, admin d'appareil, superposition, démarrage au boot, contacts.
-2. FAIT : bouton Modifier dans Mes apps, palette imposée vérifiée. Reste : clé de signature stable pour remplacer l'ancienne app.
-   24 h, même description exacte) ; (b) sauvegarder le code en zip à côté de l'APK (WorkerStore ne
-   garde que l'APK) + bouton « Modifier » dans MyAppsActivity.
-3. Recherche web mieux structurée : affichage des résultats et des sources, plusieurs recherches
-   enchaînées, deuxième moteur, plus de pages lues. WebScraper existe, non branché, à conserver.
-4. FAIT : fichiers livrés en bloc compact avec Tout enregistrer (ZIP), DeliveredFileCards.
-5. Mémoire : Krux décide de ce qu'il retient, dès l'inscription (MemoryRepository, MemoryBook,
-   MemoryExtractor, PrivacyActivity).
-6. Patch d'économie de quotas : s'inspirer du mode économique de l'ancien ModelRouter (supprimé,
-   retrouvable avec git log --diff-filter=D) ; le vrai routage est dans ApiClient.
-7. Vérifier la bannière hors ligne « Réessayer ».
-8. Backlog : déployer le proxy IA puis retirer et renouveler les clés de l'APK ; README « État actuel » ;
-   mode Live (conversation continue, mémoire, recherche) ; images (filigrane, partage en fichier) ;
-   préparation Google Play ; test de la connexion Google du site.
-9. Optionnel, à lui proposer : supprimer ses fichiers de sauvegarde locaux non suivis par Git
-   (commande de liste déjà donnée, find ... -print).
+## Déjà poussé sur GitHub
 
+- Voix vivante, menu d'appui long, boutons de lien, navigateur intégré, export (txt, PDF, CSV, ZIP), blocs de code, thème blanc/noir.
+- Analyse de photos, pièces jointes en cartes, réflexion discrète sur une ligne, étapes de réflexion réelles.
+- Modèles à jour : Prime, Core, Flow, Max, Nova (catalogue vérifié le 17/11).
+- Création d'apps : quota de 5 par semaine, plafonds relevés, permissions utiles autorisées, aperçu interactif, secours automatique entre modèles.
+- **Fichiers livrés** : bloc compact « N fichiers » avec **Tout enregistrer (ZIP)**, Partager, liste de 5 lignes (`DeliveredFileCards`).
+- **Apps générées uniques** : identifiant d'installation différent par app (`com.krux.<nom><6 hex>`, `BuildTemplates.uniqueAppId`) et direction visuelle tirée au hasard (`DesignDirection` : palette, formes, typographie, structure, navigation).
+
+## Patchs prêts, à appliquer dans cet ordre
+
+1. `modifier-apps.patch` : bouton **Modifier** dans « Mes apps » (le code reste à côté de l'APK), modification appliquée par l'IA puis compilée comme une création. La version modifiée s'installe **à côté** de l'ancienne. Compte comme une création du quota.
+2. `palette-imposee.patch` : la couleur d'accent imposée par `DesignDirection` doit apparaître dans `res/`, sinon l'IA corrige avant l'envoi.
+
+Après leur push, l'utilisateur dit « mise à jour ».
+
+## Reste à faire, dans l'ordre
+
+1. **Pauses anti-saturation** : espacer les appels par fournisseur (petit délai) pour éviter les erreurs 429, et remplacer « Ce moteur est saturé, je passe sur un autre… » (`MainActivity`, `onFallback` et `onWaiting`) par un texte neutre type « Je prends une courte pause… ».
+2. **Sélecteur de modèles** plus agréable (`showKruxModelSelector`) : couleurs du thème, badge PETIT/GRAND, description courte.
+3. **Échec « L'IA n'a pas produit de code exploitable »** (`AppBuilder.generateParsed`) : cause à confirmer avec la phrase complète affichée après les deux-points. Pistes : chemin refusé par `BuildValidator.pathProblem`, JSON invalide, manifeste manquant, image de l'analyse de photos restée en attente (`ApiClient.nextImage`).
+4. **Création en plusieurs passes** (plan et écrans, fichiers par lots, relecture) : c'est la vraie limite de qualité des apps générées, aujourd'hui tout est écrit en une seule génération.
+5. **Clé de signature stable par app** : sans elle, une app modifiée ne peut pas remplacer l'ancienne (chaque build GitHub signe avec une clé de test différente).
+6. Recherche web mieux structurée : résultats et sources affichés, plusieurs recherches enchaînées, deuxième moteur, plus de pages lues.
+7. Mémoire : Krux décide de ce qu'il retient, dès l'inscription.
+8. Patch d'économie de quotas, vérifier la bannière hors ligne « Réessayer ».
+9. Backlog : déployer le proxy IA puis retirer et renouveler les clés de l'APK ; mode Live ; images (filigrane, partage en fichier) ; préparation Google Play ; test de la connexion Google du site.
+
+## Sécurité des clés (priorité)
+
+Le Worker `worker/ai-proxy` est prêt mais **pas déployé** : variable `FIREBASE_PROJECT_ID`, secrets GROQ, CEREBRAS, MISTRAL, HF, GEMINI, liaison D1 `DB`. Ensuite : mettre son URL dans `assets/krux_config.json` (`ai_proxy.url`), retirer les clés de `build.gradle` et du workflow, puis **révoquer et renouveler toutes les anciennes clés** (elles sont dans les APK déjà distribués).
+
+## Infrastructure
+
+- Firebase : projet `krux-9fd33` (Auth e-mail, Google, téléphone, anonyme ; Firestore `users/{uid}`).
+- Cloudflare : Worker de stockage (D1 `krux-db`, KV `krux_storage`), site `https://virtix-studio.kruxvirtix.workers.dev` (dossier `docs/`, redéployé à chaque push sur `main`).
+- Contact public : `virtixstudio@gmail.com`.
+- Documentation détaillée : `PASSATION-KRUX.md`, `ANALYSE-PROJET.md`, `OBJECTIFS-MEMOIRE.md`.
+
+## État actuel et limites connues
+
+- Aucune compilation locale : seule la CI GitHub compile. Quand elle échoue, coller les lignes `error:`.
+- Les apps générées n'ont pas été testées sur téléphone par Krux : l'aperçu et la compilation donnent un APK, pas une garantie de qualité.
+- Mistral (offre gratuite « Experiment ») peut entraîner sur les données : vérifier avant d'affirmer le contraire dans la page de confidentialité.
+- Hugging Face non testé (inférence gratuite capricieuse).
