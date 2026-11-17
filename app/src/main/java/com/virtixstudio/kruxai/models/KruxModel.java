@@ -28,7 +28,7 @@ public enum KruxModel {
     MISTRAL_MINISTRAL_3B(
             "KRUX Core",
             "KRUX Core",
-            "ministral-3b-latest",
+            "ministral-14b-latest",
             "MISTRAL",
             131072,
             ModelSize.PETIT
@@ -37,7 +37,7 @@ public enum KruxModel {
     MISTRAL_MINISTRAL_8B(
             "KRUX Flow",
             "KRUX Flow",
-            "ministral-8b-latest",
+            "mistral-small-latest",
             "MISTRAL",
             131072,
             ModelSize.PETIT
@@ -61,7 +61,7 @@ public enum KruxModel {
     GEMINI_36_FLASH(
             "KRUX Prime",
             "KRUX Prime",
-            "gemini-3.6-flash",
+            "gemini-3.8-flash",
             "GEMINI",
             1000000,
             ModelSize.GRAND
@@ -81,6 +81,24 @@ public enum KruxModel {
             "KRUX Velocity",
             "gpt-oss-120b",
             "CEREBRAS",
+            131072,
+            ModelSize.GRAND
+    ),
+
+    MISTRAL_MEDIUM(
+            "KRUX Max",
+            "KRUX Max",
+            "mistral-medium-latest",
+            "MISTRAL",
+            131072,
+            ModelSize.GRAND
+    ),
+
+    GROQ_QWEN_27B(
+            "KRUX Nova",
+            "KRUX Nova",
+            "qwen/qwen3.8-27b",
+            "GROQ",
             131072,
             ModelSize.GRAND
     ),
