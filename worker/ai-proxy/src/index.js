@@ -1,7 +1,7 @@
 // Proxy IA de Krux : l'app envoie le jeton Firebase de l'utilisateur, le Worker le vérifie
 // puis appelle le fournisseur avec la clé stockée dans les secrets Cloudflare.
 
-const MAX_BODY_BYTES = 256 * 1024;
+const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_TOKENS_CAP = 16384;
 const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._:\/-]{0,99}$/;
 
@@ -140,7 +140,7 @@ export default {
     try {
       body = await readLimited(request);
     } catch (e) {
-      return json(413, { error: "requête trop volumineuse (256 Ko max)" });
+      return json(413, { error: "requête trop volumineuse (1 Mo max)" });
     }
 
     try {

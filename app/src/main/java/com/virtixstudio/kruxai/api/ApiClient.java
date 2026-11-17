@@ -117,13 +117,38 @@ public class ApiClient {
      * Si tous les moteurs sont limités, KRUX attend la fin de la limite (au plus 75 s)
      * puis reprend, au lieu d'interrompre la création.
      */
+    /** Image (JPEG en base64) à joindre à la prochaine requête de discussion ; consommée par runChain. */
+    private static volatile String nextImage = null;
+    private static final ThreadLocal<String> IMAGE = new ThreadLocal<>();
+
+    public static void attachNextImage(String jpegBase64) {
+        nextImage = (jpegBase64 == null || jpegBase64.isEmpty()) ? null : jpegBase64;
+    }
+
+    private static boolean readsImages(KruxModel m) {
+        String p = m.getProvider();
+        return "GEMINI".equals(p) || "MISTRAL".equals(p);
+    }
+
+    /** Avec une image : seulement les moteurs qui la lisent (Gemini, Mistral), ceux du choix d'abord. */
+    private static KruxModel[] visionOnly(KruxModel[] models) {
+        java.util.LinkedHashSet<KruxModel> out = new java.util.LinkedHashSet<>();
+        for (KruxModel m : models) if (readsImages(m)) out.add(m);
+        for (KruxModel m : KruxModel.values()) if (readsImages(m)) out.add(m);
+        return out.toArray(new KruxModel[0]);
+    }
+
     private static void runChain(
-            final KruxModel[] models,
+            final KruxModel[] modelsIn,
             final String systemPrompt,
             final String userMessage,
             final ApiCallback callback
     ) {
+        final String image = nextImage;
+        nextImage = null;
+        final KruxModel[] models = image == null ? modelsIn : visionOnly(modelsIn);
         new Thread(() -> {
+            IMAGE.set(image);
             activeRequestThread = Thread.currentThread();
             activeCallback = callback;
             cancellationNotified = false;
@@ -603,11 +628,20 @@ public class ApiClient {
                         .put("content", systemPrompt)
         );
 
-        messages.put(
-                new JSONObject()
-                        .put("role", "user")
-                        .put("content", userMessage)
-        );
+        String img = IMAGE.get();
+        if (img == null) {
+            messages.put(
+                    new JSONObject()
+                            .put("role", "user")
+                            .put("content", userMessage)
+            );
+        } else {
+            JSONArray userParts = new JSONArray();
+            userParts.put(new JSONObject().put("type", "text").put("text", userMessage));
+            userParts.put(new JSONObject().put("type", "image_url")
+                    .put("image_url", new JSONObject().put("url", "data:image/jpeg;base64," + img)));
+            messages.put(new JSONObject().put("role", "user").put("content", userParts));
+        }
 
         json.put("messages", messages);
         json.put("stream", true);
@@ -737,6 +771,12 @@ public class ApiClient {
                                         + userMessage
                         )
         );
+
+        String geminiImage = IMAGE.get();
+        if (geminiImage != null) {
+            parts.put(new JSONObject().put("inlineData",
+                    new JSONObject().put("mimeType", "image/jpeg").put("data", geminiImage)));
+        }
 
         content.put("parts", parts);
 

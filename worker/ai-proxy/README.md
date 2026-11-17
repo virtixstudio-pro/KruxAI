@@ -29,7 +29,7 @@ Mets-la dans `app/src/main/assets/krux_config.json`, section `ai_proxy` → `url
 | `/ai/gemini/stream?model=ID` | Gemini (flux SSE) |
 
 En-tête obligatoire : `Authorization: Bearer <jeton Firebase>`.
-Limites : corps de 256 Ko max, `max_tokens` plafonné à 16384.
+Limites : corps de 1 Mo max (photos comprises), `max_tokens` plafonné à 16384.
 
 ## Après le déploiement
 

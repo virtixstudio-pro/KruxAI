@@ -86,6 +86,32 @@
         android:background="?attr/selectableItemBackground" />
 
     <TextView android:tag="krux:text"
+        android:id="@+id/optPhoto"
+        android:drawableStart="@drawable/ic_opt_photo"
+        android:drawablePadding="14dp"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:text="Photo"
+        android:textColor="#F8FAFC"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView android:tag="krux:text"
+        android:id="@+id/optCamera"
+        android:drawableStart="@drawable/ic_opt_camera"
+        android:drawablePadding="14dp"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:text="Appareil photo"
+        android:textColor="#F8FAFC"
+        android:textSize="15sp"
+        android:background="?attr/selectableItemBackground" />
+
+    <TextView android:tag="krux:text"
         android:id="@+id/optFiles"
         android:drawableStart="@drawable/ic_opt_files"
         android:drawablePadding="14dp"
