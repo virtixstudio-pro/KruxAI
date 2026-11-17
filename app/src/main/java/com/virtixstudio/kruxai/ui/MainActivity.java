@@ -2276,13 +2276,13 @@ private final ActivityResultLauncher<String[]> filePicker =
 
                                 @Override
                                 public void onFallback() {
-                                    progress.setStep("Ce moteur est saturé, je passe sur un autre…");
+                                    progress.setStep("Je prends une courte pause…");
                                     refresh.run();
                                 }
 
                                 @Override
                                 public void onWaiting(final int seconds) {
-                                    progress.setStep("Les moteurs sont saturés, je reprends dans " + seconds + " s…");
+                                    progress.setStep("Je prends une courte pause, je reprends dans " + seconds + " s…");
                                     refresh.run();
                                 }
                             });
