@@ -1638,10 +1638,28 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
         // La nouvelle réponse existe maintenant : l'état s'affiche enfin dessus.
         setKruxState(KruxState.GENERATING);
+        aiMessage.setReasoning("");
+        if (fileContent != null && !fileContent.trim().isEmpty()) kruxStep(aiMessage, "Lecture du fichier joint");
+        if (messageList.size() > 2) kruxStep(aiMessage, "Relecture de la conversation");
+        if (!memoryBlock.isEmpty()) kruxStep(aiMessage, "Consultation de ta mémoire");
+        if (webContext != null && !webContext.isEmpty()) kruxStep(aiMessage, "Lecture des résultats de la recherche web");
 
         final ApiClient.ApiCallback kruxCallback = new ApiClient.ApiCallback() {
             @Override
+            public void onWebSearchStarted(String query) {
+                kruxStep(aiMessage, "Recherche sur le web : « " + query + " »");
+            }
+
+            @Override
+            public void onWebSearchFinished(List<SearchResult> results) {
+                int n = results == null ? 0 : results.size();
+                kruxStep(aiMessage, n == 0 ? "Aucune source trouvée" : n + (n == 1 ? " source trouvée" : " sources trouvées"));
+                kruxStep(aiMessage, "Rédaction de la réponse");
+            }
+
+            @Override
             public void onSuccess(String rawResponse, String modelBrand) {
+                kruxFinishSteps(aiMessage);
                 runOnUiThread(() -> {
                     setGeneratingState(false);
                     setKruxState(KruxState.IDLE);
@@ -1791,6 +1809,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             @Override
             public void onError(String errorMessage) {
+                kruxFinishSteps(aiMessage);
                 if (com.virtixstudio.kruxai.utils.NetPolicy.isNetworkMessage(errorMessage)) {
                     // Coupure réseau : pas de bouton « Réessayer », KRUX gère tout seul.
                     runOnUiThread(() -> {
@@ -1827,6 +1846,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             @Override
             public void onCancelled() {
+                kruxFinishSteps(aiMessage);
                 runOnUiThread(() -> {
                     setGeneratingState(false);
                     setKruxState(KruxState.IDLE);
@@ -1843,12 +1863,16 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         // Analyse préalable de la demande (seulement si elle le mérite), puis envoi avec les consignes.
         ApiClient.beginPending(kruxCallback);
+        if (com.virtixstudio.kruxai.core.Reflection.worthAnalyzing(userPrompt, fileContent != null && !fileContent.trim().isEmpty(), isThinkingMode))
+            kruxStep(aiMessage, "Analyse de ta demande");
         com.virtixstudio.kruxai.core.Reflection.analyze(
                 userPrompt,
                 fileContent != null && !fileContent.trim().isEmpty(),
                 isThinkingMode,
                 guidance -> {
                     if (ApiClient.wasCancelled()) return;
+                    if (!guidance.isEmpty()) kruxStep(aiMessage, "Plan de la réponse");
+                    kruxStep(aiMessage, "Rédaction de la réponse");
                     final String fullSystem = systemPrompt + guidance;
                     final String fullUser = promptWithContext.toString();
                     // Demande de fond (consignes non vides) : la réponse est relue avant d'être livrée.
@@ -1857,6 +1881,29 @@ private final ActivityResultLauncher<String[]> filePicker =
                             : com.virtixstudio.kruxai.core.AnswerCheck.wrap(kruxCallback, selectedKruxModel, fullSystem, fullUser);
                     ApiClient.sendRequest(selectedKruxModel, fullSystem, fullUser, target);
                 });
+    }
+
+    /** Ajoute une étape visible dans le bloc « Processus de réflexion » : la précédente passe en ✓. */
+    private void kruxStep(final ChatMessage m, final String step) {
+        if (m == null || step == null) return;
+        runOnUiThread(() -> {
+            String prev = m.getReasoning() == null ? "" : m.getReasoning().replace("• ", "✓ ");
+            m.setReasoning((prev.isEmpty() ? "" : prev + "\n") + "• " + step);
+            int pos = messageList.indexOf(m);
+            if (pos >= 0 && chatAdapter != null) chatAdapter.notifyItemChanged(pos);
+        });
+    }
+
+    /** Fin du travail : toutes les étapes en ✓ (le bloc se replie tout seul). */
+    private void kruxFinishSteps(final ChatMessage m) {
+        if (m == null) return;
+        runOnUiThread(() -> {
+            String r = m.getReasoning();
+            if (r == null || r.isEmpty()) return;
+            m.setReasoning(r.replace("• ", "✓ "));
+            int pos = messageList.indexOf(m);
+            if (pos >= 0 && chatAdapter != null) chatAdapter.notifyItemChanged(pos);
+        });
     }
 
     private String quotaWeek() {

@@ -1193,10 +1193,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         if (reasoning != null && !reasoning.trim().isEmpty()) {
 
+            // Pendant que Krux travaille, les étapes sont visibles ; la réponse terminée, le bloc se replie.
+            boolean live = message.isStreaming();
             holder.layoutReasoning.setVisibility(View.VISIBLE);
             holder.tvReasoningContent.setText(reasoning);
-            holder.tvReasoningContent.setVisibility(View.GONE);
-            holder.ivArrowReasoning.setRotation(0);
+            holder.tvReasoningContent.setVisibility(live ? View.VISIBLE : View.GONE);
+            holder.ivArrowReasoning.setRotation(live ? 90 : 0);
+            TextView stepsTitle = holder.btnToggleReasoning.findViewById(R.id.tvReasoningTitle);
+            if (stepsTitle != null) stepsTitle.setText(live ? "Réflexion en cours…" : "Processus de réflexion");
 
             holder.btnToggleReasoning.setOnClickListener(v -> {
 

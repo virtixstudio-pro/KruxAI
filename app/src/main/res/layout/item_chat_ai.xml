@@ -68,6 +68,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:id="@+id/tvReasoningTitle"
                 android:text="Processus de réflexion"
                 android:textColor="#A855F7"
                 android:textSize="12sp"
