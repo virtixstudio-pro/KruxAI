@@ -1906,7 +1906,11 @@ private final ActivityResultLauncher<String[]> filePicker =
                     // Demande de fond (consignes non vides) : la réponse est relue avant d'être livrée.
                     final ApiClient.ApiCallback target = guidance.isEmpty()
                             ? kruxCallback
-                            : com.virtixstudio.kruxai.core.AnswerCheck.wrap(kruxCallback, selectedKruxModel, fullSystem, fullUser);
+                            : com.virtixstudio.kruxai.core.AnswerCheck.wrap(kruxCallback, selectedKruxModel, fullSystem, fullUser,
+                                    new com.virtixstudio.kruxai.core.AnswerCheck.Hook() {
+                                        @Override public void onChecking() { kruxStep(aiMessage, "Vérification de la réponse"); }
+                                        @Override public void onRevising() { kruxStep(aiMessage, "Correction de la réponse"); }
+                                    });
                     if (withImage) ApiClient.attachNextImage(imageB64);
                     ApiClient.sendRequest(selectedKruxModel, fullSystem, fullUser, target);
                 };

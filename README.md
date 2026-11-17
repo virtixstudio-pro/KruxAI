@@ -23,13 +23,12 @@ Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 17 novembre
 - Création d'apps : quota de 5 par semaine, plafonds relevés, permissions utiles autorisées, aperçu interactif, secours automatique entre modèles.
 - **Fichiers livrés** : bloc compact « N fichiers » avec **Tout enregistrer (ZIP)**, Partager, liste de 5 lignes (`DeliveredFileCards`).
 - **Apps générées uniques** : identifiant d'installation différent par app (`com.krux.<nom><6 hex>`, `BuildTemplates.uniqueAppId`) et direction visuelle tirée au hasard (`DesignDirection` : palette, formes, typographie, structure, navigation).
+- **Apps modifiables et réflexion** : bouton **Modifier** dans « Mes apps », palette imposée vérifiée, étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion, seulement quand la relecture a lieu (`AnswerCheck.Hook`).
 
 ## Patchs prêts, à appliquer dans cet ordre
 
-1. `modifier-apps.patch` : bouton **Modifier** dans « Mes apps » (le code reste à côté de l'APK), modification appliquée par l'IA puis compilée comme une création. La version modifiée s'installe **à côté** de l'ancienne. Compte comme une création du quota.
-2. `palette-imposee.patch` : la couleur d'accent imposée par `DesignDirection` doit apparaître dans `res/`, sinon l'IA corrige avant l'envoi.
 
-Après leur push, l'utilisateur dit « mise à jour ».
+Aucun patch en attente.
 
 ## Reste à faire, dans l'ordre
 

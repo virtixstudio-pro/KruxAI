@@ -94,6 +94,25 @@ public final class AnswerCheck {
     }
 
     /**
+     * Point d'accroche pour l'interface : appelé seulement quand une relecture a vraiment lieu
+     * (jamais pour une réponse trop courte ou contenant des fichiers/outils). Appels depuis un thread d'arrière-plan.
+     */
+    public interface Hook {
+        /** La relecture démarre. */
+        void onChecking();
+        /** Le relecteur a trouvé un problème grave : Krux réécrit sa réponse. */
+        void onRevising();
+    }
+
+    public static ApiClient.ApiCallback wrap(
+            final ApiClient.ApiCallback delegate,
+            final KruxModel model,
+            final String system,
+            final String user) {
+        return wrap(delegate, model, system, user, null);
+    }
+
+    /**
      * Enveloppe le callback de la réponse : la réponse est relue avant d'être livrée.
      * model, system et user sont ceux de la demande d'origine (pour la révision éventuelle).
      */
@@ -101,7 +120,8 @@ public final class AnswerCheck {
             final ApiClient.ApiCallback delegate,
             final KruxModel model,
             final String system,
-            final String user) {
+            final String user,
+            final Hook hook) {
         return new ApiClient.ApiCallback() {
             private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
@@ -112,6 +132,7 @@ public final class AnswerCheck {
                     return;
                 }
                 final AtomicBoolean done = new AtomicBoolean(false);
+                if (hook != null) { try { hook.onChecking(); } catch (Exception ignored) {} }
                 Thread timer = new Thread(() -> {
                     try { Thread.sleep(CHECK_TIMEOUT_MS); } catch (InterruptedException e) { return; }
                     if (done.compareAndSet(false, true) && !cancelled.get()) delegate.onSuccess(response, modelBrand);
@@ -138,6 +159,7 @@ public final class AnswerCheck {
             }
 
             private void revise(final String original, final String brand, List<String> problems) {
+                if (hook != null) { try { hook.onRevising(); } catch (Exception ignored) {} }
                 String previous = original.length() > 12000 ? original.substring(0, 12000) : original;
                 String reviseUser = user + "\n\nTa réponse précédente (à corriger) :\n" + previous;
                 ApiClient.sendRequest(model, system + revisionTail(problems), reviseUser, new ApiClient.ApiCallback() {
