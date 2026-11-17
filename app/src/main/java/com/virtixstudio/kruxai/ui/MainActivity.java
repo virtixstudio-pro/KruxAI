@@ -2109,7 +2109,9 @@ private final ActivityResultLauncher<String[]> filePicker =
                     final String[] out = new String[2];
                     final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
                     ApiClient.sendRequest(
-                            selectedKruxModel,
+                            // la création d'app exige un grand modèle, même si le chat est réglé sur un petit
+                            (selectedKruxModel != null && selectedKruxModel.getSize() == KruxModel.ModelSize.GRAND)
+                                    ? selectedKruxModel : KruxModel.KRUX_35_FLASH,
                             system,
                             prompt,
                             new ApiClient.ApiCallback() {
