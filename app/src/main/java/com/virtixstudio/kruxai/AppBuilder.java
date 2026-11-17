@@ -86,13 +86,14 @@ public class AppBuilder {
             + s.maxFileChars + " caractères maximum par fichier et " + s.maxTotalChars + " au total. "
             + "PERMISSIONS AUTORISÉES : INTERNET, ACCESS_NETWORK_STATE, VIBRATE, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, "
             + "ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION, CAMERA, READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, READ_MEDIA_AUDIO, "
-            + "READ_EXTERNAL_STORAGE. Ne déclare que celles dont l'app a besoin et demande les permissions sensibles à l'exécution "
+            + "READ_EXTERNAL_STORAGE, RECORD_AUDIO, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK, WAKE_LOCK. Ne déclare que celles dont l'app a besoin et demande les permissions sensibles à l'exécution "
             + "(registerForActivityResult), avec une explication à l'écran et un comportement correct en cas de refus. "
             + "Alarmes et notifications : AlarmManager et NotificationManager, avec un BroadcastReceiver déclaré android:exported=\"false\". "
-            + "INTERDIT : toute autre permission ; services et providers ; WorkManager et JobScheduler ; démarrage au démarrage de l'appareil ; "
+            + "Services (musique, minuteur, suivi) et providers autorisés s'ils sont déclarés android:exported=\"false\" ; avec un service au premier plan, déclare FOREGROUND_SERVICE et un type. "
+            + "INTERDIT : toute autre permission ; WorkManager et JobScheduler (bibliothèque absente) ; démarrage au démarrage de l'appareil ; "
             + "contacts, SMS et journal d'appels ; "
             + "exécution de commandes ; chargement de code dynamique ; imitation d'une banque, d'une marque ou d'un écran de connexion ; "
-            + "surveillance, collecte de données personnelles, contenu adulte, jeux d'argent, publicités. "
+            + "surveillance cachée de personnes, collecte de données personnelles à leur insu, contenu adulte, jeux d'argent avec de l'argent réel. Les publicités sont permises si elles n'exigent aucune bibliothèque. "
             + "Si la demande est interdite ou impossible dans ces limites, réponds UNIQUEMENT {\"refuse\":\"raison courte en français\"}.";
     }
 
@@ -119,7 +120,9 @@ public class AppBuilder {
         "android.permission.POST_NOTIFICATIONS", "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA", "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO", "android.permission.READ_EXTERNAL_STORAGE"));
+        "android.permission.READ_MEDIA_AUDIO", "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO", "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK", "android.permission.WAKE_LOCK"));
 
     static final String[] BANNED_CODE = {
         "Runtime.getRuntime", "ProcessBuilder", "DexClassLoader", "PathClassLoader", "InMemoryDexClassLoader",
@@ -161,8 +164,14 @@ public class AppBuilder {
             while (rc.find())
                 if (!rc.group(1).matches("(?s).*android:exported\\s*=\\s*\"false\".*"))
                     throw new Refusal("Application refusée : un récepteur doit être déclaré avec android:exported=\"false\"");
-            if (mm.contains("<service") || mm.contains("<provider") || mm.contains("BOOT_COMPLETED"))
-                throw new Refusal("Application refusée : services et tâches de fond non autorisés");
+            for (String tag : new String[]{"service", "provider"}) {
+                Matcher sv = Pattern.compile("<" + tag + "(?=[\\s/>])([^>]*)>").matcher(mm);
+                while (sv.find())
+                    if (!sv.group(1).matches("(?s).*android:exported\\s*=\\s*\"false\".*"))
+                        throw new Refusal("Application refusée : un " + tag + " doit être déclaré avec android:exported=\"false\"");
+            }
+            if (mm.contains("BOOT_COMPLETED"))
+                throw new Refusal("Application refusée : démarrage automatique non autorisé");
             if (mm.contains("<uses-permission-sdk-23") || mm.contains("<queries"))
                 throw new Refusal("Application refusée : déclaration non autorisée dans le manifeste");
         }
