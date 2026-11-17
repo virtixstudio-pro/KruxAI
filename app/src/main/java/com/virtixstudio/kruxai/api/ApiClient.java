@@ -84,18 +84,7 @@ public class ApiClient {
             ApiCallback callback
     ) {
         /* Fallback global utilisé lorsqu'aucun modèle précis n'est imposé. */
-        KruxModel[] fallbackModels = {
-            KruxModel.GEMINI_FLASH_LITE,
-            KruxModel.GROQ_GPT_OSS_20B,
-            KruxModel.MISTRAL_MINISTRAL_3B,
-            KruxModel.MISTRAL_MINISTRAL_8B,
-            KruxModel.HF_QWEN_CODER_7B,
-            KruxModel.GEMINI_36_FLASH,
-            KruxModel.GROQ_GPT_OSS_120B,
-            KruxModel.CEREBRAS_GPT_OSS_120B,
-            KruxModel.MISTRAL_CODESTRAL,
-            KruxModel.HF_QWEN_CODER_32B
-            };
+        KruxModel[] fallbackModels = buildFallbackModels(KruxModel.KRUX_35_FLASH);
         runChain(fallbackModels, systemPrompt, userMessage, callback);
     }
 
@@ -265,53 +254,25 @@ public class ApiClient {
                 new java.util.ArrayList<>();
 
         if (selectedModel != null) {
-
             ordered.add(selectedModel);
-
-            /*
-             * Même fournisseur + taille opposée en priorité.
-             */
-            for (KruxModel candidate : KruxModel.values()) {
-
-                if (candidate == selectedModel) {
-                    continue;
-                }
-
-                if (candidate.getProvider().equals(
-                        selectedModel.getProvider()
-                )
-                        && candidate.getSize()
-                        != selectedModel.getSize()) {
-
-                    ordered.add(candidate);
-                }
-            }
-
-            /*
-             * Puis les autres modèles du même fournisseur.
-             */
-            for (KruxModel candidate : KruxModel.values()) {
-
-                if (ordered.contains(candidate)) {
-                    continue;
-                }
-
-                if (candidate.getProvider().equals(
-                        selectedModel.getProvider()
-                )) {
-
-                    ordered.add(candidate);
-                }
-            }
         }
 
         /*
-         * Enfin, autres fournisseurs.
+         * Secours : toujours les GRANDS modèles d'abord (le même fournisseur en premier),
+         * puis seulement les petits. Un petit modèle ne répond que si tous les grands ont échoué.
          */
-        for (KruxModel candidate : KruxModel.values()) {
-
-            if (!ordered.contains(candidate)) {
-                ordered.add(candidate);
+        KruxModel.ModelSize[] sizes = {
+                KruxModel.ModelSize.GRAND,
+                KruxModel.ModelSize.PETIT
+        };
+        for (KruxModel.ModelSize size : sizes) {
+            for (int pass = 0; pass < 2; pass++) {
+                for (KruxModel candidate : KruxModel.values()) {
+                    if (ordered.contains(candidate) || candidate.getSize() != size) continue;
+                    boolean sameProvider = selectedModel != null
+                            && candidate.getProvider().equals(selectedModel.getProvider());
+                    if ((pass == 0) == sameProvider) ordered.add(candidate);
+                }
             }
         }
 
