@@ -1,0 +1,14 @@
+{
+  "name": "krux-preview",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Aperçu React + TypeScript de KRUX : Babel dans la WebView, retouches locales sans IA.",
+  "scripts": { "build": "sh build.sh", "test": "node test/run.js" },
+  "dependencies": {
+    "@babel/standalone": "8.1.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "esbuild": "0.28.2"
+  },
+  "devDependencies": { "jsdom": "31.0.1" }
+}

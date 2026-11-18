@@ -2628,6 +2628,20 @@ private final ActivityResultLauncher<String[]> filePicker =
                     }
 
                     @Override
+                    public java.util.Map<String, String> confirmWebPreview(final java.util.Map<String, String> files) {
+                        progress.setTitle("Voici l'aperçu de ton app");
+                        progress.setStep("Teste-la, retouche textes et couleurs sans IA, puis valide pour continuer.");
+                        refresh.run();
+                        java.util.Map<String, String> out = WebPreviewDialog.show(MainActivity.this, files);
+                        if (out != null) {
+                            progress.setTitle("J'envoie le code sur les serveurs Virtix Studio…");
+                            progress.setStep("Création du projet…");
+                            refresh.run();
+                        }
+                        return out;
+                    }
+
+                    @Override
                     public void onFile(final String path, final int bytes, final boolean fixed) {
                         progress.addFile(path, bytes, fixed);
                         refresh.run();

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aperçu KRUX</title>
+<style>
+  :root { color-scheme: light dark; --bar: #f2f2f6; --line: #8884; --acc: #4f46e5; --on: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bar: #1e1e24; } }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font: 14px system-ui, sans-serif; background: Canvas; color: CanvasText; }
+  body { display: flex; flex-direction: column; }
+  #bar { display: flex; gap: 8px; align-items: center; padding: 8px; background: var(--bar); border-bottom: 1px solid var(--line); }
+  #bar button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; font-size: 14px; }
+  #bar button[aria-pressed="true"] { background: var(--acc); color: var(--on); border-color: var(--acc); }
+  #hint { flex: 1; text-align: right; opacity: .65; font-size: 12px; }
+  #banner { padding: 8px 12px; background: #fde8e8; color: #8a1c1c; font-size: 13px; }
+  #msg { padding: 8px 12px; background: var(--bar); font-size: 13px; border-bottom: 1px solid var(--line); }
+  #frame { flex: 1; width: 100%; border: 0; background: #fff; }
+  #dlg, #pal { position: fixed; inset: 0; background: #0006; display: flex; align-items: flex-end; justify-content: center; }
+  #dlg[hidden], #pal[hidden], #banner[hidden], #msg[hidden] { display: none; }
+  .card { width: 100%; max-width: 560px; max-height: 80%; overflow: auto; background: Canvas; color: CanvasText; border-radius: 18px 18px 0 0; padding: 16px; }
+  .card h2 { margin: 0 0 8px; font-size: 16px; }
+  textarea, .card input[type=text] { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 10px; font: 15px system-ui; background: transparent; color: inherit; }
+  .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .row button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: inherit; font-size: 15px; }
+  .row button.main { background: var(--acc); color: var(--on); border-color: var(--acc); }
+  #dlgErr { color: #b3261e; margin-top: 8px; font-size: 13px; }
+  .sw { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); flex: none; }
+  .lbl { flex: 1; font-size: 13px; } .lbl small { opacity: .6; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button id="modeBtn" aria-pressed="false">Retoucher</button>
+  <button id="colBtn">Couleurs</button>
+  <span id="hint"></span>
+</div>
+<div id="banner" hidden></div>
+<div id="msg" hidden></div>
+<iframe id="frame" sandbox="allow-scripts" title="Aperçu"></iframe>
+
+<div id="dlg" hidden><div class="card">
+  <h2>Modifier le texte</h2>
+  <textarea id="dlgText" rows="3"></textarea>
+  <div id="dlgErr"></div>
+  <div class="row"><button id="dlgCancel">Annuler</button><button id="dlgOk" class="main">Modifier</button></div>
+</div></div>
+
+<div id="pal" hidden><div class="card">
+  <h2>Couleurs de l’app</h2>
+  <div id="palList"></div>
+  <div class="row"><button id="palClose" class="main">Fermer</button></div>
+</div></div>
+
+<script src="babel.min.js"></script>
+<script src="rt-src.js"></script>
+<script src="core.js"></script>
+<script src="chrome.js"></script>
+</body>
+</html>

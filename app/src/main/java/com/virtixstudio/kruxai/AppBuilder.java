@@ -44,6 +44,11 @@ public class AppBuilder {
         default boolean confirmPreview(String html) { return true; }
         /** Note de Krux pour l'utilisateur (icône à fournir, base de données…), à montrer à la fin de la création. */
         default void onNote(String note) {}
+        /**
+         * Mode web : montre l'app React et laisse retoucher textes et couleurs sans IA.
+         * Retourne les fichiers après retouches (les mêmes si rien n'a changé), ou null pour annuler.
+         */
+        default Map<String, String> confirmWebPreview(Map<String, String> files) { return files; }
     }
 
     /** Refus volontaire de l'IA ou de la politique : inutile de réessayer. */
@@ -459,6 +464,7 @@ public class AppBuilder {
                     applyFix(current, fx.files, s, web);
                     l.onStatus("Vérification du code…");
                     localFixes(gen, s, description, current, l, null, web);
+                    if (web) current = webPreview(l, current, s);
                     metaDesc = before.isEmpty() ? description : before + "\nMODIFICATION : " + description;
                 } else if (saved != null) {
                     l.onStatus("Reprise : le code déjà écrit est retrouvé…");
@@ -504,7 +510,12 @@ public class AppBuilder {
                     localFixes(gen, s, description, current, l, direction.accentHex(), web);
                     name = p.name;
                     BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
-                    String previewHtml = PreviewHtml.prepare(p.preview);
+                    if (web) {
+                        try { current = webPreview(l, current, s); }
+                        catch (Refusal r) { BuildCheckpoint.clear(outDir); throw r; }
+                        BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
+                    }
+                    String previewHtml = web ? "" : PreviewHtml.prepare(p.preview);
                     if (!previewHtml.isEmpty() && !l.confirmPreview(previewHtml)) {
                         BuildCheckpoint.clear(outDir);
                         throw new Refusal("Création annulée après l'aperçu. Rien n'a été envoyé et ton quota n'est pas utilisé.");
@@ -517,6 +528,17 @@ public class AppBuilder {
                 l.onError(m == null || m.isEmpty() ? e.getClass().getSimpleName() : m);
             }
         }).start();
+    }
+
+    /** Aperçu React avec retouches locales (zéro appel IA). Refusal si l'utilisateur annule ; les retouches sont revérifiées. */
+    static Map<String, String> webPreview(Listener l, Map<String, String> current, BuildSpec s) throws Exception {
+        Map<String, String> edited = l.confirmWebPreview(new LinkedHashMap<>(current));
+        if (edited == null) throw new Refusal("Création annulée après l'aperçu. Rien n'a été envoyé et ton quota n'est pas utilisé.");
+        Map<String, String> norm = WebBuilder.normalize(edited);
+        List<String> problems = WebBuilder.validate(norm);
+        if (!problems.isEmpty()) throw new Refusal("Les retouches ne sont pas valides : " + problems.get(0));
+        checkWebPolicy(norm, s);
+        return norm;
     }
 
     // ------------------------------------------------------------------ modification d'une app existante

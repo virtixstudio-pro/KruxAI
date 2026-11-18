@@ -39,6 +39,14 @@ jobs:
         mkdir -p app/src/main/assets
         printf '{"token":"%s","weekly_quota":5}' "$KRUX_BUILDER_TOKEN" > app/src/main/assets/krux_builder.json
 
+    - name: Setup Node (aperçu React)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Build preview assets
+      run: sh preview/build.sh
+
     - name: Build Debug APK
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

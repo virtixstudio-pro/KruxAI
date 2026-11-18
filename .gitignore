@@ -17,3 +17,4 @@ app/src/main/assets/krux_media.json
 .krux_backup_*/
 .krux_prompt_backup_*/
 backups/
+app/src/main/assets/preview/
