@@ -2114,6 +2114,15 @@ private final ActivityResultLauncher<String[]> filePicker =
     /** « Modifier » dans Mes apps : dossier de l'app + texte de la modification. */
     private void handleModifyIntent(android.content.Intent intent) {
         if (intent == null) return;
+        String pre = intent.getStringExtra("prefill_text");
+        if (pre != null) {
+            intent.removeExtra("prefill_text");
+            if (!pre.trim().isEmpty() && etInput != null) {
+                etInput.setText(pre);
+                etInput.setSelection(etInput.getText().length());
+                etInput.requestFocus();
+            }
+        }
         String dir = intent.getStringExtra("modify_dir"), text = intent.getStringExtra("modify_text");
         intent.removeExtra("modify_dir");
         intent.removeExtra("modify_text");
