@@ -787,7 +787,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 tv.setText(cell.trim());
                 tv.setTextColor(
                         rowIndex == 0
-                                ? Color.WHITE
+                                ? (androidx.core.graphics.ColorUtils.calculateLuminance(
+                                        darkenColor(userBubbleColor, 0.75f)) > 0.5f
+                                        ? Color.BLACK : Color.WHITE)
                                 : secondaryTextColor
                 );
                 tv.setTextSize(rowIndex == 0 ? 13.5f : 13f);

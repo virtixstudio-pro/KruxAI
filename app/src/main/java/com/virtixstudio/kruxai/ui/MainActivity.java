@@ -441,11 +441,15 @@ private final ActivityResultLauncher<String[]> filePicker =
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
         container.setPadding(16, 16, 16, 16);
-        container.setBackgroundResource(R.drawable.bg_model_popup);
+        android.graphics.drawable.GradientDrawable popupBg = new android.graphics.drawable.GradientDrawable();
+        popupBg.setColor(KruxTheme.get(this, "bg"));
+        popupBg.setCornerRadius(16 * getResources().getDisplayMetrics().density);
+        popupBg.setStroke((int) getResources().getDisplayMetrics().density, KruxTheme.get(this, "bubble_user"));
+        container.setBackground(popupBg);
 
         TextView title = new TextView(this);
         title.setText("Modèle Krux");
-        title.setTextColor(android.graphics.Color.WHITE);
+        title.setTextColor(KruxTheme.get(this, "text"));
         title.setTextSize(17);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         title.setPadding(8, 4, 8, 12);
@@ -463,7 +467,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             TextView name = new TextView(this);
             name.setText(model.getDisplayName());
-            name.setTextColor(android.graphics.Color.WHITE);
+            name.setTextColor(KruxTheme.get(this, "text"));
             name.setTextSize(15);
 
             TextView info = new TextView(this);
@@ -477,7 +481,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             }
 
             info.setText(tokenInfo);
-            info.setTextColor(android.graphics.Color.rgb(148, 163, 184));
+            info.setTextColor(KruxTheme.get(this, "text2"));
             info.setTextSize(12);
 
             row.addView(name);

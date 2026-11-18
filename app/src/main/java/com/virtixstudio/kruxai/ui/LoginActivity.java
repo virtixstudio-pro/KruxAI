@@ -430,7 +430,7 @@ public class LoginActivity extends AppCompatActivity {
         );
 
         GradientDrawable background = new GradientDrawable();
-        background.setColor(Color.rgb(22, 22, 27));
+        background.setColor(KruxTheme.get(this, "bg"));
         background.setCornerRadius(dpToPx(28));
         container.setBackground(background);
 
@@ -449,7 +449,7 @@ public class LoginActivity extends AppCompatActivity {
 
         TextView title = new TextView(this);
         title.setText("Compte créé avec succès");
-        title.setTextColor(Color.WHITE);
+        title.setTextColor(KruxTheme.get(this, "text"));
         title.setTextSize(21);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(null, Typeface.BOLD);
@@ -468,7 +468,7 @@ public class LoginActivity extends AppCompatActivity {
                 "Bienvenue " + firstName + ".\n\n" +
                 "Ton compte KRUX est prêt."
         );
-        message.setTextColor(Color.rgb(190, 190, 198));
+        message.setTextColor(KruxTheme.get(this, "text2"));
         message.setTextSize(15);
         message.setGravity(Gravity.CENTER);
         message.setLineSpacing(0, 1.15f);
