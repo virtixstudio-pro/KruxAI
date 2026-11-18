@@ -124,6 +124,10 @@ private String selectedFileContent = "";
     private boolean isListening = false;
     private String voiceBaseText = "";
     private boolean isTtsSpeaking = false;
+    private boolean ttsPaused = false;
+    private String ttsText = "";
+    private int ttsChunk = 0;
+    private int ttsTotal = 0;
     private float voiceRmsLevel = 0.0f;
 
     private boolean isLearningMode = false;
@@ -553,10 +557,18 @@ private final ActivityResultLauncher<String[]> filePicker =
                 com.virtixstudio.kruxai.utils.VoiceStyler.prepare(textToSpeech, Locale.FRENCH);
                 textToSpeech.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
                     @Override public void onStart(String id) {
+                        int idx = com.virtixstudio.kruxai.utils.VoiceStyler.chunkOf(id, ttsTotal);
+                        if (idx >= 0) ttsChunk = idx;
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.SPEAKING);
                     }
                     @Override public void onDone(String id) {
                         if (com.virtixstudio.kruxai.utils.VoiceStyler.isPart(id)) return;
+                        if ("KruxAI_TTS".equals(id) && !ttsPaused) {
+                            runOnUiThread(() -> {
+                                isTtsSpeaking = false;
+                                if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
+                            });
+                        }
                         com.virtixstudio.kruxai.live.FloatingKruxService.setState(com.virtixstudio.kruxai.live.LiveMotion.State.IDLE);
                     }
                     @Override public void onError(String id) {
@@ -578,11 +590,16 @@ private final ActivityResultLauncher<String[]> filePicker =
     @Override
     public void onSpeakRequested(String text) {
         if (textToSpeech != null) {
-            if (textToSpeech.isSpeaking()) {
+            if (textToSpeech.isSpeaking() || ttsPaused) {
                 textToSpeech.stop();
                 isTtsSpeaking = false;
+                ttsPaused = false;
                 if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
             } else {
+                ttsText = text;
+                ttsTotal = com.virtixstudio.kruxai.utils.VoiceStyler.count(text);
+                ttsChunk = 0;
+                ttsPaused = false;
                 com.virtixstudio.kruxai.utils.VoiceStyler.speak(textToSpeech, text, "KruxAI_TTS");
                 isTtsSpeaking = true;
                 if (btnTtsControl != null) {
@@ -595,12 +612,18 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private void toggleTtsPlayback() {
         if (textToSpeech == null) return;
-        if (textToSpeech.isSpeaking()) {
+        if (ttsPaused) {
+            // Reprise : on repart au début de la phrase interrompue.
+            ttsPaused = false;
+            isTtsSpeaking = true;
+            com.virtixstudio.kruxai.utils.VoiceStyler.speakFrom(textToSpeech, ttsText, "KruxAI_TTS", ttsChunk);
+            if (btnTtsControl != null) btnTtsControl.setImageResource(R.drawable.ic_pause);
+        } else if (isTtsSpeaking) {
+            // Pause : Android n'a pas de vraie pause, on arrête et on garde la phrase en cours.
+            ttsPaused = true;
             textToSpeech.stop();
-            isTtsSpeaking = false;
             if (btnTtsControl != null) btnTtsControl.setImageResource(R.drawable.ic_play);
         } else {
-            isTtsSpeaking = false;
             if (btnTtsControl != null) btnTtsControl.setVisibility(View.GONE);
         }
     }

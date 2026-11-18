@@ -66,13 +66,34 @@ public final class VoiceStyler {
         return id != null && id.contains("#");
     }
 
+    /** Nombre de phrases (morceaux) que speak() va prononcer pour ce texte. */
+    public static int count(String raw) {
+        return split(clean(raw)).size();
+    }
+
+    /** Numéro de la phrase d'un identifiant d'énoncé, ou -1 pour une pause silencieuse. */
+    public static int chunkOf(String id, int total) {
+        if (id == null) return -1;
+        int h = id.indexOf('#');
+        if (h < 0) return total - 1;
+        String rest = id.substring(h + 1);
+        if (rest.startsWith("p")) return -1;
+        try { return Integer.parseInt(rest); } catch (NumberFormatException e) { return -1; }
+    }
+
     /** Parle le texte phrase par phrase, avec pauses et intonation. */
     public static void speak(TextToSpeech tts, String raw, String baseId) {
+        speakFrom(tts, raw, baseId, 0);
+    }
+
+    /** Comme speak(), mais reprend à la phrase numéro \"from\" (reprise après une pause). */
+    public static void speakFrom(TextToSpeech tts, String raw, String baseId, int from) {
         if (tts == null) return;
         List<String> chunks = split(clean(raw));
         if (chunks.isEmpty()) return;
+        int start = Math.max(0, Math.min(from, chunks.size() - 1));
 
-        for (int i = 0; i < chunks.size(); i++) {
+        for (int i = start; i < chunks.size(); i++) {
             String c = chunks.get(i);
             boolean last = i == chunks.size() - 1;
             String id = last ? baseId : baseId + "#" + i;
@@ -87,7 +108,7 @@ public final class VoiceStyler {
 
             tts.setPitch(pitch);
             tts.setSpeechRate(rate);
-            tts.speak(c, i == 0 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, params(), id);
+            tts.speak(c, i == start ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, params(), id);
             if (!last && Build.VERSION.SDK_INT >= 21) {
                 tts.playSilentUtterance(pause, TextToSpeech.QUEUE_ADD, baseId + "#p" + i);
             }
