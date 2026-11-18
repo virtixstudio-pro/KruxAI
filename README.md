@@ -111,3 +111,16 @@ Le Worker `worker/ai-proxy` est prêt mais **pas déployé** : variable `FIREBAS
 - Hugging Face non testé (inférence gratuite capricieuse).
 - Le mode web (React/TSX) n'a jamais été lancé sur téléphone ni sur un vrai build GitHub (voir « Mode web »). En mode web, coller aussi les lignes `error TS` quand la CI échoue.
 - Tests sans Android : `JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8" sh tools/builder-tests/run.sh`. `BuildProgressTests` échoue (14/21) depuis avant les patchs (à examiner) et `run.sh` s'arrête à la première série en échec : `BlockFilesTests`, en fin de fichier, peut ne pas se lancer ; le lancer seul si besoin.
+
+## Poussé le 18/11 (soir)
+- `cle-signature-stable.patch` : clé debug fixe (secret GitHub `KRUX_DEBUG_KEYSTORE_B64`, étape « Restore stable debug keystore » de `build.yml`). Une mise à jour remplace l'ancienne version. Concerne l'APK de KRUX, pas encore les apps générées. Garder une copie de `~/krux-debug.keystore` hors du dépôt.
+
+## Studio de création d'apps (priorité n°1, la raison d'être de KRUX) - noté le 18/11/2026
+Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT et Android Studio ».
+- [ ] **Écran de personnalisation** soigné avant la création : nom, palette, style, et **carte « Importe l'icône de l'application »** (l'image devient l'icône de l'app générée).
+- [ ] **Aperçu dans un faux téléphone** (style émulateur) : beau fond d'écran, seulement 2 apps (VX Browser et l'app demandée), comportement de vrai téléphone ; glisser du haut vers le bas ouvre les réglages rapides (mode avion, Wi-Fi, point d'accès mobile…).
+- [ ] **Agent Krux à côté du téléphone** (visage du mode Live, allure d'agent), à préciser.
+- [ ] **Édition manuelle sans IA** dans l'aperçu : ajouter des éléments, coller des blocs, agrandir, déplacer.
+- [ ] **« Modifier avec KRUX » = petite carte de conversation** dans le Studio (pas de retour aux messages), modification visible en direct.
+- [ ] **Tous les fichiers créés visibles dans « Mes fichiers »** (voir `fichiers-onglet.patch`).
+- [ ] **Krux Code** : l'onglet n'existe pas encore (voir 3b), à créer.
