@@ -73,6 +73,15 @@ public final class DesignDirection {
         return m.find() ? m.group(1).toUpperCase(java.util.Locale.ROOT) : null;
     }
 
+    /** Même direction visuelle pour le mode web : palette en variables CSS dans src/styles.css. */
+    public String toWebPrompt() {
+        return "DIRECTION VISUELLE IMPOSÉE (chaque application a la sienne : ne retombe pas sur un violet par défaut) : "
+            + "palette " + palette + " (à définir en variables CSS dans src/styles.css : --primary, --secondary, --surface, --on-primary, etc., "
+            + "avec une variante claire et sombre cohérente via prefers-color-scheme) ; formes : " + shapes + " ; typographie : " + typography + " ; "
+            + "structure : " + layout + " ; navigation : " + navigation + ". "
+            + "Si le sujet de l'app s'y oppose vraiment, garde la palette mais adapte l'ambiance ; ne mélange pas avec une autre palette. ";
+    }
+
     /** Texte ajouté au prompt système de création. */
     public String toPrompt() {
         return "DIRECTION VISUELLE IMPOSÉE (chaque application a la sienne : ne retombe pas sur le violet Material par défaut) : "

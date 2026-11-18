@@ -11,6 +11,7 @@
     "target_sdk": 36,
     "min_sdk": 24,
     "build_tools": "35.0.0",
+    "web": false,
     "libs": {
       "appcompat": "1.7.0",
       "material": "1.12.0",

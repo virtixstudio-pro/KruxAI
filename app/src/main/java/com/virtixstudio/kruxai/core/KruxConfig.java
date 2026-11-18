@@ -94,6 +94,7 @@ public final class KruxConfig {
             s.compileSdk = num(b, "compile_sdk", s.compileSdk);
             s.targetSdk = num(b, "target_sdk", s.targetSdk);
             s.minSdk = num(b, "min_sdk", s.minSdk);
+            s.web = b.optBoolean("web", s.web);
             JSONObject libs = b.optJSONObject("libs");
             if (libs != null) {
                 s.appcompat = ver(libs, "appcompat", s.appcompat);

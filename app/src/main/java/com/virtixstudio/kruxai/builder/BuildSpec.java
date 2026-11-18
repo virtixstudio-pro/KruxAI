@@ -18,6 +18,8 @@ public final class BuildSpec {
     public int targetSdk = 36;
     public int minSdk = 24;
     public String buildTools = "35.0.0";
+    /** Mode web (React + TypeScript dans une WebView) au lieu du Java natif. Réglé par krux_config.json (build.web). */
+    public boolean web = false;
 
     // --- Bibliothèques autorisées dans les applications générées ---
     public String appcompat = "1.7.0";
@@ -64,7 +66,7 @@ public final class BuildSpec {
     public BuildSpec copy() {
         BuildSpec s = new BuildSpec();
         s.agp = agp; s.gradle = gradle; s.jdk = jdk; s.compileSdk = compileSdk; s.targetSdk = targetSdk;
-        s.minSdk = minSdk; s.buildTools = buildTools;
+        s.minSdk = minSdk; s.buildTools = buildTools; s.web = web;
         s.appcompat = appcompat; s.material = material; s.recyclerview = recyclerview; s.constraintlayout = constraintlayout;
         s.maxFixes = maxFixes; s.maxLocalFixes = maxLocalFixes; s.maxFiles = maxFiles;
         s.maxFileChars = maxFileChars; s.maxTotalChars = maxTotalChars;

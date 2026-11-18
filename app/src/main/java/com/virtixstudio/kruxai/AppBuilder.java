@@ -5,6 +5,8 @@ import com.virtixstudio.kruxai.builder.PreviewHtml;
 import com.virtixstudio.kruxai.builder.BuildSpec;
 import com.virtixstudio.kruxai.builder.BuildTemplates;
 import com.virtixstudio.kruxai.builder.BuildValidator;
+import com.virtixstudio.kruxai.builder.WebBuilder;
+import com.virtixstudio.kruxai.builder.WebTemplates;
 import com.virtixstudio.kruxai.core.KruxConfig;
 
 import org.json.JSONArray;
@@ -177,6 +179,11 @@ public class AppBuilder {
         }
     }
 
+    static void checkWebPolicy(Map<String, String> files, BuildSpec s) throws Exception {
+        String problem = WebBuilder.policyProblem(files, s);
+        if (problem != null) throw new Refusal(problem);
+    }
+
     // ------------------------------------------------------------------ lecture de la réponse IA
 
     static class Parsed { String name = "app"; String preview = ""; Map<String, String> files = new LinkedHashMap<>(); }
@@ -196,7 +203,7 @@ public class AppBuilder {
         Truncated(Parsed partial) { super("réponse coupée après " + partial.files.size() + " fichier(s)"); this.partial = partial; }
     }
 
-    static Parsed parse(String raw, boolean full, BuildSpec s) throws Exception {
+    static Parsed parse(String raw, boolean full, BuildSpec s, boolean web) throws Exception {
         JSONObject o;
         try {
             o = new JSONObject(extractJson(raw));
@@ -215,7 +222,7 @@ public class AppBuilder {
                 String pv = com.virtixstudio.kruxai.builder.TruncatedJson.field(raw, "preview");
                 if (pv != null) part.preview = pv;
             }
-            for (Map.Entry<String, String> e : got.entrySet()) put(part, e.getKey(), e.getValue());
+            for (Map.Entry<String, String> e : got.entrySet()) put(part, e.getKey(), e.getValue(), web);
             throw new Truncated(part);
         }
         if (o.has("refuse"))
@@ -235,23 +242,25 @@ public class AppBuilder {
                 throw new Refusal("Application trop grosse : " + arr.length() + " fichiers (maximum " + s.maxFiles + ")");
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject f = arr.getJSONObject(i);
-                put(p, f.getString("path"), f.get("content"));
+                put(p, f.getString("path"), f.get("content"), web);
             }
         } else if (fo instanceof JSONObject) { // format {"chemin": "contenu"} accepté aussi
             JSONObject m = (JSONObject) fo;
             JSONArray names = m.names();
-            for (int i = 0; names != null && i < names.length(); i++) put(p, names.getString(i), m.get(names.getString(i)));
+            for (int i = 0; names != null && i < names.length(); i++) put(p, names.getString(i), m.get(names.getString(i)), web);
         } else {
             throw new Exception("Champ files invalide");
         }
         if (p.files.isEmpty()) throw new Exception("Aucun fichier proposé");
-        if (full && !p.files.containsKey(BuildValidator.MANIFEST)) throw new Exception("AndroidManifest.xml manquant");
+        if (full && web && !p.files.containsKey(WebBuilder.ENTRY)) throw new Exception("src/main.tsx manquant");
+        if (full && !web && !p.files.containsKey(BuildValidator.MANIFEST)) throw new Exception("AndroidManifest.xml manquant");
         return p;
     }
 
-    private static void put(Parsed p, String path, Object content) throws Exception {
+    private static void put(Parsed p, String path, Object content, boolean web) throws Exception {
         String path2 = path == null ? "" : path.trim().replace('\\', '/');
-        String problem = BuildValidator.pathProblem(path2);
+        if (web) path2 = path2.replaceFirst("^\\./", "");
+        String problem = web ? WebBuilder.pathProblem(path2) : BuildValidator.pathProblem(path2);
         if (problem != null) throw new Exception(problem);
         if (!(content instanceof String)) throw new Exception("Contenu invalide pour " + path2);
         p.files.put(path2, (String) content);
@@ -260,7 +269,7 @@ public class AppBuilder {
     // ------------------------------------------------------------------ génération avec reprises
 
     /** Appelle l'IA ; réessaie si le réseau, le quota ou le JSON coupé font échouer. Les refus ne sont pas réessayés. */
-    static Parsed generateParsed(Generator gen, String system, String prompt, boolean full, BuildSpec s, Listener l) throws Exception {
+    static Parsed generateParsed(Generator gen, String system, String prompt, boolean full, BuildSpec s, Listener l, boolean web) throws Exception {
         Exception last = null;
         String p = prompt;
         for (int attempt = 0; attempt <= s.generateRetries; attempt++) {
@@ -271,11 +280,11 @@ public class AppBuilder {
             try {
                 Parsed r;
                 try {
-                    r = parse(gen.generate(system, p), full, s);
+                    r = parse(gen.generate(system, p), full, s, web);
                 } catch (Truncated t) {
-                    r = completeTruncated(gen, system, prompt, t.partial, full, s, l);
+                    r = completeTruncated(gen, system, prompt, t.partial, full, s, l, web);
                 }
-                if (full) checkPolicy(r.files, s);
+                if (full) { if (web) checkWebPolicy(r.files, s); else checkPolicy(r.files, s); }
                 return r;
             } catch (Refusal r) {
                 throw r;
@@ -291,7 +300,7 @@ public class AppBuilder {
 
     /** La réponse a été coupée : on redemande uniquement les fichiers qui manquent, jusqu'à 3 fois, et on assemble. */
     static Parsed completeTruncated(Generator gen, String system, String prompt, Parsed partial, boolean full,
-                                    BuildSpec s, Listener l) throws Exception {
+                                    BuildSpec s, Listener l, boolean web) throws Exception {
         for (int round = 0; round < 3; round++) {
             l.onStatus("La réponse de l'IA était coupée, je demande la suite (" + (round + 1) + "/3)…");
             StringBuilder have = new StringBuilder();
@@ -301,7 +310,7 @@ public class AppBuilder {
                 + "sans répéter ceux déjà reçus. Reste COMPACT : code court, peu de commentaires, 3 ou 4 fichiers par réponse au maximum.";
             String raw = gen.generate(system, p2);
             try {
-                Parsed more = parse(raw, false, s);
+                Parsed more = parse(raw, false, s, web);
                 partial.files.putAll(more.files);
                 return partial;
             } catch (Truncated t2) {
@@ -335,11 +344,11 @@ public class AppBuilder {
     }
 
     /** Applique une correction : fusionne, répare automatiquement, revérifie la politique. Retourne les fichiers modifiés. */
-    static Map<String, String> applyFix(Map<String, String> current, Map<String, String> fix, BuildSpec s) throws Exception {
+    static Map<String, String> applyFix(Map<String, String> current, Map<String, String> fix, BuildSpec s, boolean web) throws Exception {
         Map<String, String> merged = new LinkedHashMap<>(current);
         merged.putAll(fix);
-        Map<String, String> norm = BuildValidator.normalize(merged, new ArrayList<String>());
-        checkPolicy(norm, s);
+        Map<String, String> norm = web ? WebBuilder.normalize(merged) : BuildValidator.normalize(merged, new ArrayList<String>());
+        if (web) checkWebPolicy(norm, s); else checkPolicy(norm, s);
         Map<String, String> changed = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : norm.entrySet()) {
             String old = current.get(e.getKey());
@@ -363,6 +372,7 @@ public class AppBuilder {
         new Thread(() -> {
             try {
                 final BuildSpec s = KruxConfig.build();
+                boolean web = s.web; // nouvelle app : réglage de krux_config.json ; reprise ou modification : mode de l'app existante
 
                 String name;
                 Map<String, String> current;
@@ -375,26 +385,29 @@ public class AppBuilder {
                     l.onStatus("Génération du code : j'applique ta modification…");
                     name = src.name;
                     current = new LinkedHashMap<>(src.files);
-                    Parsed fx = generateParsed(gen, modifySystemPrompt(s), buildModifyPrompt(before, description, current), false, s, l);
-                    applyFix(current, fx.files, s);
+                    web = current.containsKey(WebBuilder.ENTRY);
+                    Parsed fx = generateParsed(gen, web ? WebBuilder.modifySystemPrompt(s) : modifySystemPrompt(s),
+                        buildModifyPrompt(before, description, current), false, s, l, web);
+                    applyFix(current, fx.files, s, web);
                     l.onStatus("Vérification du code…");
-                    localFixes(gen, s, description, current, l, null);
+                    localFixes(gen, s, description, current, l, null, web);
                     metaDesc = before.isEmpty() ? description : before + "\nMODIFICATION : " + description;
                 } else if (saved != null) {
                     l.onStatus("Reprise : le code déjà écrit est retrouvé…");
                     name = saved.name;
                     current = new LinkedHashMap<>(saved.files);
+                    web = current.containsKey(WebBuilder.ENTRY);
                 } else {
                     l.onStatus("Génération du code…");
                     com.virtixstudio.kruxai.builder.DesignDirection direction = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random());
-                    String design = direction.toPrompt();
-                    Parsed p = generateParsed(gen, systemPrompt(s) + " " + design, description, true, s, l);
+                    String design = web ? direction.toWebPrompt() : direction.toPrompt();
+                    Parsed p = generateParsed(gen, (web ? WebBuilder.systemPrompt(s) : systemPrompt(s)) + " " + design, description, true, s, l, web);
 
                     // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
                     l.onStatus("Vérification du code…");
-                    current = BuildValidator.normalize(p.files, new ArrayList<String>());
-                    checkPolicy(current, s);
-                    localFixes(gen, s, description, current, l, direction.accentHex());
+                    current = web ? WebBuilder.normalize(p.files) : BuildValidator.normalize(p.files, new ArrayList<String>());
+                    if (web) checkWebPolicy(current, s); else checkPolicy(current, s);
+                    localFixes(gen, s, description, current, l, direction.accentHex(), web);
                     name = p.name;
                     BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
                     String previewHtml = PreviewHtml.prepare(p.preview);
@@ -404,7 +417,7 @@ public class AppBuilder {
                     }
                 }
 
-                deliver(githubToken, metaDesc, name, outDir, current, s, gen, l);
+                deliver(githubToken, metaDesc, name, outDir, current, s, gen, l, web);
             } catch (Exception e) {
                 String m = e.getMessage();
                 l.onError(m == null || m.isEmpty() ? e.getClass().getSimpleName() : m);
@@ -469,19 +482,22 @@ public class AppBuilder {
     }
 
     /** accent != null : la couleur d'accent de la direction visuelle imposée doit être réellement utilisée dans res/. */
-    static void localFixes(Generator gen, BuildSpec s, String description, Map<String, String> current, Listener l, String accent) throws Exception {
+    static void localFixes(Generator gen, BuildSpec s, String description, Map<String, String> current, Listener l, String accent, boolean web) throws Exception {
         for (int round = 0; round < s.maxLocalFixes; round++) {
-            List<String> problems = new ArrayList<>(BuildValidator.validate(current));
-            if (!usesColor(current, accent))
+            List<String> problems = new ArrayList<>(web ? WebBuilder.validate(current) : BuildValidator.validate(current));
+            if (web && !WebBuilder.usesColor(current, accent))
+                problems.add("DIRECTION VISUELLE : la couleur d'accent imposée " + accent + " n'est utilisée dans aucun fichier src/. "
+                    + "Définis la palette imposée en variables CSS dans src/styles.css (--primary, --secondary, --surface) et utilise-la dans les écrans.");
+            if (!web && !usesColor(current, accent))
                 problems.add("DIRECTION VISUELLE : la couleur d'accent imposée " + accent + " n'est utilisée dans aucun fichier res/. "
                     + "Définis la palette imposée dans res/values/colors.xml, applique-la dans themes.xml (colorPrimary, colorSecondary, colorSurface) "
                     + "et utilise ces couleurs dans les écrans, à la place du violet par défaut.");
             if (problems.isEmpty()) break;
             l.onStatus("Vérification du code : correction " + (round + 1) + "/" + s.maxLocalFixes + "…");
             try {
-                Parsed fx = generateParsed(gen, fixSystemPrompt(s),
-                    buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l);
-                applyFix(current, fx.files, s);
+                Parsed fx = generateParsed(gen, web ? WebBuilder.fixSystemPrompt(s) : fixSystemPrompt(s),
+                    buildFixPrompt(description, current, BuildValidator.format(problems)), false, s, l, web);
+                applyFix(current, fx.files, s, web);
             } catch (Refusal r) {
                 throw r;
             } catch (Exception e) {
@@ -492,7 +508,7 @@ public class AppBuilder {
 
     /** Envoi sur GitHub, compilation, corrections automatiques, téléchargement de l'APK. */
     private static void deliver(String githubToken, String description, String name, File outDir,
-                                Map<String, String> current, BuildSpec s, Generator gen, Listener l) throws Exception {
+                                Map<String, String> current, BuildSpec s, Generator gen, Listener l, boolean web) throws Exception {
                 GithubClient gh = new GithubClient(githubToken, s.githubRetries);
                 gh.init();
                 String repo = "krux-" + name + "-" + (System.currentTimeMillis() / 1000 % 100000);
@@ -503,7 +519,12 @@ public class AppBuilder {
 
                 final String appId = BuildTemplates.uniqueAppId(name);
                 Map<String, String> all = new LinkedHashMap<>(BuildTemplates.gradleFiles(s, appId));
-                all.put(".github/workflows/build.yml", BuildTemplates.workflow(s));
+                if (web) {
+                    all.putAll(WebTemplates.shellFiles(name.replace('-', ' ')));
+                    all.put(".github/workflows/build.yml", WebTemplates.workflow(s));
+                } else {
+                    all.put(".github/workflows/build.yml", BuildTemplates.workflow(s));
+                }
                 all.putAll(current);
                 int n = 0;
                 for (Map.Entry<String, String> e : all.entrySet()) {
@@ -543,8 +564,9 @@ public class AppBuilder {
                     l.onStatus("Build échoué : KRUX lit l'erreur et corrige (" + fixes + "/" + s.maxFixes + ")…");
                     String log = gh.failureLog(repo, run.getLong("id"));
                     lastLog = log;
-                    Parsed fx = generateParsed(gen, fixSystemPrompt(s), buildFixPrompt(description, current, log), false, s, l);
-                    Map<String, String> changed = applyFix(current, fx.files, s);
+                    Parsed fx = generateParsed(gen, web ? WebBuilder.fixSystemPrompt(s) : fixSystemPrompt(s),
+                        buildFixPrompt(description, current, log), false, s, l, web);
+                    Map<String, String> changed = applyFix(current, fx.files, s, web);
                     for (Map.Entry<String, String> e : changed.entrySet()) {
                         l.onStatus("Correction : " + e.getKey());
                         gh.putFile(repo, e.getKey(), e.getValue());

@@ -189,7 +189,7 @@ public class GithubClient {
     }
 
     private static final Pattern ERR = Pattern.compile(
-        "error:|##\\[error\\]|FAILED|What went wrong|Caused by|cannot find symbol|AAPT|Execution failed|Could not|not found");
+        "error:|error TS\\d+|\\[ERROR\\]|##\\[error\\]|FAILED|What went wrong|Caused by|cannot find symbol|AAPT|Execution failed|Could not|not found|SyntaxError");
 
     public String failureLog(String repo, long runId) {
         try {
