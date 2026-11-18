@@ -89,6 +89,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private OnWaitingRetryListener waitingRetryListener;
 
+    /** Appelé quand l'utilisateur touche « Continuer » sur une réponse qu'il a arrêtée. */
+    public interface OnContinueListener { void onContinue(ChatMessage message); }
+
+    private OnContinueListener continueListener;
+
+    public void setContinueListener(OnContinueListener l) { this.continueListener = l; }
+
     public void setWaitingRetryListener(OnWaitingRetryListener l) { this.waitingRetryListener = l; }
 
     public interface OnUserActionListener {
@@ -1285,7 +1292,9 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             holder.btnWaiting = b;
         }
         TextView b = holder.btnWaiting;
-        if (!message.isWaiting()) { b.setVisibility(View.GONE); return; }
+        final boolean stopped = message.isStopped() && !message.isStreaming() && !message.isWaiting();
+        if (!message.isWaiting() && !stopped) { b.setVisibility(View.GONE); return; }
+        b.setText(stopped ? "Continuer" : "Réessayer");
         b.setVisibility(View.VISIBLE);
         int btn = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "button");
         int txt = com.virtixstudio.kruxai.ui.KruxTheme.get(context, "buttontext");
@@ -1302,7 +1311,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ic.setBounds(0, 0, s, s);
             b.setCompoundDrawables(ic, null, null, null);
         }
-        b.setOnClickListener(v -> { if (waitingRetryListener != null) waitingRetryListener.onRetryNow(message); });
+        b.setOnClickListener(v -> {
+            if (stopped) { if (continueListener != null) continueListener.onContinue(message); }
+            else if (waitingRetryListener != null) waitingRetryListener.onRetryNow(message);
+        });
     }
 
     private void setupActions(

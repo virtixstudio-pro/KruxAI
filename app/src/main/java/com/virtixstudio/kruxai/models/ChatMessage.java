@@ -142,6 +142,13 @@ public class ChatMessage {
 
     public void setWaiting(boolean waiting) { this.waiting = waiting; }
 
+    /** Réponse arrêtée par l'utilisateur : le texte déjà écrit est gardé et un bouton « Continuer » est proposé. */
+    private boolean stopped;
+
+    public boolean isStopped() { return stopped; }
+
+    public void setStopped(boolean stopped) { this.stopped = stopped; }
+
     public boolean isStreaming() {
         return streaming;
     }

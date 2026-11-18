@@ -344,6 +344,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                 }
         );
         chatAdapter.setWaitingRetryListener(this::retryWaiting);
+        chatAdapter.setContinueListener(this::continueStopped);
 
             applySavedTheme();
 
@@ -916,6 +917,17 @@ private final ActivityResultLauncher<String[]> filePicker =
         persistNetQueue();
         removePlaceholder(m);
         executeAiQuery(p.prompt, "", new ArrayList<>(), p.fileName, p.fileContent);
+    }
+
+    /** Bouton « Continuer » : Krux reprend sa réponse arrêtée à l'endroit où elle s'est coupée. */
+    private void continueStopped(ChatMessage m) {
+        if (m == null || !m.isStopped() || isGenerating) return;
+        String t = m.getText() == null ? "" : m.getText();
+        String tail = t.length() > 1500 ? t.substring(t.length() - 1500) : t;
+        executeAiQuery(
+                "Continue ta réponse exactement là où elle s'est arrêtée, sans la recommencer ni répéter ce qui est déjà écrit. "
+                        + "Elle se terminait par :\n\"\"\"\n" + tail + "\n\"\"\"",
+                "", new ArrayList<>(), "", "");
     }
 
     private void removePlaceholder(ChatMessage ph) {
@@ -1589,6 +1601,11 @@ private final ActivityResultLauncher<String[]> filePicker =
             return;
         }
         announcedFiles.clear();
+        // Une nouvelle demande part : les anciens boutons « Continuer » disparaissent.
+        for (int i = 0; i < messageList.size(); i++) {
+            ChatMessage old = messageList.get(i);
+            if (old.isStopped()) { old.setStopped(false); if (chatAdapter != null) chatAdapter.notifyItemChanged(i); }
+        }
         // Autre point d'entrée possible (régénération...) : l'ancienne réponse ne doit pas recevoir l'état.
         if (activeAiMessage != null && !activeAiMessage.isStreaming() && chatAdapter != null) {
             chatAdapter.clearKruxAnswerStatus(activeAiMessage.getId());
@@ -1878,11 +1895,19 @@ private final ActivityResultLauncher<String[]> filePicker =
                     setGeneratingState(false);
                     setKruxState(KruxState.IDLE);
                     aiMessage.setStreaming(false);
-                    aiMessage.setText("");
+                    String partial = aiMessage.getText() == null ? "" : aiMessage.getText().trim();
                     int position = messageList.indexOf(aiMessage);
-                    if (position >= 0) {
-                        messageList.remove(position);
-                        chatAdapter.notifyItemRemoved(position);
+                    if (position >= 0 && partial.length() >= 20 && !partial.contains("<KRUX_")) {
+                        // Réponse arrêtée en cours de route : on garde ce qui est écrit et on propose « Continuer ».
+                        aiMessage.setStopped(true);
+                        chatAdapter.notifyItemChanged(position);
+                        saveMessageToDatabase(aiMessage);
+                    } else {
+                        aiMessage.setText("");
+                        if (position >= 0) {
+                            messageList.remove(position);
+                            chatAdapter.notifyItemRemoved(position);
+                        }
                     }
                 });
             }
