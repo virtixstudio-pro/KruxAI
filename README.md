@@ -48,6 +48,8 @@ Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 18 novembre
 5. `reprise-generation.patch` : création d'app : les fichiers déjà reçus sont gardés entre les essais et enregistrés dans `partial` ; la même demande relancée dans les 24 h reprend (`AppBuilder.generateParsed`, `BuildCheckpoint`).
 6. `code-exploitable.patch` : repli sur des blocs `=== chemin ===` quand le JSON est inutilisable (`builder/BlockFiles.java`, test `BlockFilesTests`), et raison de chaque essai dans le message d'erreur. À poser après le 5.
 7. `splash-pro.patch` : splash de 4,5 s coupé en pleine animation, remplacé par 2,3 s, un toucher pour passer, plus de double lancement (`SplashActivity`).
+8. `splash-noir.patch` : splash toujours noir quel que soit le thème (étiquettes de thème retirées du layout, barres système noires, plus de `KruxTheme.apply` donc plus de recréation de l'écran). À poser après `splash-pro`.
+9. `cartes-images.patch` : jusqu'à 2 photos en cartes au-dessus du champ de saisie (miniature, croix, bouton Modifier : remplacer, pivoter, rogner au carré), envoyées à Mistral et Gemini (`AttachmentStrip`, `ApiClient.attachNextImages`, `MainActivity`).
 
 Vérifiés avec `git apply --check` et `javac` (syntaxe seule). Rien n'est compilé ni testé sur téléphone.
 
@@ -63,10 +65,11 @@ Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour �
 4. [x] **Date et heure** : Krux lit l'heure et la date de l'appareil (ajout dans `SystemPromptBuilder`), pour répondre à « quelle heure est-il ? » et ne plus se tromper sur « aujourd'hui ».
 5. [x] **Vrai raisonnement, moins de questions** : fini les « peux-tu préciser… » à répétition. Krux répond d'abord avec une hypothèse annoncée en une ligne ; au plus une question, et seulement s'il est vraiment bloqué. Prompt système plus court, étape de plan réelle, grands modèles en premier.
 6. [x] **Réflexion en haut du message**, comme chez Claude : la ligne grise est au-dessus de la réponse (vérifier `ChatAdapter.setupReasoning`), étapes réelles seulement.
-7. [ ] **Cartes d'images en haut du chat** : miniature de l'image, bouton **Modifier** (recadrer ou remplacer), croix pour la retirer, **2 images au maximum par message**.
+7. [~] **Cartes d'images en haut du chat** : miniature de l'image, bouton **Modifier** (recadrer ou remplacer), croix pour la retirer, **2 images au maximum par message**. Patch cartes-images (2 photos, Modifier : remplacer, pivoter, rogner au carré), à tester.
+- [ ] **Recadrage libre des photos** : cadre à déplacer (vue dédiée) ; aujourd'hui « Modifier » ne fait que rogner au carré et pivoter.
 8. [ ] **Sélecteur de modèles plus agréable** : petite fenêtre compacte qui se déroule comme un parchemin, au lieu d'un grand carré plein écran ; liste qui défile car il y a plus de modèles à afficher ; couleurs du thème, badge PETIT/GRAND, description courte (`showKruxModelSelector`). Couleurs du thème suivies (patch `theme-blanc-lisible`) ; reste le format parchemin.
 - [ ] **Thème Blanc, fin de couverture** : blancs et fonds sombres encore codés en dur dans `activity_privacy`, `activity_studio`, `activity_signup`, `activity_auth_welcome` (layouts) et dans le bloc d'aperçu des bulles de `MainActivity` (vers la ligne 3570, à vérifier s'il sert encore). Demander une capture d'un écran resté cassé.
-- [ ] **Splash : noir de marque fixe** (option) : la tête a des parties blanches et noires fixes, rendu incertain en thème Blanc.
+- [~] **Splash : noir de marque fixe** (option) : la tête a des parties blanches et noires fixes, rendu incertain en thème Blanc. Fait par splash-noir, à tester.
 - [ ] **TTS : Live et bulle flottante** : `LiveActivity` et `FloatingKruxService` ont leur propre `TextToSpeech` (arrêt seulement, pas de reprise). Vérifier si le même défaut de pause existe.
 
 ### 2. Création d'apps
