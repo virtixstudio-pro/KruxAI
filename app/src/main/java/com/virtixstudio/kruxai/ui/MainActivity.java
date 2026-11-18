@@ -458,97 +458,194 @@ private final ActivityResultLauncher<String[]> filePicker =
         if (etInput != null) etInput.post(() -> handleModifyIntent(getIntent()));
     }
 
+    /** Petit menu sous la capsule du modèle : 3 modèles en vue, le reste se déroule avec « Afficher plus de modèles… ». */
     private void showKruxModelSelector() {
-
         final android.app.Dialog dialog = new android.app.Dialog(this);
+        final float d = getResources().getDisplayMetrics().density;
+        final int screenW = getResources().getDisplayMetrics().widthPixels;
+        final int screenH = getResources().getDisplayMetrics().heightPixels;
+        final int width = Math.min((int) (290 * d), (int) (screenW * 0.86f));
+        final int pad = (int) (10 * d);
+        final int maxH = (int) (screenH * 0.6f);
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(16, 16, 16, 16);
+        container.setPadding(pad, pad, pad, pad);
         android.graphics.drawable.GradientDrawable popupBg = new android.graphics.drawable.GradientDrawable();
         popupBg.setColor(KruxTheme.get(this, "bg"));
-        popupBg.setCornerRadius(16 * getResources().getDisplayMetrics().density);
-        popupBg.setStroke((int) getResources().getDisplayMetrics().density, KruxTheme.get(this, "bubble_user"));
+        popupBg.setCornerRadius(16 * d);
+        popupBg.setStroke((int) d, KruxTheme.get(this, "bubble_user"));
         container.setBackground(popupBg);
 
         TextView title = new TextView(this);
         title.setText("Modèle Krux");
         title.setTextColor(KruxTheme.get(this, "text"));
-        title.setTextSize(17);
+        title.setTextSize(15);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
-        title.setPadding(8, 4, 8, 12);
-
+        title.setPadding((int) (12 * d), (int) (6 * d), (int) (12 * d), (int) (8 * d));
         container.addView(title);
 
-        for (KruxModel model : KruxModel.values()) {
-
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            row.setPadding(12, 10, 12, 10);
-            row.setClickable(true);
-            row.setFocusable(true);
-
-            TextView name = new TextView(this);
-            name.setText(model.getDisplayName());
-            name.setTextColor(KruxTheme.get(this, "text"));
-            name.setTextSize(15);
-
-            TextView info = new TextView(this);
-
-            String tokenInfo;
-
-            if (model.getContextTokens() >= 1000000) {
-                tokenInfo = (model.getContextTokens() / 1000000) + "M tokens";
-            } else {
-                tokenInfo = (model.getContextTokens() / 1000) + "K tokens";
+        // la liste défile si elle devient longue (hauteur plafonnée à 60 % de l'écran)
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this) {
+            @Override
+            protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, View.MeasureSpec.makeMeasureSpec(maxH, View.MeasureSpec.AT_MOST));
             }
+        };
+        scroll.setVerticalScrollBarEnabled(false);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(list);
+        container.addView(scroll, new LinearLayout.LayoutParams(-1, -2));
 
-            info.setText(tokenInfo);
-            info.setTextColor(KruxTheme.get(this, "text2"));
-            info.setTextSize(12);
+        final KruxModel[] featured = { KruxModel.MISTRAL_MEDIUM, KruxModel.GEMINI_36_FLASH, KruxModel.HF_QWEN_CODER_32B };
+        final java.util.List<KruxModel> featuredList = java.util.Arrays.asList(featured);
+        final LinearLayout extra = new LinearLayout(this);
+        extra.setOrientation(LinearLayout.VERTICAL);
+        boolean selectedInExtra = false;
 
-            row.addView(name);
-            row.addView(info);
-
-            if (model == selectedKruxModel) {
-                name.setTypeface(null, android.graphics.Typeface.BOLD);
-            }
-
-            row.setOnClickListener(v -> {
-
-                selectedKruxModel = model;
-
-                updateKruxModelUI();
-
-                dialog.dismiss();
-            });
-
-            container.addView(row);
+        for (KruxModel m : featured) list.addView(kruxModelRow(m, dialog));
+        for (KruxModel m : KruxModel.values()) {
+            if (featuredList.contains(m)) continue;
+            extra.addView(kruxModelRow(m, dialog));
+            if (m == selectedKruxModel) selectedInExtra = true;
         }
+        list.addView(extra);
+        extra.setVisibility(selectedInExtra ? View.VISIBLE : View.GONE);
+
+        final TextView more = new TextView(this);
+        more.setText(selectedInExtra ? "Afficher moins" : "Afficher plus de modèles…");
+        more.setTextColor(KruxTheme.get(this, "text2"));
+        more.setTextSize(13);
+        more.setPadding((int) (12 * d), (int) (12 * d), (int) (12 * d), (int) (8 * d));
+        more.setClickable(true);
+        list.addView(more);
+
+        more.setOnClickListener(v -> {
+            final boolean opening = extra.getVisibility() != View.VISIBLE;
+            extra.measure(
+                    View.MeasureSpec.makeMeasureSpec(width - 2 * pad, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            final int full = extra.getMeasuredHeight();
+            final android.view.ViewGroup.LayoutParams lp = extra.getLayoutParams();
+            if (opening) {
+                lp.height = 0;
+                extra.setLayoutParams(lp);
+                extra.setVisibility(View.VISIBLE);
+                more.setText("Afficher moins");
+            } else {
+                more.setText("Afficher plus de modèles…");
+            }
+            android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofInt(opening ? 0 : full, opening ? full : 0);
+            anim.setDuration(240);
+            anim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+            anim.addUpdateListener(an -> {
+                lp.height = (Integer) an.getAnimatedValue();
+                extra.setLayoutParams(lp);
+            });
+            anim.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(android.animation.Animator an) {
+                    if (opening) {
+                        lp.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+                        extra.setLayoutParams(lp);
+                    } else {
+                        extra.setVisibility(View.GONE);
+                    }
+                }
+            });
+            anim.start();
+        });
 
         dialog.setContentView(container);
 
         android.view.Window window = dialog.getWindow();
-
         if (window != null) {
             window.setBackgroundDrawableResource(android.R.color.transparent);
+            window.setDimAmount(0.25f);
 
-            android.view.WindowManager.LayoutParams params =
-                    new android.view.WindowManager.LayoutParams();
-
+            android.view.WindowManager.LayoutParams params = new android.view.WindowManager.LayoutParams();
             params.copyFrom(window.getAttributes());
-            params.width =
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.82);
-            params.height =
-                    android.view.WindowManager.LayoutParams.WRAP_CONTENT;
-
+            // positions comptées depuis le haut de l'écran (pour placer le menu sous la capsule)
+            params.flags |= android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+            params.width = width;
+            params.height = android.view.WindowManager.LayoutParams.WRAP_CONTENT;
+            params.gravity = android.view.Gravity.TOP | android.view.Gravity.START;
+            if (kruxModelCapsule != null) {
+                int[] loc = new int[2];
+                kruxModelCapsule.getLocationOnScreen(loc);
+                params.x = Math.max((int) (12 * d), Math.min(loc[0], screenW - width - (int) (12 * d)));
+                params.y = loc[1] + kruxModelCapsule.getHeight() + (int) (6 * d);
+            } else {
+                params.x = (screenW - width) / 2;
+                params.y = (int) (90 * d);
+            }
             window.setAttributes(params);
         }
 
         dialog.show();
-
         KruxTheme.skin(dialog, this);
+
+        // le menu se déroule vers le bas, comme un parchemin
+        container.setPivotY(0f);
+        container.setScaleY(0.8f);
+        container.setAlpha(0f);
+        container.animate().scaleY(1f).alpha(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    }
+
+    /** Une ligne du menu : nom du modèle, petit/grand et taille de contexte, coche si c'est le modèle choisi. */
+    private View kruxModelRow(final KruxModel model, final android.app.Dialog dialog) {
+        final float d = getResources().getDisplayMetrics().density;
+        final boolean selected = model == selectedKruxModel;
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding((int) (12 * d), (int) (9 * d), (int) (12 * d), (int) (9 * d));
+        row.setClickable(true);
+        row.setFocusable(true);
+        if (selected) {
+            android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+            bg.setColor(KruxTheme.get(this, "bubble_user"));
+            bg.setCornerRadius(12 * d);
+            row.setBackground(bg);
+        }
+
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        row.addView(texts, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        TextView name = new TextView(this);
+        name.setText(model.getDisplayName());
+        name.setTextColor(KruxTheme.get(this, "text"));
+        name.setTextSize(15);
+        if (selected) name.setTypeface(null, android.graphics.Typeface.BOLD);
+        texts.addView(name);
+
+        String tokens = model.getContextTokens() >= 1000000
+                ? (model.getContextTokens() / 1000000) + "M tokens"
+                : (model.getContextTokens() / 1000) + "K tokens";
+        TextView info = new TextView(this);
+        info.setText((model.isPetit() ? "Petit" : "Grand") + " · " + tokens);
+        info.setTextColor(KruxTheme.get(this, "text2"));
+        info.setTextSize(11);
+        texts.addView(info);
+
+        if (selected) {
+            TextView check = new TextView(this);
+            check.setText("✔");
+            check.setTextColor(KruxTheme.get(this, "text"));
+            check.setTextSize(15);
+            row.addView(check);
+        }
+
+        row.setOnClickListener(v -> {
+            selectedKruxModel = model;
+            updateKruxModelUI();
+            dialog.dismiss();
+        });
+        return row;
     }
 
     private void updateKruxModelUI() {
