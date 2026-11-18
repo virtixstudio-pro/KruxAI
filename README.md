@@ -54,7 +54,7 @@ Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour �
 - [~] `reflexion-verification-etape.patch` : étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion.
 
 ### 1. Petits correctifs qui se voient tout de suite
-1. [ ] **Reprise là où Krux s'est arrêté** : si une réponse ou une création d'app est coupée ou stoppée, il continue au point d'arrêt au lieu de recommencer (s'appuyer sur `BuildCheckpoint` et `completeTruncated`).
+1. [~] **Reprise là où Krux s'est arrêté** (chat : bouton Continuer ; apps : patch `reprise-generation`, à tester) : si une réponse ou une création d'app est coupée ou stoppée, il continue au point d'arrêt au lieu de recommencer (s'appuyer sur `BuildCheckpoint` et `completeTruncated`).
 4. [x] **Date et heure** : Krux lit l'heure et la date de l'appareil (ajout dans `SystemPromptBuilder`), pour répondre à « quelle heure est-il ? » et ne plus se tromper sur « aujourd'hui ».
 5. [x] **Vrai raisonnement, moins de questions** : fini les « peux-tu préciser… » à répétition. Krux répond d'abord avec une hypothèse annoncée en une ligne ; au plus une question, et seulement s'il est vraiment bloqué. Prompt système plus court, étape de plan réelle, grands modèles en premier.
 6. [x] **Réflexion en haut du message**, comme chez Claude : la ligne grise est au-dessus de la réponse (vérifier `ChatAdapter.setupReasoning`), étapes réelles seulement.
