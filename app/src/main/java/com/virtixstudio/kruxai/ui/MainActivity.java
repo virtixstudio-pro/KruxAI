@@ -414,6 +414,11 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         if (btnCloseSidebar != null) btnCloseSidebar.setOnClickListener(v -> drawerLayout.closeDrawer(GravityCompat.START));
         btnPlus.setOnClickListener(v -> showPlusBottomSheet());
+        android.widget.TextView tvDisclaimer = findViewById(R.id.tvDisclaimer);
+        if (tvDisclaimer != null) {
+            tvDisclaimer.setPaintFlags(tvDisclaimer.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+            tvDisclaimer.setOnClickListener(v -> LinkOpener.open(this, PrivacyActivity.TIPS_URL));
+        }
         btnSend.setOnClickListener(v -> {
             if (isGenerating) {
                 ApiClient.cancelCurrentRequest();

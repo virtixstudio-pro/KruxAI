@@ -33,6 +33,7 @@ public class PrivacyActivity extends AppCompatActivity {
     }
 
     public static final String POLICY_URL = "https://virtix-studio.kruxvirtix.workers.dev/privacy.html";
+    public static final String TIPS_URL = "https://virtix-studio.kruxvirtix.workers.dev/precautions.html";
 
     private Button btnAccept;
     private boolean creating;
@@ -53,6 +54,14 @@ public class PrivacyActivity extends AppCompatActivity {
             catch (Exception e) { Toast.makeText(this, "Impossible d'ouvrir la page.", Toast.LENGTH_SHORT).show(); }
         });
         findViewById(R.id.tvPrivacyBack).setOnClickListener(v -> finish());
+        android.widget.TextView tips = findViewById(R.id.tvPrivacyTips);
+        android.widget.TextView policy = findViewById(R.id.tvPrivacyFull);
+        policy.setPaintFlags(policy.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        tips.setPaintFlags(tips.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        tips.setOnClickListener(v -> {
+            try { startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(TIPS_URL))); }
+            catch (Exception e) { Toast.makeText(this, "Impossible d'ouvrir la page.", Toast.LENGTH_SHORT).show(); }
+        });
 
         setAcceptEnabled(false);
         cb.setOnCheckedChangeListener((v, checked) -> setAcceptEnabled(checked && !creating));

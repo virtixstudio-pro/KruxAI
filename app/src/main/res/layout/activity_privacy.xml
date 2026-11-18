@@ -1,177 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="#000000"
+    android:orientation="vertical">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingTop="48dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="28dp">
-
-            <TextView android:tag="krux:text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Avant de commencer"
-                android:textColor="#FFFFFF"
-                android:textSize="26sp"
-                android:textStyle="bold" />
-
-            <TextView android:tag="krux:text2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Quelques mots sur tes données, en clair."
-                android:textColor="#8A8A8A"
-                android:textSize="14sp" />
-
-            <LinearLayout android:tag="krux:input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:background="@drawable/bg_rounded_card"
-                android:orientation="vertical"
-                android:padding="16dp">
-                <TextView android:tag="krux:text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Ce que KRUX conserve"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-                <TextView android:tag="krux:text2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:lineSpacingExtra="3dp"
-                    android:text="Ton prénom et ton e-mail pour le compte. Tes discussions, tes souvenirs et tes apps, synchronisés sur ton compte pour les retrouver sur un autre téléphone."
-                    android:textColor="#B0B0B0"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <LinearLayout android:tag="krux:input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_rounded_card"
-                android:orientation="vertical"
-                android:padding="16dp">
-                <TextView android:tag="krux:text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Ce qui est envoyé à l'IA"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-                <TextView android:tag="krux:text2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:lineSpacingExtra="3dp"
-                    android:text="Tes messages sont envoyés à des fournisseurs d'IA pour produire les réponses. N'écris jamais de mot de passe ni d'information très sensible."
-                    android:textColor="#B0B0B0"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <LinearLayout android:tag="krux:input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_rounded_card"
-                android:orientation="vertical"
-                android:padding="16dp">
-                <TextView android:tag="krux:text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Ce que tu contrôles"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-                <TextView android:tag="krux:text2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:lineSpacingExtra="3dp"
-                    android:text="Tu choisis ce que KRUX retient dans Mémoire, et tu peux supprimer tes discussions. La lecture de l'écran ne se fait que si tu l'actives et que tu le demandes."
-                    android:textColor="#B0B0B0"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <LinearLayout android:tag="krux:input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_rounded_card"
-                android:orientation="vertical"
-                android:padding="16dp">
-                <TextView android:tag="krux:text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="À savoir"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-                <TextView android:tag="krux:text2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:lineSpacingExtra="3dp"
-                    android:text="KRUX peut se tromper. Vérifie les informations importantes avant de t'y fier."
-                    android:textColor="#B0B0B0"
-                    android:textSize="13sp" />
-            </LinearLayout>
-
-            <TextView android:tag="krux:text2"
-                android:id="@+id/tvPrivacyFull"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:text="Lire la politique complète"
-                android:textColor="#8A8A8A"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <CheckBox android:tag="krux:text"
-                android:id="@+id/cbAcceptPrivacy"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="J'ai lu et j'accepte"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp" />
-
-            <Button android:tag="krux:button,buttontext"
-                android:id="@+id/btnAcceptPrivacy"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:layout_marginTop="14dp"
-                android:background="@drawable/bg_rounded_button"
-                android:text="Accepter et créer mon compte"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+            android:paddingStart="28dp"
+            android:paddingTop="36dp"
+            android:paddingEnd="28dp"
+            android:paddingBottom="16dp">
 
             <TextView android:tag="krux:text2"
                 android:id="@+id/tvPrivacyBack"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="14dp"
-                android:padding="8dp"
-                android:text="Retour"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:paddingEnd="16dp"
+                android:text="‹  Retour"
                 android:textColor="#8A8A8A"
                 android:textSize="14sp" />
 
+            <TextView android:tag="krux:text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="Avant de commencer"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="TON COMPTE"
+                android:letterSpacing="0.12"
+                android:textColor="#8A8A8A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.15"
+                android:text="Ton prénom et ton e-mail créent ton compte. Tes discussions, tes souvenirs et tes apps y sont synchronisés."
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginTop="22dp" android:background="#1E1E1E" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="TES MESSAGES"
+                android:letterSpacing="0.12"
+                android:textColor="#8A8A8A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.15"
+                android:text="Ils sont envoyés à des fournisseurs d'IA pour produire les réponses. N'écris jamais de mot de passe ni d'information très sensible."
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:layout_marginTop="22dp" android:background="#1E1E1E" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="TON CONTRÔLE"
+                android:letterSpacing="0.12"
+                android:textColor="#8A8A8A"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingMultiplier="1.15"
+                android:text="Tu choisis ce que Krux retient dans Mémoire et tu peux supprimer tes discussions. La lecture de l'écran n'a lieu que si tu l'actives et que tu le demandes."
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
         </LinearLayout>
     </ScrollView>
-</FrameLayout>
+
+    <!-- Barre du bas, toujours visible : acceptation et liens vers le site Virtix -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="28dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="28dp"
+        android:paddingBottom="16dp">
+
+        <CheckBox android:tag="krux:text"
+            android:id="@+id/cbAcceptPrivacy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="J'ai lu et j'accepte"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <Button android:tag="krux:button,buttontext"
+            android:id="@+id/btnAcceptPrivacy"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_rounded_button"
+            android:text="Accepter et créer mon compte"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <TextView android:tag="krux:text2"
+                android:id="@+id/tvPrivacyFull"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Politique de confidentialité"
+                android:textColor="#8A8A8A"
+                android:textSize="12sp" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="·"
+                android:textColor="#8A8A8A"
+                android:textSize="12sp" />
+
+            <TextView android:tag="krux:text2"
+                android:id="@+id/tvPrivacyTips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="Précautions d'usage"
+                android:textColor="#8A8A8A"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
