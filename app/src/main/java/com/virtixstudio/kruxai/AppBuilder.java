@@ -207,9 +207,13 @@ public class AppBuilder {
         JSONObject o;
         try {
             o = new JSONObject(extractJson(raw));
-        } catch (org.json.JSONException je) {
+        } catch (Exception je) {
             Map<String, String> got = com.virtixstudio.kruxai.builder.TruncatedJson.files(raw);
-            if (got.isEmpty()) throw je;
+            if (got.isEmpty()) {
+                com.virtixstudio.kruxai.builder.BlockFiles.Result br = com.virtixstudio.kruxai.builder.BlockFiles.parse(raw);
+                if (!br.files.isEmpty()) return fromBlocks(br, full, s, web);
+                throw je;
+            }
             Parsed part = new Parsed();
             if (full) {
                 String n = com.virtixstudio.kruxai.builder.TruncatedJson.field(raw, "name");
@@ -257,6 +261,24 @@ public class AppBuilder {
         return p;
     }
 
+    /** Réponse en blocs "=== chemin ===" (ou ``` avec chemin) au lieu d'un JSON. Un dernier bloc coupé est écarté. */
+    private static Parsed fromBlocks(com.virtixstudio.kruxai.builder.BlockFiles.Result br, boolean full, BuildSpec s, boolean web) throws Exception {
+        if (br.files.size() > s.maxFiles)
+            throw new Refusal("Application trop grosse : " + br.files.size() + " fichiers (maximum " + s.maxFiles + ")");
+        Parsed p = new Parsed();
+        if (full && br.name != null) {
+            String n = br.name.toLowerCase().replaceAll("[^a-z0-9-]", "-").replaceAll("-+", "-");
+            if (n.length() > 30) n = n.substring(0, 30);
+            n = n.replaceAll("^-|-$", "");
+            if (!n.isEmpty()) p.name = n;
+        }
+        for (Map.Entry<String, String> e : br.files.entrySet()) put(p, e.getKey(), e.getValue(), web);
+        if (!br.complete) throw new Truncated(p);
+        if (full && web && !p.files.containsKey(WebBuilder.ENTRY)) throw new Exception("src/main.tsx manquant");
+        if (full && !web && !p.files.containsKey(BuildValidator.MANIFEST)) throw new Exception("AndroidManifest.xml manquant");
+        return p;
+    }
+
     private static void put(Parsed p, String path, Object content, boolean web) throws Exception {
         String path2 = path == null ? "" : path.trim().replace('\\', '/');
         if (web) path2 = path2.replaceFirst("^\\./", "");
@@ -283,6 +305,7 @@ public class AppBuilder {
     static Parsed generateParsed(Generator gen, String system, String prompt, boolean full, BuildSpec s, Listener l, boolean web,
                                  Parsed seed, PartialSink sink) throws Exception {
         Exception last = null;
+        StringBuilder why = new StringBuilder();
         String p = prompt;
         Parsed carry = (seed != null && !seed.files.isEmpty()) ? seed : null;
         for (int attempt = 0; attempt <= s.generateRetries; attempt++) {
@@ -311,11 +334,17 @@ public class AppBuilder {
             } catch (Exception e) {
                 last = e;
                 String msg = String.valueOf(e.getMessage());
+                String shortMsg = msg.length() > 90 ? msg.substring(0, 90) + "…" : msg;
+                if (why.length() > 0) why.append(" | ");
+                why.append(attempt + 1).append(") ").append(shortMsg);
                 p = prompt + "\n\nATTENTION : ta réponse précédente était inutilisable (" + msg
-                    + "). Réponds avec UN SEUL objet JSON valide et complet, sans texte autour.";
+                    + "). Réponds avec UN SEUL objet JSON valide et complet, sans texte autour. "
+                    + "Si l'échappement JSON te pose problème, réponds plutôt par blocs : pour chaque fichier une ligne "
+                    + "=== chemin/du/fichier === puis le code brut (sans JSON, sans échappement), et termine par la ligne === FIN ===.";
             }
         }
-        throw new Exception("L'IA n'a pas produit de code exploitable : " + (last == null ? "?" : last.getMessage()));
+        throw new Exception("L'IA n'a pas produit de code exploitable : " + (last == null ? "?" : last.getMessage())
+            + (why.length() > 0 && s.generateRetries > 0 ? " [essais : " + why + "]" : ""));
     }
 
     /** Après une reprise, la liste de fichiers doit contenir le point d'entrée obligatoire. */
