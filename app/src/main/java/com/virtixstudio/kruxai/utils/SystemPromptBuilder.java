@@ -202,6 +202,7 @@ public class SystemPromptBuilder {
             + "Utilise-les pour « quelle heure est-il ? », « quel jour sommes-nous ? » et pour tout calcul de durée ou d'échéance. "
             + "Ne les cite pas si on ne te les demande pas.\n";
 
-        return BASE_SYSTEM_PROMPT + modelContext + dateContext + profileContext + quotaContext + history + REASONING_AUTO;
+        String siteContext = " SITE VIRTIX STUDIO : https://virtix-studio.kruxvirtix.workers.dev/ (présentation de Krux : /krux.html, confidentialité : /privacy.html, compte : /compte.html). Donne ce lien si on te demande la documentation ou des informations sur Virtix Studio, sans jamais donner une autre adresse. ";
+        return BASE_SYSTEM_PROMPT + modelContext + dateContext + siteContext + profileContext + quotaContext + history + REASONING_AUTO;
     }
 }
