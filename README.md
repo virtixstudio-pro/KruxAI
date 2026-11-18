@@ -55,10 +55,10 @@ Vérifiés avec `git apply --check` et `javac` (syntaxe seule). Rien n'est compi
 
 ## Reste à faire, dans l'ordre
 
-Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour à chaque patch.
+Légende : [ ] à faire, [~] en cours, [x] fait. Un patch à la fois, README mis à jour à chaque patch.
 
 ### 0. En attente de push
-- [~] `reflexion-verification-etape.patch` : étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion.
+- [x] `reflexion-verification-etape.patch` : étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion.
 
 ### 1. Petits correctifs qui se voient tout de suite
 1. [~] **Reprise là où Krux s'est arrêté** (chat : bouton Continuer ; apps : patch `reprise-generation`, à tester) : si une réponse ou une création d'app est coupée ou stoppée, il continue au point d'arrêt au lieu de recommencer (s'appuyer sur `BuildCheckpoint` et `completeTruncated`).
@@ -83,6 +83,10 @@ Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour �
 12. [ ] **Mémoire** : Krux décide de ce qu'il retient, dès l'inscription (questions d'accueil). Base : `MemoryBook`, `MemoryExtractor`, `MemorySelector`.
 13. [ ] **Recherche web, partie 2** : deuxième moteur, recherches enchaînées, plus de pages lues, vérification croisée, sources citées.
 14. [ ] **Patch d'économie de quotas** ; vérifier la bannière hors ligne « Réessayer ».
+
+### 3b. Fichiers et Krux Code
+- [~] **Onglet Fichiers et barre latérale compacte** (import de fichiers, tuiles Mes apps / Fichiers) : `fichiers-onglet.patch`.
+- [ ] **Krux Code** : écran réservé au code, sans bavardage, qui édite les fichiers importés comme dans un terminal ; style sombre original, diff rouge et vert, bouton Annuler.
 
 ### 4. Sécurité et publication
 15. [ ] **Proxy IA** : déployer `worker/ai-proxy`, mettre son URL dans `krux_config.json`, retirer les clés de l'APK (`build.gradle`, workflow), puis **révoquer et renouveler toutes les clés**. Pas d'APK public avant.
