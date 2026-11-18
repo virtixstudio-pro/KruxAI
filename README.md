@@ -31,6 +31,7 @@ Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 18 novembre
 - **Principe** : l'IA n'écrit que `src/*.tsx`, `src/*.ts`, `src/*.css`. KRUX fournit le reste : coque Android fixe avec WebView (pont `window.Krux` : `toast`, `share`, `copy`, `vibrate`), `package.json` (React 19.3.1, esbuild 0.28.2, TypeScript 5.9.3), `tsconfig.json`, `src/krux.d.ts` et le workflow `npm install`, `tsc --noEmit`, esbuild, puis Gradle. Aucun autre paquet que `react` et `react-dom`.
 - **Code** : `builder/WebTemplates.java` (coque, workflow, app d'exemple), `builder/WebBuilder.java` (prompts, chemins, politique de sécurité, vérification locale gratuite), `AppBuilder` (paramètre `web`).
 - **Activation** : `"web": true` dans `build` de `assets/krux_config.json` (défaut `false`). Une modification ou une reprise suit le mode de l'app d'origine (présence de `src/main.tsx`). Les apps Java existantes ne changent pas.
+- **État au 18/11** : activé par `activer-mode-web.patch` (`"web": true`) pour un premier test réel ; jamais lancé sur téléphone ni sur une vraie CI. Si le build échoue : coller les lignes `error:` ou `error TS`.
 - **Testé** (hors téléphone) : `npm install`, `tsc` et esbuild sur l'app d'exemple, rendu dans jsdom, 26 vérifications de la logique avec un faux générateur d'IA, compilation d'`AppBuilder` avec des stubs `org.json` et Android.
 - **Non testé** : le `MainActivity` de la coque (non compilé), la CSP de `index.html`, l'envoi GitHub et le build Actions réels, tout ce qui se passe sur téléphone.
 
@@ -43,6 +44,10 @@ Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 18 novembre
 1. `inscription-fluide.patch` : inscription sans faux « trop de temps » ; si l'e-mail existe déjà, reconnexion automatique avec le même mot de passe, sinon bascule vers la connexion (`LoginActivity`).
 2. `theme-blanc-lisible.patch` : sélecteur de modèle, boîte « Compte créé » et en-tête des tableaux suivent la palette (thème Blanc lisible).
 3. `tts-pause-reprise.patch` : pause puis Play reprend à la phrase en cours (`VoiceStyler.speakFrom`, `MainActivity.toggleTtsPlayback`).
+4. `activer-mode-web.patch` : `"web": true` dans `assets/krux_config.json` pour tester la création d'apps React/TypeScript (remettre `false` pour revenir au Java).
+5. `reprise-generation.patch` : création d'app : les fichiers déjà reçus sont gardés entre les essais et enregistrés dans `partial` ; la même demande relancée dans les 24 h reprend (`AppBuilder.generateParsed`, `BuildCheckpoint`).
+6. `code-exploitable.patch` : repli sur des blocs `=== chemin ===` quand le JSON est inutilisable (`builder/BlockFiles.java`, test `BlockFilesTests`), et raison de chaque essai dans le message d'erreur. À poser après le 5.
+7. `splash-pro.patch` : splash de 4,5 s coupé en pleine animation, remplacé par 2,3 s, un toucher pour passer, plus de double lancement (`SplashActivity`).
 
 Vérifiés avec `git apply --check` et `javac` (syntaxe seule). Rien n'est compilé ni testé sur téléphone.
 
@@ -61,10 +66,11 @@ Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour �
 7. [ ] **Cartes d'images en haut du chat** : miniature de l'image, bouton **Modifier** (recadrer ou remplacer), croix pour la retirer, **2 images au maximum par message**.
 8. [ ] **Sélecteur de modèles plus agréable** : petite fenêtre compacte qui se déroule comme un parchemin, au lieu d'un grand carré plein écran ; liste qui défile car il y a plus de modèles à afficher ; couleurs du thème, badge PETIT/GRAND, description courte (`showKruxModelSelector`). Couleurs du thème suivies (patch `theme-blanc-lisible`) ; reste le format parchemin.
 - [ ] **Thème Blanc, fin de couverture** : blancs et fonds sombres encore codés en dur dans `activity_privacy`, `activity_studio`, `activity_signup`, `activity_auth_welcome` (layouts) et dans le bloc d'aperçu des bulles de `MainActivity` (vers la ligne 3570, à vérifier s'il sert encore). Demander une capture d'un écran resté cassé.
+- [ ] **Splash : noir de marque fixe** (option) : la tête a des parties blanches et noires fixes, rendu incertain en thème Blanc.
 - [ ] **TTS : Live et bulle flottante** : `LiveActivity` et `FloatingKruxService` ont leur propre `TextToSpeech` (arrêt seulement, pas de reprise). Vérifier si le même défaut de pause existe.
 
 ### 2. Création d'apps
-9. [ ] **Erreur « L'IA n'a pas produit de code exploitable »** (revient tout le temps) : à confirmer avec la phrase complète après les deux-points. Cause probable : un seul gros JSON avec tous les fichiers, fragile. Remède : blocs `=== chemin ===` suivis du code, en plusieurs passes (plan et écrans, fichiers par lots, relecture) dans `AppBuilder.generateParsed`.
+9. [~] **Erreur « L'IA n'a pas produit de code exploitable »** (revient tout le temps) : à confirmer avec la phrase complète après les deux-points. Cause probable : un seul gros JSON avec tous les fichiers, fragile. Remède : blocs `=== chemin ===` suivis du code, en plusieurs passes (plan et écrans, fichiers par lots, relecture) dans `AppBuilder.generateParsed`. Patch `code-exploitable` : repli en blocs et raison de chaque essai dans le message ; si ça revient, coller la phrase complète.
 10. [ ] **Pauses anti-saturation** : espacer les appels par fournisseur (erreurs 429) et remplacer « Ce moteur est saturé, je passe sur un autre… » par « Je prends une courte pause… ».
 10. [ ] **Clé de signature stable par app** : sans elle, une app modifiée ne peut pas remplacer l'ancienne, et pas d'AAB pour Google Play.
 10. [ ] **Reprise d'apps** : le bouton **Modifier** existe déjà dans « Mes apps ». Reste à vérifier et ajouter le **zip du code source à côté de l'APK** (aucun code de zip trouvé pour l'instant).
@@ -97,3 +103,4 @@ Le Worker `worker/ai-proxy` est prêt mais **pas déployé** : variable `FIREBAS
 - Mistral (offre gratuite « Experiment ») peut entraîner sur les données : vérifier avant d'affirmer le contraire dans la page de confidentialité.
 - Hugging Face non testé (inférence gratuite capricieuse).
 - Le mode web (React/TSX) n'a jamais été lancé sur téléphone ni sur un vrai build GitHub (voir « Mode web »). En mode web, coller aussi les lignes `error TS` quand la CI échoue.
+- Tests sans Android : `JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8" sh tools/builder-tests/run.sh`. `BuildProgressTests` échoue (14/21) depuis avant les patchs (à examiner) et `run.sh` s'arrête à la première série en échec : `BlockFilesTests`, en fin de fichier, peut ne pas se lancer ; le lancer seul si besoin.
