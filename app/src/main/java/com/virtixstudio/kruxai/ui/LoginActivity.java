@@ -31,6 +31,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.SetOptions;
 import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.utils.LanguageManager;
 
@@ -53,7 +54,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private boolean isSignUpMode = false;
     private boolean isLoading = false;
-    private static final long LOGIN_TIMEOUT_MS = 15000L;
+    private static final long LOGIN_TIMEOUT_MS = 30000L;
     private final Handler loadingHandler = new Handler(Looper.getMainLooper());
     private Runnable loadingTimeoutRunnable;
 
@@ -278,10 +279,20 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(task -> {
 
                     if (!task.isSuccessful()) {
+
+                        Exception e = task.getException();
+
+                        if (e instanceof FirebaseAuthException
+                                && "ERROR_EMAIL_ALREADY_IN_USE".equals(
+                                ((FirebaseAuthException) e).getErrorCode())) {
+                            recoverExistingAccount(email, password, firstName);
+                            return;
+                        }
+
                         setLoading(false);
 
-                        if (task.getException() != null) {
-                            showFirebaseError(task.getException());
+                        if (e != null) {
+                            showFirebaseError(e);
                         } else {
                             showMessage("Impossible de créer le compte.");
                         }
@@ -297,29 +308,60 @@ public class LoginActivity extends AppCompatActivity {
                         return;
                     }
 
-                    String uid = user.getUid();
+                    saveProfile(user.getUid(), firstName, email);
+                    setLoading(false);
+                    showAccountCreated(firstName);
+                });
+    }
 
-                    Map<String, Object> profile = new HashMap<>();
-                    profile.put("uid", uid);
-                    profile.put("firstName", firstName);
-                    profile.put("email", email);
-                    profile.put("createdAt", FieldValue.serverTimestamp());
+    private void saveProfile(String uid, String firstName, String email) {
 
-                    db.collection("users")
-                            .document(uid)
-                            .set(profile)
-                            .addOnCompleteListener(profileTask -> {
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("uid", uid);
+        profile.put("firstName", firstName);
+        profile.put("email", email);
+        profile.put("createdAt", FieldValue.serverTimestamp());
 
-                                setLoading(false);
+        // Sans attendre : Firestore garde l'écriture et l'envoie dès que le réseau revient.
+        db.collection("users")
+                .document(uid)
+                .set(profile, SetOptions.merge());
+    }
 
-                                if (profileTask.isSuccessful()) {
-                                    showAccountCreated(firstName);
-                                } else {
-                                    showMessage(
-                                            "Compte créé, mais le profil n'a pas pu être enregistré."
-                                    );
-                                }
-                            });
+    private void recoverExistingAccount(String email, String password, String firstName) {
+
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+
+                    setLoading(false);
+
+                    FirebaseUser user = auth.getCurrentUser();
+
+                    if (task.isSuccessful() && user != null) {
+                        saveProfile(user.getUid(), firstName, email);
+                        showAccountCreated(firstName);
+                        return;
+                    }
+
+                    Exception e = task.getException();
+
+                    if (e instanceof FirebaseAuthException) {
+                        String code = ((FirebaseAuthException) e).getErrorCode();
+                        if ("ERROR_WRONG_PASSWORD".equals(code)
+                                || "ERROR_INVALID_CREDENTIAL".equals(code)) {
+                            showMessage("Ce compte existe déjà. Connecte-toi avec ton mot de passe.");
+                            if (isSignUpMode) {
+                                toggleMode();
+                            }
+                            return;
+                        }
+                    }
+
+                    if (e != null) {
+                        showFirebaseError(e);
+                    } else {
+                        showMessage("Ce compte existe déjà. Connecte-toi.");
+                    }
                 });
     }
 
