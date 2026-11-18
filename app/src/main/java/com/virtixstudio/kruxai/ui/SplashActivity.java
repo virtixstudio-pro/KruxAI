@@ -2,11 +2,14 @@ package com.virtixstudio.kruxai.ui;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Property;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
@@ -16,9 +19,21 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.virtixstudio.kruxai.R;
 
+/**
+ * Écran d'accueil : la tête entre en douceur, un petit regard, les deux mots puis le copyright.
+ * Tout tient en environ 2,3 s ; un toucher passe directement à la suite.
+ */
 public class SplashActivity extends AppCompatActivity {
 
-    private static final long SPLASH_DURATION = 4500L;
+    /** Durée avant de passer à l'écran suivant (l'animation est finie vers 1,4 s). */
+    private static final long HOLD_MS = 2300L;
+    /** Sans animations système (économie d'énergie, accessibilité) : on n'attend presque pas. */
+    private static final long HOLD_NO_ANIM_MS = 700L;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable goNext = this::goNext;
+    private AnimatorSet intro;
+    private boolean launched = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,124 +46,77 @@ public class SplashActivity extends AppCompatActivity {
         View withoutLimits = findViewById(R.id.tvWithoutLimits);
         View copyright = findViewById(R.id.tvSplashCopyright);
 
+        // Un toucher n'importe où : on passe tout de suite à la suite.
+        findViewById(android.R.id.content).setOnClickListener(v -> goNext());
+
+        boolean animated = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled();
+        if (!animated) {
+            handler.postDelayed(goNext, HOLD_NO_ANIM_MS);
+            return;
+        }
+
+        float d = getResources().getDisplayMetrics().density;
+
+        head.setAlpha(0f);
+        head.setTranslationY(-48f * d);
+        head.setScaleX(0.92f);
+        head.setScaleY(0.92f);
         intelligence.setAlpha(0f);
+        intelligence.setTranslationY(12f * d);
         withoutLimits.setAlpha(0f);
+        withoutLimits.setTranslationY(12f * d);
         copyright.setAlpha(0f);
 
-        head.setTranslationY(-500f);
-        head.setRotationY(0f);
+        TimeInterpolator out = new DecelerateInterpolator(1.6f);
+        TimeInterpolator soft = new AccelerateDecelerateInterpolator();
 
-        ObjectAnimator drop = ObjectAnimator.ofFloat(
-                head,
-                View.TRANSLATION_Y,
-                -500f,
-                0f
-        );
-        drop.setDuration(1250L);
-        drop.setInterpolator(new DecelerateInterpolator(1.8f));
+        // La tête arrive en douceur puis regarde un peu à gauche et revient au centre.
+        ObjectAnimator headAlpha = anim(head, View.ALPHA, 0, 600, out, 0f, 1f);
+        ObjectAnimator headDrop = anim(head, View.TRANSLATION_Y, 0, 700, out, -48f * d, 0f);
+        ObjectAnimator headScaleX = anim(head, View.SCALE_X, 0, 700, out, 0.92f, 1f);
+        ObjectAnimator headScaleY = anim(head, View.SCALE_Y, 0, 700, out, 0.92f, 1f);
+        ObjectAnimator look = anim(head, View.ROTATION_Y, 500, 850, soft, 0f, -16f, 0f);
 
-        ObjectAnimator settle = ObjectAnimator.ofFloat(
-                head,
-                View.TRANSLATION_Y,
-                0f,
-                8f,
-                0f
-        );
-        settle.setDuration(350L);
-        settle.setInterpolator(new AccelerateDecelerateInterpolator());
+        // Les deux mots montent doucement, l'un après l'autre.
+        ObjectAnimator t1Alpha = anim(intelligence, View.ALPHA, 350, 450, out, 0f, 1f);
+        ObjectAnimator t1Up = anim(intelligence, View.TRANSLATION_Y, 350, 450, out, 12f * d, 0f);
+        ObjectAnimator t2Alpha = anim(withoutLimits, View.ALPHA, 650, 450, out, 0f, 1f);
+        ObjectAnimator t2Up = anim(withoutLimits, View.TRANSLATION_Y, 650, 450, out, 12f * d, 0f);
+        ObjectAnimator cAlpha = anim(copyright, View.ALPHA, 1000, 400, out, 0f, 1f);
 
-        ObjectAnimator lookLeft = ObjectAnimator.ofFloat(
-                head,
-                View.ROTATION_Y,
-                0f,
-                -28f
-        );
-        lookLeft.setDuration(850L);
-        lookLeft.setInterpolator(new AccelerateDecelerateInterpolator());
-
-        ObjectAnimator showIntelligence = ObjectAnimator.ofFloat(
-                intelligence,
-                View.ALPHA,
-                0f,
-                1f
-        );
-        showIntelligence.setDuration(450L);
-
-        ObjectAnimator lookRight = ObjectAnimator.ofFloat(
-                head,
-                View.ROTATION_Y,
-                -28f,
-                28f
-        );
-        lookRight.setDuration(1050L);
-        lookRight.setInterpolator(new AccelerateDecelerateInterpolator());
-
-        ObjectAnimator showWithoutLimits = ObjectAnimator.ofFloat(
-                withoutLimits,
-                View.ALPHA,
-                0f,
-                1f
-        );
-        showWithoutLimits.setDuration(500L);
-
-        ObjectAnimator returnCenter = ObjectAnimator.ofFloat(
-                head,
-                View.ROTATION_Y,
-                28f,
-                0f
-        );
-        returnCenter.setDuration(700L);
-        returnCenter.setInterpolator(new AccelerateDecelerateInterpolator());
-
-        ObjectAnimator showCopyright = ObjectAnimator.ofFloat(
-                copyright,
-                View.ALPHA,
-                0f,
-                1f
-        );
-        showCopyright.setDuration(500L);
-
-        AnimatorSet intro = new AnimatorSet();
-
-        intro.play(drop)
-                .before(settle);
-
-        intro.play(settle)
-                .before(lookLeft);
-
-        intro.play(showIntelligence)
-                .after(lookLeft);
-
-        intro.play(lookRight)
-                .after(showIntelligence);
-
-        intro.play(showWithoutLimits)
-                .after(lookRight);
-
-        intro.play(returnCenter)
-                .after(showWithoutLimits);
-
-        intro.play(showCopyright)
-                .after(returnCenter);
-
+        intro = new AnimatorSet();
+        intro.playTogether(headAlpha, headDrop, headScaleX, headScaleY, look,
+                t1Alpha, t1Up, t2Alpha, t2Up, cAlpha);
         intro.start();
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            FirebaseAuth auth = FirebaseAuth.getInstance();
+        handler.postDelayed(goNext, HOLD_MS);
+    }
 
-            if (auth.getCurrentUser() != null) {
-                startActivity(new Intent(
-                        SplashActivity.this,
-                        MainActivity.class
-                ));
-            } else {
-                startActivity(new Intent(
-                        SplashActivity.this,
-                        AuthWelcomeActivity.class
-                ));
-            }
+    private static ObjectAnimator anim(View v, Property<View, Float> prop, long delay, long duration,
+                                       TimeInterpolator interpolator, float... values) {
+        ObjectAnimator a = ObjectAnimator.ofFloat(v, prop, values);
+        a.setStartDelay(delay);
+        a.setDuration(duration);
+        a.setInterpolator(interpolator);
+        return a;
+    }
 
-            finish();
-        }, SPLASH_DURATION);
+    private void goNext() {
+        if (launched || isFinishing() || isDestroyed()) return;
+        launched = true;
+        handler.removeCallbacks(goNext);
+
+        boolean signedIn = FirebaseAuth.getInstance().getCurrentUser() != null;
+        startActivity(new Intent(this, signedIn ? MainActivity.class : AuthWelcomeActivity.class));
+        finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    @Override
+    protected void onDestroy() {
+        // Plus de minuteur ni d'animation après la fermeture : évite un double lancement si l'écran est recréé.
+        handler.removeCallbacks(goNext);
+        if (intro != null) intro.cancel();
+        super.onDestroy();
     }
 }
