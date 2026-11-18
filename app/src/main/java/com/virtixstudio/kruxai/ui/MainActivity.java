@@ -132,7 +132,7 @@ private String selectedFileContent = "";
 
     private boolean isLearningMode = false;
     private boolean isDeepSearchEnabled = true;
-    private boolean isThinkingMode = true;
+    private boolean isThinkingMode = false; // raisonnement autonome : plus de bouton, Krux décide seul
     private String currentSessionId;
     private boolean isGenerating = false;
     private KruxState kruxState = KruxState.IDLE;
@@ -2627,7 +2627,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
         if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
-        if (isThinkingMode) optThinking.setText(" Mode Réflexion [ACTIF]");
+        optThinking.setVisibility(android.view.View.GONE);
 
         optLearning.setOnClickListener(v -> {
             isLearningMode = !isLearningMode;
@@ -2637,11 +2637,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         optDeepSearch.setOnClickListener(v -> {
             isDeepSearchEnabled = !isDeepSearchEnabled;
             Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Activée" : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        optThinking.setOnClickListener(v -> {
-            isThinkingMode = !isThinkingMode;
             dialog.dismiss();
         });
 
