@@ -3834,6 +3834,19 @@ private final ActivityResultLauncher<String[]> filePicker =
                 startActivity(new Intent(MainActivity.this, StudioActivity.class));
             });
         }
+        View navMyApps = findViewById(R.id.navMyApps), navFiles = findViewById(R.id.navFiles);
+        if (navMyApps != null) {
+            navMyApps.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(MainActivity.this, MyAppsActivity.class));
+            });
+        }
+        if (navFiles != null) {
+            navFiles.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(MainActivity.this, FilesActivity.class));
+            });
+        }
         if (navCustomize != null) {
             navCustomize.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);

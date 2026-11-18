@@ -73,6 +73,7 @@
         </provider>
 
         <activity android:name=".ui.MyAppsActivity" android:exported="false" />
+        <activity android:name=".ui.FilesActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.MemoryActivity" android:exported="false" />
         <activity android:name=".ui.HtmlPreviewActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
