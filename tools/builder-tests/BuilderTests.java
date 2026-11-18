@@ -116,6 +116,18 @@ public class BuilderTests {
         f = copy(good()); f.put("app/src/main/res/layout/activity_main.xml", f.get("app/src/main/res/layout/activity_main.xml").replace("</LinearLayout>", "<com.bumptech.glide.Foo/></LinearLayout>"));
         check("vue bibliothèque absente", has(BuildValidator.validate(f), "com.bumptech.glide.Foo"));
 
+        f = copy(good()); f.put(J + "MainActivity.java", f.get(J + "MainActivity.java").replace("import android.os.Bundle;",
+            "import androidx.viewpager2.widget.ViewPager2;\nimport androidx.cardview.widget.CardView;\nimport androidx.coordinatorlayout.widget.CoordinatorLayout;\nimport android.os.Bundle;"));
+        check("ViewPager2, CardView, CoordinatorLayout autorisés (import)", !has(BuildValidator.validate(f), "bibliothèque non disponible"));
+
+        f = copy(good()); f.put("app/src/main/res/layout/activity_main.xml", f.get("app/src/main/res/layout/activity_main.xml").replace("</LinearLayout>",
+            "<androidx.cardview.widget.CardView android:layout_width=\"match_parent\" android:layout_height=\"wrap_content\"/>"
+            + "<androidx.viewpager2.widget.ViewPager2 android:layout_width=\"match_parent\" android:layout_height=\"wrap_content\"/></LinearLayout>"));
+        check("CardView et ViewPager2 autorisés (vue XML)", !has(BuildValidator.validate(f), "bibliothèque non disponible"));
+
+        f = copy(good()); f.put(J + "MainActivity.java", f.get(J + "MainActivity.java").replace("import android.os.Bundle;", "import com.github.mikephil.charting.charts.LineChart;\nimport android.os.Bundle;"));
+        check("bibliothèque de graphiques toujours refusée", has(BuildValidator.validate(f), "com.github.mikephil.charting"));
+
         f = copy(good()); f.put("app/src/main/res/layout/activity_main.xml", "<LinearLayout><TextView></LinearLayout>");
         check("XML invalide", has(BuildValidator.validate(f), "XML invalide"));
 

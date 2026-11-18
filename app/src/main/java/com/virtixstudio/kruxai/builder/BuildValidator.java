@@ -151,7 +151,10 @@ public final class BuildValidator {
     private static final String[] ALLOWED_IMPORTS = {
         "java.", "javax.", "android.", "androidx.appcompat.", "androidx.recyclerview.", "androidx.constraintlayout.",
         "androidx.core.", "androidx.annotation.", "androidx.activity.", "androidx.fragment.", "androidx.lifecycle.",
-        "com.google.android.material.", "org.json.", "org.w3c.", "org.xml.", PKG + "."
+        "com.google.android.material.", "org.json.", "org.w3c.", "org.xml.", PKG + ".",
+        // fournis par Material (dépendances de compilation) : aucun ajout dans gradle
+        "androidx.cardview.", "androidx.coordinatorlayout.", "androidx.drawerlayout.", "androidx.viewpager2.",
+        "androidx.transition.", "androidx.vectordrawable.", "androidx.dynamicanimation."
     };
 
     /** Classes courantes : nom simple -> nom complet (sert à ajouter les imports oubliés). */
@@ -549,7 +552,7 @@ public final class BuildValidator {
                 if (!ok) bad.add(tag);
             }
             for (String b : bad)
-                problems.add(path + " utilise la vue " + b + " : bibliothèque non disponible (seuls appcompat, material, recyclerview, constraintlayout existent)");
+                problems.add(path + " utilise la vue " + b + " : bibliothèque non disponible (seuls appcompat, material et ses composants CardView/CoordinatorLayout/DrawerLayout/ViewPager2, recyclerview, constraintlayout existent)");
         }
 
         // ---- manifeste
