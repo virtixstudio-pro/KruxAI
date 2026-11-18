@@ -42,6 +42,8 @@ public class AppBuilder {
         default void onFile(String path, int bytes, boolean fixed) {}
         /** Montre la maquette (HTML déjà nettoyé) ; vrai = continuer la création, faux = annuler. */
         default boolean confirmPreview(String html) { return true; }
+        /** Note de Krux pour l'utilisateur (icône à fournir, base de données…), à montrer à la fin de la création. */
+        default void onNote(String note) {}
     }
 
     /** Refus volontaire de l'IA ou de la politique : inutile de réessayer. */
@@ -464,6 +466,21 @@ public class AppBuilder {
                     current = new LinkedHashMap<>(saved.files);
                     web = current.containsKey(WebBuilder.ENTRY);
                 } else {
+                    // Mode agent : Krux se pose des questions à lui-même (assets/AGENT.md) avant d'écrire du code.
+                    l.onStatus("Réflexion : je prépare le concept de ton application…");
+                    String agentGuidance = "";
+                    try {
+                        com.virtixstudio.kruxai.builder.AgentBrief.Brief brief = com.virtixstudio.kruxai.builder.AgentBrief.parse(
+                            gen.generate(com.virtixstudio.kruxai.builder.AgentBrief.systemPrompt(),
+                                com.virtixstudio.kruxai.builder.AgentBrief.userPrompt(description)));
+                        if (brief != null) {
+                            agentGuidance = " " + brief.guidance();
+                            String note = brief.userNote();
+                            if (!note.isEmpty()) l.onNote(note);
+                        }
+                    } catch (Exception ignored) {
+                        // la réflexion est un plus : sans elle, la génération se fait comme avant
+                    }
                     l.onStatus("Génération du code…");
                     com.virtixstudio.kruxai.builder.DesignDirection direction = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random());
                     String design = web ? direction.toWebPrompt() : direction.toPrompt();
@@ -476,7 +493,7 @@ public class AppBuilder {
                         seed.files.putAll(part.files);
                         l.onStatus("Reprise : " + seed.files.size() + " fichier(s) déjà écrit(s) retrouvé(s), je demande la suite…");
                     }
-                    Parsed p = generateParsed(gen, (web ? WebBuilder.systemPrompt(s) : systemPrompt(s)) + " " + design, description, true, s, l, web,
+                    Parsed p = generateParsed(gen, (web ? WebBuilder.systemPrompt(s) : systemPrompt(s)) + " " + design + agentGuidance, description, true, s, l, web,
                         seed, pp -> BuildCheckpoint.save(partialDir, description, pp.name, pp.files, System.currentTimeMillis()));
                     BuildCheckpoint.clear(partialDir);
 

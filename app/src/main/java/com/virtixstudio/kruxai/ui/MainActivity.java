@@ -2297,6 +2297,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         });
 
         final boolean[] consumed = {false};
+        final String[] agentNote = {""};
         java.io.File outDir = getExternalFilesDir("generated");
         final java.io.File modSrc = modifyFrom;
         modifyFrom = null;
@@ -2323,6 +2324,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         runOnUiThread(() -> setBuildMode(true));
 
         com.virtixstudio.kruxai.core.KruxConfig.init(getApplicationContext());
+        com.virtixstudio.kruxai.builder.AgentBrief.setPlaybook(readAssetText("AGENT.md"));
         AppBuilder.run(token, desc, outDir, modSrc,
                 (system, prompt) -> {
                     final String[] out = new String[2];
@@ -2374,7 +2376,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onStatus(final String status) {
                         String t = null;
-                        if (status.startsWith("Génération")) t = "J'écris ton application…";
+                        if (status.startsWith("Réflexion")) t = "Je réfléchis à ton application…";
+                        else if (status.startsWith("Génération")) t = "J'écris ton application…";
                         else if (status.startsWith("Vérification")) t = "Je vérifie le code…";
                         else if (status.startsWith("Création") || status.startsWith("Envoi")) t = "J'envoie le code sur les serveurs Virtix Studio…";
                         else if (status.startsWith("Build échoué") || status.startsWith("Correction")) t = "Je corrige les erreurs…";
@@ -2385,6 +2388,11 @@ private final ActivityResultLauncher<String[]> filePicker =
                                 ? "Création du projet…"
                                 : status.replace("sur GitHub", "sur les serveurs Virtix Studio").replace("GitHub", "Virtix Studio"));
                         refresh.run();
+                    }
+
+                    @Override
+                    public void onNote(final String note) {
+                        agentNote[0] = note == null ? "" : note;
                     }
 
                     @Override
@@ -2518,7 +2526,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                     public void onDone(final java.io.File apk, final String repoUrl) {
                         endBuild.run();
                         progress.finish("Ton application est prête",
-                                "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps.");
+                                "Android va te proposer de l'installer. Retrouve-la plus tard dans Paramètres, puis Mes apps."
+                                + (agentNote[0].isEmpty() ? "" : "\n\n" + agentNote[0]));
                         refresh.run();
                         runOnUiThread(() -> {
                             // seule une application réellement compilée compte dans le quota de la semaine
@@ -4357,6 +4366,19 @@ private final ActivityResultLauncher<String[]> filePicker =
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Impossible de lire cette photo", Toast.LENGTH_SHORT).show());
             }
         }, "krux-image").start();
+    }
+
+    /** Lit un fichier texte de assets/ ; chaîne vide si absent (Krux garde alors ses règles intégrées). */
+    private String readAssetText(String name) {
+        try (java.io.InputStream in = getAssets().open(name)) {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int n;
+            while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+            return new String(bos.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void handleSelectedFile(Uri uri) {
