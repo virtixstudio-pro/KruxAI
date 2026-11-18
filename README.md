@@ -33,6 +33,15 @@ Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 18 novembre
 - **Activation** : `"web": true` dans `build` de `assets/krux_config.json` (défaut `false`). Une modification ou une reprise suit le mode de l'app d'origine (présence de `src/main.tsx`). Les apps Java existantes ne changent pas.
 - **Testé** (hors téléphone) : `npm install`, `tsc` et esbuild sur l'app d'exemple, rendu dans jsdom, 26 vérifications de la logique avec un faux générateur d'IA, compilation d'`AppBuilder` avec des stubs `org.json` et Android.
 - **Non testé** : le `MainActivity` de la coque (non compilé), la CSP de `index.html`, l'envoi GitHub et le build Actions réels, tout ce qui se passe sur téléphone.
+
+## Mode web (React + TypeScript), en cours
+
+- **Pourquoi** : la création d'apps en Java coûte 4 à 5 fois plus de tokens et de requêtes (code verbeux, erreurs de compilation, chaque essai passe par GitHub Actions). Les autres générateurs d'apps utilisent TSX, TS ou React.
+- **Principe** : l'IA n'écrit que `src/*.tsx`, `src/*.ts`, `src/*.css`. KRUX fournit le reste : coque Android fixe avec WebView (pont `window.Krux` : `toast`, `share`, `copy`, `vibrate`), `package.json` (React 19.3.1, esbuild 0.28.2, TypeScript 5.9.3), `tsconfig.json`, `src/krux.d.ts` et le workflow `npm install`, `tsc --noEmit`, esbuild, puis Gradle. Aucun autre paquet que `react` et `react-dom`.
+- **Code** : `builder/WebTemplates.java` (coque, workflow, app d'exemple), `builder/WebBuilder.java` (prompts, chemins, politique de sécurité, vérification locale gratuite), `AppBuilder` (paramètre `web`).
+- **Activation** : `"web": true` dans `build` de `assets/krux_config.json` (défaut `false`). Une modification ou une reprise suit le mode de l'app d'origine (présence de `src/main.tsx`). Les apps Java existantes ne changent pas.
+- **Testé** (hors téléphone) : `npm install`, `tsc` et esbuild sur l'app d'exemple, rendu dans jsdom, 26 vérifications de la logique avec un faux générateur d'IA, compilation d'`AppBuilder` avec des stubs `org.json` et Android.
+- **Non testé** : le `MainActivity` de la coque (non compilé), la CSP de `index.html`, l'envoi GitHub et le build Actions réels, tout ce qui se passe sur téléphone.
 - **Apps modifiables et réflexion** : bouton **Modifier** dans « Mes apps », palette imposée vérifiée, étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion, seulement quand la relecture a lieu (`AnswerCheck.Hook`).
 
 ## Patchs prêts, à appliquer dans cet ordre
@@ -49,15 +58,15 @@ Légende : [ ] à faire, [~] en cours. Un patch à la fois, README mis à jour �
 
 ### 1. Petits correctifs qui se voient tout de suite
 1. [ ] **Reprise là où Krux s'est arrêté** : si une réponse ou une création d'app est coupée ou stoppée, il continue au point d'arrêt au lieu de recommencer (s'appuyer sur `BuildCheckpoint` et `completeTruncated`).
-3. [x] **Date et heure** : Krux lit l'heure et la date de l'appareil (ajout dans `SystemPromptBuilder`), pour répondre à « quelle heure est-il ? » et ne plus se tromper sur « aujourd'hui ».
-4. [x] **Vrai raisonnement, moins de questions** : fini les « peux-tu préciser… » à répétition. Krux répond d'abord avec une hypothèse annoncée en une ligne ; au plus une question, et seulement s'il est vraiment bloqué. Prompt système plus court, étape de plan réelle, grands modèles en premier.
-5. [x] **Réflexion en haut du message**, comme chez Claude : la ligne grise est au-dessus de la réponse (vérifier `ChatAdapter.setupReasoning`), étapes réelles seulement.
-6. [ ] **Cartes d'images en haut du chat** : miniature de l'image, bouton **Modifier** (recadrer ou remplacer), croix pour la retirer, **2 images au maximum par message**.
-7. [ ] **Sélecteur de modèles plus agréable** : petite fenêtre compacte qui se déroule comme un parchemin, au lieu d'un grand carré plein écran ; liste qui défile car il y a plus de modèles à afficher ; couleurs du thème, badge PETIT/GRAND, description courte (`showKruxModelSelector`).
+4. [x] **Date et heure** : Krux lit l'heure et la date de l'appareil (ajout dans `SystemPromptBuilder`), pour répondre à « quelle heure est-il ? » et ne plus se tromper sur « aujourd'hui ».
+5. [x] **Vrai raisonnement, moins de questions** : fini les « peux-tu préciser… » à répétition. Krux répond d'abord avec une hypothèse annoncée en une ligne ; au plus une question, et seulement s'il est vraiment bloqué. Prompt système plus court, étape de plan réelle, grands modèles en premier.
+6. [x] **Réflexion en haut du message**, comme chez Claude : la ligne grise est au-dessus de la réponse (vérifier `ChatAdapter.setupReasoning`), étapes réelles seulement.
+7. [ ] **Cartes d'images en haut du chat** : miniature de l'image, bouton **Modifier** (recadrer ou remplacer), croix pour la retirer, **2 images au maximum par message**.
+8. [ ] **Sélecteur de modèles plus agréable** : petite fenêtre compacte qui se déroule comme un parchemin, au lieu d'un grand carré plein écran ; liste qui défile car il y a plus de modèles à afficher ; couleurs du thème, badge PETIT/GRAND, description courte (`showKruxModelSelector`).
 
 ### 2. Création d'apps
-8. [ ] **Erreur « L'IA n'a pas produit de code exploitable »** (revient tout le temps) : à confirmer avec la phrase complète après les deux-points. Cause probable : un seul gros JSON avec tous les fichiers, fragile. Remède : blocs `=== chemin ===` suivis du code, en plusieurs passes (plan et écrans, fichiers par lots, relecture) dans `AppBuilder.generateParsed`.
-9. [ ] **Pauses anti-saturation** : espacer les appels par fournisseur (erreurs 429) et remplacer « Ce moteur est saturé, je passe sur un autre… » par « Je prends une courte pause… ».
+9. [ ] **Erreur « L'IA n'a pas produit de code exploitable »** (revient tout le temps) : à confirmer avec la phrase complète après les deux-points. Cause probable : un seul gros JSON avec tous les fichiers, fragile. Remède : blocs `=== chemin ===` suivis du code, en plusieurs passes (plan et écrans, fichiers par lots, relecture) dans `AppBuilder.generateParsed`.
+10. [ ] **Pauses anti-saturation** : espacer les appels par fournisseur (erreurs 429) et remplacer « Ce moteur est saturé, je passe sur un autre… » par « Je prends une courte pause… ».
 10. [ ] **Clé de signature stable par app** : sans elle, une app modifiée ne peut pas remplacer l'ancienne, et pas d'AAB pour Google Play.
 10. [ ] **Reprise d'apps** : le bouton **Modifier** existe déjà dans « Mes apps ». Reste à vérifier et ajouter le **zip du code source à côté de l'APK** (aucun code de zip trouvé pour l'instant).
 11. [ ] **Nouveau mode « Web / React Native »** (inspiré de Snapp AI) : projets en TypeScript, TSX, JS ; aperçu en direct dans l'app (compilateur TSX embarqué + react-native-web dans une WebView, proche du rendu final mais pas identique à Android) ; éditeur de code ; modification par chat. Livraison : **APK** et **AAB** par GitHub Actions. **iOS** : export du code source seulement, car l'installation sur iPhone demande un compte Apple Developer payant avec carte.
@@ -88,4 +97,5 @@ Le Worker `worker/ai-proxy` est prêt mais **pas déployé** : variable `FIREBAS
 - Les apps générées n'ont pas été testées sur téléphone par Krux : l'aperçu et la compilation donnent un APK, pas une garantie de qualité.
 - Mistral (offre gratuite « Experiment ») peut entraîner sur les données : vérifier avant d'affirmer le contraire dans la page de confidentialité.
 - Hugging Face non testé (inférence gratuite capricieuse).
+- Le mode web (React/TSX) n'a jamais été lancé sur téléphone ni sur un vrai build GitHub (voir « Mode web »). En mode web, coller aussi les lignes `error TS` quand la CI échoue.
 - Le mode web (React/TSX) n'a jamais été lancé sur téléphone ni sur un vrai build GitHub (voir « Mode web »). En mode web, coller aussi les lignes `error TS` quand la CI échoue.
