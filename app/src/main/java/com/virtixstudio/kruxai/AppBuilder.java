@@ -268,10 +268,23 @@ public class AppBuilder {
 
     // ------------------------------------------------------------------ génération avec reprises
 
-    /** Appelle l'IA ; réessaie si le réseau, le quota ou le JSON coupé font échouer. Les refus ne sont pas réessayés. */
+    /** Reçoit les fichiers déjà écrits dès qu'une réponse est coupée (pour les garder si tout s'arrête). */
+    interface PartialSink { void keep(Parsed partial); }
+
     static Parsed generateParsed(Generator gen, String system, String prompt, boolean full, BuildSpec s, Listener l, boolean web) throws Exception {
+        return generateParsed(gen, system, prompt, full, s, l, web, null, null);
+    }
+
+    /**
+     * Appelle l'IA ; réessaie si le réseau, le quota ou le JSON coupé font échouer. Les refus ne sont pas réessayés.
+     * Les fichiers déjà reçus (réponse coupée, ou "seed" retrouvé sur le disque) sont conservés d'un essai à l'autre :
+     * on ne redemande que ceux qui manquent au lieu de tout recommencer.
+     */
+    static Parsed generateParsed(Generator gen, String system, String prompt, boolean full, BuildSpec s, Listener l, boolean web,
+                                 Parsed seed, PartialSink sink) throws Exception {
         Exception last = null;
         String p = prompt;
+        Parsed carry = (seed != null && !seed.files.isEmpty()) ? seed : null;
         for (int attempt = 0; attempt <= s.generateRetries; attempt++) {
             if (attempt > 0) {
                 l.onStatus("Génération du code (nouvel essai " + (attempt + 1) + "/" + (s.generateRetries + 1) + ")…");
@@ -279,11 +292,18 @@ public class AppBuilder {
             }
             try {
                 Parsed r;
-                try {
-                    r = parse(gen.generate(system, p), full, s, web);
-                } catch (Truncated t) {
-                    r = completeTruncated(gen, system, prompt, t.partial, full, s, l, web);
+                if (carry != null) {
+                    r = completeTruncated(gen, system, prompt, carry, full, s, l, web, sink);
+                } else {
+                    try {
+                        r = parse(gen.generate(system, p), full, s, web);
+                    } catch (Truncated t) {
+                        carry = t.partial;
+                        if (sink != null) sink.keep(carry);
+                        r = completeTruncated(gen, system, prompt, carry, full, s, l, web, sink);
+                    }
                 }
+                checkRequired(r, full, web);
                 if (full) { if (web) checkWebPolicy(r.files, s); else checkPolicy(r.files, s); }
                 return r;
             } catch (Refusal r) {
@@ -298,9 +318,21 @@ public class AppBuilder {
         throw new Exception("L'IA n'a pas produit de code exploitable : " + (last == null ? "?" : last.getMessage()));
     }
 
+    /** Après une reprise, la liste de fichiers doit contenir le point d'entrée obligatoire. */
+    private static void checkRequired(Parsed r, boolean full, boolean web) throws Exception {
+        if (!full) return;
+        if (web && !r.files.containsKey(WebBuilder.ENTRY)) throw new Exception("src/main.tsx manquant");
+        if (!web && !r.files.containsKey(BuildValidator.MANIFEST)) throw new Exception("AndroidManifest.xml manquant");
+    }
+
     /** La réponse a été coupée : on redemande uniquement les fichiers qui manquent, jusqu'à 3 fois, et on assemble. */
     static Parsed completeTruncated(Generator gen, String system, String prompt, Parsed partial, boolean full,
                                     BuildSpec s, Listener l, boolean web) throws Exception {
+        return completeTruncated(gen, system, prompt, partial, full, s, l, web, null);
+    }
+
+    static Parsed completeTruncated(Generator gen, String system, String prompt, Parsed partial, boolean full,
+                                    BuildSpec s, Listener l, boolean web, PartialSink sink) throws Exception {
         for (int round = 0; round < 3; round++) {
             l.onStatus("La réponse de l'IA était coupée, je demande la suite (" + (round + 1) + "/3)…");
             StringBuilder have = new StringBuilder();
@@ -312,10 +344,12 @@ public class AppBuilder {
             try {
                 Parsed more = parse(raw, false, s, web);
                 partial.files.putAll(more.files);
+                if (sink != null) sink.keep(partial);
                 return partial;
             } catch (Truncated t2) {
                 int before = partial.files.size();
                 partial.files.putAll(t2.partial.files);
+                if (sink != null) sink.keep(partial);
                 if (partial.files.size() == before) throw new Exception("réponse coupée sans rien de nouveau");
             }
         }
@@ -401,7 +435,18 @@ public class AppBuilder {
                     l.onStatus("Génération du code…");
                     com.virtixstudio.kruxai.builder.DesignDirection direction = com.virtixstudio.kruxai.builder.DesignDirection.pick(new java.util.Random());
                     String design = web ? direction.toWebPrompt() : direction.toPrompt();
-                    Parsed p = generateParsed(gen, (web ? WebBuilder.systemPrompt(s) : systemPrompt(s)) + " " + design, description, true, s, l, web);
+                    final File partialDir = new File(outDir, "partial");
+                    BuildCheckpoint.Saved part = BuildCheckpoint.load(partialDir, description, System.currentTimeMillis());
+                    Parsed seed = null;
+                    if (part != null && !part.files.isEmpty()) {
+                        seed = new Parsed();
+                        seed.name = part.name;
+                        seed.files.putAll(part.files);
+                        l.onStatus("Reprise : " + seed.files.size() + " fichier(s) déjà écrit(s) retrouvé(s), je demande la suite…");
+                    }
+                    Parsed p = generateParsed(gen, (web ? WebBuilder.systemPrompt(s) : systemPrompt(s)) + " " + design, description, true, s, l, web,
+                        seed, pp -> BuildCheckpoint.save(partialDir, description, pp.name, pp.files, System.currentTimeMillis()));
+                    BuildCheckpoint.clear(partialDir);
 
                     // Réparations automatiques puis vérification locale (aucun quota GitHub utilisé)
                     l.onStatus("Vérification du code…");
