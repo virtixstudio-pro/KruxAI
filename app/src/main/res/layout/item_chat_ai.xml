@@ -35,12 +35,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/messageContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical" />
-
-    <LinearLayout
         android:id="@+id/layoutReasoning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -94,6 +88,12 @@
             android:visibility="gone" />
 
     </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/messageContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
 
     <LinearLayout
         android:id="@+id/layoutFiles"
