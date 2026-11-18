@@ -125,6 +125,23 @@ public class ApiClient {
         nextImage = (jpegBase64 == null || jpegBase64.isEmpty()) ? null : jpegBase64;
     }
 
+    /** Plusieurs images : bout à bout, séparées par un saut de ligne (le base64 sans retour n'en contient jamais). */
+    public static void attachNextImages(java.util.List<String> jpegsBase64) {
+        StringBuilder sb = new StringBuilder();
+        if (jpegsBase64 != null) {
+            for (String s : jpegsBase64) {
+                if (s == null || s.isEmpty()) continue;
+                if (sb.length() > 0) sb.append('\n');
+                sb.append(s);
+            }
+        }
+        nextImage = sb.length() == 0 ? null : sb.toString();
+    }
+
+    private static String[] imagesOf(String joined) {
+        return joined == null ? new String[0] : joined.split("\n");
+    }
+
     private static boolean readsImages(KruxModel m) {
         String p = m.getProvider();
         return "GEMINI".equals(p) || "MISTRAL".equals(p);
@@ -638,8 +655,10 @@ public class ApiClient {
         } else {
             JSONArray userParts = new JSONArray();
             userParts.put(new JSONObject().put("type", "text").put("text", userMessage));
-            userParts.put(new JSONObject().put("type", "image_url")
-                    .put("image_url", new JSONObject().put("url", "data:image/jpeg;base64," + img)));
+            for (String one : imagesOf(img)) {
+                userParts.put(new JSONObject().put("type", "image_url")
+                        .put("image_url", new JSONObject().put("url", "data:image/jpeg;base64," + one)));
+            }
             messages.put(new JSONObject().put("role", "user").put("content", userParts));
         }
 
@@ -774,8 +793,10 @@ public class ApiClient {
 
         String geminiImage = IMAGE.get();
         if (geminiImage != null) {
-            parts.put(new JSONObject().put("inlineData",
-                    new JSONObject().put("mimeType", "image/jpeg").put("data", geminiImage)));
+            for (String one : imagesOf(geminiImage)) {
+                parts.put(new JSONObject().put("inlineData",
+                        new JSONObject().put("mimeType", "image/jpeg").put("data", one)));
+            }
         }
 
         content.put("parts", parts);

@@ -31,13 +31,18 @@ import java.util.Locale;
  */
 public final class AttachmentStrip extends HorizontalScrollView {
 
-    public interface Listener { void onRemove(Item item); }
+    public interface Listener {
+        void onRemove(Item item);
+        /** Bouton « Modifier » d'une photo (remplacer, pivoter, rogner). */
+        default void onEdit(Item item) { }
+    }
 
     public static final class Item {
         public final String name;
         public final String detail;     // ex. « TXT · 12 Ko » (peut être vide)
         public final Bitmap thumb;      // null pour un fichier
         public final Object tag;        // libre : l'appelant retrouve ainsi sa pièce jointe
+        public boolean editable = false; // true : la carte affiche un bouton « Modifier »
 
         public Item(String name, String detail, Bitmap thumb, Object tag) {
             this.name = name == null ? "" : name;
@@ -161,6 +166,27 @@ public final class AttachmentStrip extends HorizontalScrollView {
         x.setOnClickListener(v -> { if (listener != null) listener.onRemove(it); });
         FrameLayout.LayoutParams xp = new FrameLayout.LayoutParams((int) (24 * d), (int) (24 * d), Gravity.TOP | Gravity.END);
         wrap.addView(x, xp);
+
+        if (it.editable) {
+            TextView edit = new TextView(c);
+            edit.setText("Modifier");
+            edit.setTextColor(0xFFFFFFFF);
+            edit.setTextSize(11);
+            edit.setTypeface(Typeface.DEFAULT_BOLD);
+            edit.setGravity(Gravity.CENTER);
+            edit.setPadding((int) (8 * d), (int) (3 * d), (int) (8 * d), (int) (3 * d));
+            GradientDrawable eb = new GradientDrawable();
+            eb.setColor(0xB3000000);
+            eb.setCornerRadius(12 * d);
+            edit.setBackground(eb);
+            edit.setContentDescription("Modifier la photo");
+            edit.setOnClickListener(v -> { if (listener != null) listener.onEdit(it); });
+            FrameLayout.LayoutParams ep = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+            ep.leftMargin = (int) (5 * d);
+            ep.bottomMargin = (int) (5 * d);
+            wrap.addView(edit, ep);
+        }
         return wrap;
     }
 

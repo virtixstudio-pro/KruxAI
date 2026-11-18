@@ -39,7 +39,15 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-        KruxTheme.apply(this);
+
+        // Écran de marque : toujours noir, quel que soit le thème choisi (la tête a des parties blanches et noires).
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xFF000000));
+        getWindow().setStatusBarColor(0xFF000000);
+        getWindow().setNavigationBarColor(0xFF000000);
+        androidx.core.view.WindowInsetsControllerCompat bars =
+                androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        bars.setAppearanceLightStatusBars(false);
+        bars.setAppearanceLightNavigationBars(false);
 
         View head = findViewById(R.id.kruxSplashHead);
         View intelligence = findViewById(R.id.tvIntelligence);

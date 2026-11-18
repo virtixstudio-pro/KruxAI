@@ -141,8 +141,11 @@ private String selectedFileContent = "";
     private TextView tvKruxStatus;
     private TextView tvWelcomeTitle, tvWelcomeSubtitle;
 
-private String selectedImageB64 = "";
-private String pendingRequestImage = "";
+private static final int MAX_IMAGES = 2;
+private final java.util.ArrayList<String> selectedImagesB64 = new java.util.ArrayList<>();
+private final java.util.ArrayList<android.graphics.Bitmap> selectedThumbs = new java.util.ArrayList<>();
+private java.util.List<String> pendingRequestImages = new java.util.ArrayList<>();
+private int replaceImageIndex = -1;
 private android.net.Uri cameraUri;
 
 private final ActivityResultLauncher<String> imagePicker =
@@ -155,6 +158,18 @@ private final ActivityResultLauncher<android.net.Uri> cameraLauncher =
         registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 ok -> { if (ok != null && ok && cameraUri != null) handleSelectedImage(cameraUri); }
+        );
+
+private final ActivityResultLauncher<String> imageReplacePicker =
+        registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> { if (uri != null) handleSelectedImage(uri, replaceImageIndex); replaceImageIndex = -1; }
+        );
+
+private final ActivityResultLauncher<android.net.Uri> cameraReplaceLauncher =
+        registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                ok -> { if (ok != null && ok && cameraUri != null) handleSelectedImage(cameraUri, replaceImageIndex); replaceImageIndex = -1; }
         );
 
 private final ActivityResultLauncher<String[]> filePicker =
@@ -402,7 +417,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         btnSend.setOnClickListener(v -> {
             if (isGenerating) {
                 ApiClient.cancelCurrentRequest();
-            } else if (etInput.getText().toString().trim().isEmpty() && !selectedImageB64.isEmpty()) {
+            } else if (etInput.getText().toString().trim().isEmpty() && !selectedImagesB64.isEmpty()) {
                 etInput.setText("Que vois-tu sur cette image ?");
                 sendMessage();
             } else if (etInput.getText().toString().trim().isEmpty()) {
@@ -1462,9 +1477,16 @@ private final ActivityResultLauncher<String[]> filePicker =
         final String fileNameForRequest = selectedFileName;
         final String fileContentForRequest = selectedFileContent;
 
-        final boolean withPhoto = !selectedImageB64.isEmpty();
-        if (withPhoto) { pendingRequestImage = selectedImageB64; selectedImageB64 = ""; refreshSendIcon(); }
-        ChatMessage userMessage = new ChatMessage((withPhoto ? "📷 Photo jointe\n" : "") + prompt, true);
+        final boolean withPhoto = !selectedImagesB64.isEmpty();
+        final int photoCount = selectedImagesB64.size();
+        if (withPhoto) {
+            pendingRequestImages = new java.util.ArrayList<>(selectedImagesB64);
+            selectedImagesB64.clear();
+            selectedThumbs.clear();
+            refreshAttachmentStrip();
+            refreshSendIcon();
+        }
+        ChatMessage userMessage = new ChatMessage((withPhoto ? (photoCount > 1 ? "📷 " + photoCount + " photos jointes\n" : "📷 Photo jointe\n") : "") + prompt, true);
         saveMessageToDatabase(userMessage);
         handleMemoryCommands(prompt);
         updateWelcomePanel();
@@ -1942,10 +1964,10 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         // Analyse préalable de la demande (seulement si elle le mérite), puis envoi avec les consignes.
         ApiClient.beginPending(kruxCallback);
-        final String imageB64 = pendingRequestImage;
-        pendingRequestImage = "";
-        final boolean withImage = !imageB64.isEmpty();
-        if (withImage) kruxStep(aiMessage, "Lecture de ta photo");
+        final java.util.List<String> imagesB64 = pendingRequestImages;
+        pendingRequestImages = new java.util.ArrayList<>();
+        final boolean withImage = !imagesB64.isEmpty();
+        if (withImage) kruxStep(aiMessage, imagesB64.size() > 1 ? "Lecture de tes photos" : "Lecture de ta photo");
         else if (com.virtixstudio.kruxai.core.Reflection.worthAnalyzing(userPrompt, fileContent != null && !fileContent.trim().isEmpty(), isThinkingMode))
             kruxStep(aiMessage, "Analyse de ta demande");
         final com.virtixstudio.kruxai.core.Reflection.Ready ready =
@@ -1963,7 +1985,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                                         @Override public void onChecking() { kruxStep(aiMessage, "Vérification de la réponse"); }
                                         @Override public void onRevising() { kruxStep(aiMessage, "Correction de la réponse"); }
                                     });
-                    if (withImage) ApiClient.attachNextImage(imageB64);
+                    if (withImage) ApiClient.attachNextImages(imagesB64);
                     ApiClient.sendRequest(selectedKruxModel, fullSystem, fullUser, target);
                 };
         // Avec une photo : ni analyse préalable ni relecture (elles ne voient pas l'image), envoi direct.
@@ -3491,29 +3513,127 @@ private final ActivityResultLauncher<String[]> filePicker =
         KruxTheme.skin(dialog, this);
     }
 
-    /** Pièce jointe affichée au-dessus du champ de saisie (carte arrondie avec une croix). */
+    /** Pièce jointe fichier : la bande montre aussi les photos choisies. */
     private void showFileAttachment(String name, int chars) {
-        if (attachmentStrip == null) {
-            android.view.ViewGroup composer = findViewById(R.id.composerBar);
-            if (composer == null) return;
-            attachmentStrip = new AttachmentStrip(this);
-            attachmentStrip.setVisibility(android.view.View.GONE);
-            attachmentStrip.setListener(item -> {
-                selectedFileName = "";
-                selectedFileContent = "";
-                hideAttachmentStrip();
-                attachmentStrip.clear();
-            });
-            composer.addView(attachmentStrip, 0, new android.widget.LinearLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
-        }
+        refreshAttachmentStrip();
+    }
+
+    private void ensureAttachmentStrip() {
+        if (attachmentStrip != null) return;
+        android.view.ViewGroup composer = findViewById(R.id.composerBar);
+        if (composer == null) return;
+        attachmentStrip = new AttachmentStrip(this);
+        attachmentStrip.setVisibility(android.view.View.GONE);
+        attachmentStrip.setListener(new AttachmentStrip.Listener() {
+            @Override public void onRemove(AttachmentStrip.Item item) {
+                if (item.tag instanceof Integer) {
+                    int i = (Integer) item.tag;
+                    if (i >= 0 && i < selectedImagesB64.size()) {
+                        selectedImagesB64.remove(i);
+                        if (i < selectedThumbs.size()) selectedThumbs.remove(i);
+                    }
+                } else {
+                    selectedFileName = "";
+                    selectedFileContent = "";
+                }
+                refreshAttachmentStrip();
+                refreshSendIcon();
+            }
+
+            @Override public void onEdit(AttachmentStrip.Item item) {
+                if (item.tag instanceof Integer) showEditImageDialog((Integer) item.tag);
+            }
+        });
+        composer.addView(attachmentStrip, 0, new android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    /** Remet la bande au-dessus du champ de saisie à jour : photos (avec « Modifier »), puis fichier. */
+    private void refreshAttachmentStrip() {
+        ensureAttachmentStrip();
+        if (attachmentStrip == null) return;
         java.util.List<AttachmentStrip.Item> items = new java.util.ArrayList<>();
-        items.add(new AttachmentStrip.Item(name, AttachmentStrip.detailFor(name, chars), null, name));
+        for (int i = 0; i < selectedImagesB64.size(); i++) {
+            AttachmentStrip.Item it = new AttachmentStrip.Item("Photo " + (i + 1), "",
+                    i < selectedThumbs.size() ? selectedThumbs.get(i) : null, Integer.valueOf(i));
+            it.editable = true;
+            items.add(it);
+        }
+        if (selectedFileName != null && !selectedFileName.isEmpty()) {
+            int chars = selectedFileContent == null ? 0 : selectedFileContent.length();
+            items.add(new AttachmentStrip.Item(selectedFileName, AttachmentStrip.detailFor(selectedFileName, chars), null, selectedFileName));
+        }
         attachmentStrip.setItems(items);
     }
 
     private void hideAttachmentStrip() {
-        if (attachmentStrip != null) attachmentStrip.clear();
+        // La bande reflète l'état : elle disparaît seulement s'il ne reste ni photo ni fichier.
+        if (attachmentStrip != null) refreshAttachmentStrip();
+    }
+
+    private static android.graphics.Bitmap thumbOf(android.graphics.Bitmap src) {
+        float k = Math.min(1f, 192f / Math.max(src.getWidth(), src.getHeight()));
+        return android.graphics.Bitmap.createScaledBitmap(src,
+                Math.max(1, Math.round(src.getWidth() * k)), Math.max(1, Math.round(src.getHeight() * k)), true);
+    }
+
+    /** « Modifier » une photo : la remplacer, la pivoter ou la rogner au centre (carré). */
+    private void showEditImageDialog(final int idx) {
+        if (idx < 0 || idx >= selectedImagesB64.size()) return;
+        final String[] options = {
+                "Remplacer par une photo de la galerie",
+                "Remplacer par une nouvelle photo",
+                "Pivoter à droite",
+                "Rogner au centre (carré)"
+        };
+        android.app.AlertDialog dlg = new android.app.AlertDialog.Builder(this)
+                .setTitle("Modifier la photo")
+                .setItems(options, (d, which) -> {
+                    if (which == 0) {
+                        replaceImageIndex = idx;
+                        imageReplacePicker.launch("image/*");
+                    } else if (which == 1) {
+                        replaceImageIndex = idx;
+                        launchCamera(cameraReplaceLauncher);
+                    } else {
+                        transformImage(idx, which == 2);
+                    }
+                })
+                .setNegativeButton("Annuler", null)
+                .create();
+        dlg.show();
+        KruxTheme.skin(dlg, this);
+    }
+
+    private void transformImage(int idx, boolean rotate) {
+        try {
+            byte[] raw = android.util.Base64.decode(selectedImagesB64.get(idx), android.util.Base64.NO_WRAP);
+            android.graphics.Bitmap src = android.graphics.BitmapFactory.decodeByteArray(raw, 0, raw.length);
+            if (src == null) throw new Exception("image illisible");
+            android.graphics.Bitmap res;
+            if (rotate) {
+                android.graphics.Matrix m = new android.graphics.Matrix();
+                m.postRotate(90);
+                res = android.graphics.Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), m, true);
+            } else {
+                int side = Math.min(src.getWidth(), src.getHeight());
+                res = android.graphics.Bitmap.createBitmap(src, (src.getWidth() - side) / 2, (src.getHeight() - side) / 2, side, side);
+            }
+            int q = 80;
+            byte[] jpg;
+            do {
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                res.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, bos);
+                jpg = bos.toByteArray();
+                q -= 10;
+            } while (jpg.length > 600 * 1024 && q >= 40);
+            selectedImagesB64.set(idx, android.util.Base64.encodeToString(jpg, android.util.Base64.NO_WRAP));
+            selectedThumbs.set(idx, thumbOf(res));
+            refreshAttachmentStrip();
+        } catch (Throwable t) {
+            android.util.Log.e("KRUX_IMAGE", "Modification de photo impossible", t);
+            Toast.makeText(this, "Impossible de modifier cette photo", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void openImagePicker() {
@@ -3861,7 +3981,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
     private int sendOrLiveIcon() {
         boolean empty = etInput == null || etInput.getText().toString().trim().isEmpty();
-        return empty && selectedImageB64.isEmpty() ? R.drawable.ic_live : R.drawable.ic_send;
+        return empty && selectedImagesB64.isEmpty() ? R.drawable.ic_live : R.drawable.ic_send;
     }
 
     private void refreshSendIcon() {
@@ -4152,20 +4272,29 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
     }
 
-    private void launchCamera() {
+    private void launchCamera() { launchCamera(cameraLauncher); }
+
+    private void launchCamera(ActivityResultLauncher<android.net.Uri> launcher) {
         try {
             java.io.File dir = new java.io.File(getCacheDir(), "shared");
             if (!dir.exists()) dir.mkdirs();
             java.io.File f = new java.io.File(dir, "photo_" + System.currentTimeMillis() + ".jpg");
             cameraUri = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", f);
-            cameraLauncher.launch(cameraUri);
+            launcher.launch(cameraUri);
         } catch (Exception e) {
             Toast.makeText(this, "Impossible d'ouvrir l'appareil photo", Toast.LENGTH_SHORT).show();
         }
     }
 
     /** Réduit la photo (1280 px au plus, JPEG, moins de 600 Ko), corrige l'orientation, la garde pour le prochain envoi. */
-    private void handleSelectedImage(final Uri uri) {
+    private void handleSelectedImage(final Uri uri) { handleSelectedImage(uri, -1); }
+
+    /** replaceIdx >= 0 : remplace la photo à cet emplacement ; sinon ajoute (2 photos au maximum). */
+    private void handleSelectedImage(final Uri uri, final int replaceIdx) {
+        if (replaceIdx < 0 && selectedImagesB64.size() >= MAX_IMAGES) {
+            Toast.makeText(this, MAX_IMAGES + " photos au maximum par message", Toast.LENGTH_SHORT).show();
+            return;
+        }
         new Thread(() -> {
             try {
                 android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
@@ -4211,10 +4340,17 @@ private final ActivityResultLauncher<String[]> filePicker =
                 if (jpg.length > 700 * 1024) throw new Exception("image trop lourde");
 
                 final String b64 = android.util.Base64.encodeToString(jpg, android.util.Base64.NO_WRAP);
+                final android.graphics.Bitmap thumb = thumbOf(out);
                 runOnUiThread(() -> {
-                    selectedImageB64 = b64;
+                    if (replaceIdx >= 0 && replaceIdx < selectedImagesB64.size()) {
+                        selectedImagesB64.set(replaceIdx, b64);
+                        selectedThumbs.set(replaceIdx, thumb);
+                    } else if (selectedImagesB64.size() < MAX_IMAGES) {
+                        selectedImagesB64.add(b64);
+                        selectedThumbs.add(thumb);
+                    }
+                    refreshAttachmentStrip();
                     refreshSendIcon();
-                    Toast.makeText(MainActivity.this, "Photo prête : écris ta question puis envoie", Toast.LENGTH_SHORT).show();
                 });
             } catch (Throwable t) {
                 android.util.Log.e("KRUX_IMAGE", "Photo illisible", t);
