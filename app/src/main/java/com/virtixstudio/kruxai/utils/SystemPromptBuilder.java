@@ -184,6 +184,15 @@ public class SystemPromptBuilder {
             + kruxModelName
             + "\n";
 
-        return BASE_SYSTEM_PROMPT + modelContext + profileContext + quotaContext + history + (thinking ? THINKING_ON : THINKING_OFF);
+        java.util.Date now = new java.util.Date();
+        java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat(
+            "EEEE d MMMM yyyy 'à' HH:mm", java.util.Locale.FRENCH);
+        String dateContext =
+            "\n\nDate et heure de l'appareil de l'utilisateur : " + fmt.format(now)
+            + " (fuseau " + java.util.TimeZone.getDefault().getID() + "). "
+            + "Utilise-les pour « quelle heure est-il ? », « quel jour sommes-nous ? » et pour tout calcul de durée ou d'échéance. "
+            + "Ne les cite pas si on ne te les demande pas.\n";
+
+        return BASE_SYSTEM_PROMPT + modelContext + dateContext + profileContext + quotaContext + history + (thinking ? THINKING_ON : THINKING_OFF);
     }
 }
