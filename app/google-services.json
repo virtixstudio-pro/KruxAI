@@ -8,12 +8,25 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:294133519242:android:e5faa2327e702ec4c62e73",
+        "mobilesdk_app_id": "1:294133519242:android:a10d266f5ac367ffc62e73",
         "android_client_info": {
           "package_name": "com.virtixstudio.kruxai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "294133519242-hom8piedm26bm3msbasp43qn1s0f8to1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.virtixstudio.kruxai",
+            "certificate_hash": "da1c2b162162953f25e31961e75cbb67b52c352d"
+          }
+        },
+        {
+          "client_id": "294133519242-80pbah85pg8hvtmni88ht2fi3r7m1le0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCdSV0D53PPqtHqPnhCsVLTg1A49emhDmo"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "294133519242-80pbah85pg8hvtmni88ht2fi3r7m1le0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

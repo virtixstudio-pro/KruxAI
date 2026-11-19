@@ -62,6 +62,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private String activeStatusText = null;
 
     private Markwon markwon;
+    private java.util.List<com.virtixstudio.kruxai.models.SearchResult> citationSources = java.util.Collections.emptyList();
     private Context adapterContext;
     private int accentColor = Color.parseColor("#A855F7");
     private int secondaryTextColor = Color.parseColor("#B9AFCB");
@@ -237,6 +238,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         AiViewHolder aiHolder = (AiViewHolder) holder;
         Context context = aiHolder.itemView.getContext();
 
+        citationSources = message.getSources() == null
+                ? java.util.Collections.emptyList() : message.getSources();
         writing = message.isStreaming(); // copier, partager, etc. : seulement quand Krux a fini d'écrire
         renderMessage(
                 aiHolder,
@@ -537,8 +540,81 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         tv.setLineSpacing(0, 1.16f);
         tv.setPadding(2, 2, 2, 9);
 
-        markwon.setMarkdown(tv, text);
+        markwon.setMarkdown(tv, replaceCitationMarkers(text));
         container.addView(tv);
+    }
+
+
+    /**
+     * Remplace [n] par le titre réel de la source, avec son URL.
+     * Les marqueurs situés dans du code Markdown restent inchangés.
+     */
+    private String replaceCitationMarkers(String text) {
+        if (text == null || citationSources == null || citationSources.isEmpty()) {
+            return text;
+        }
+
+        java.util.regex.Matcher matcher =
+                java.util.regex.Pattern.compile("(?<![\\w])\\[(\\d{1,2})\\](?!\\s*\\()")
+                        .matcher(text);
+
+        StringBuilder out = new StringBuilder();
+        int last = 0;
+        int codeTicks = 0;
+
+        while (matcher.find()) {
+            // Suit les délimiteurs de code inline avant cette citation.
+            for (int i = last; i < matcher.start();) {
+                if (text.charAt(i) != '`') {
+                    i++;
+                    continue;
+                }
+                int j = i;
+                while (j < matcher.start() && text.charAt(j) == '`') j++;
+                int run = j - i;
+                if (codeTicks == 0) codeTicks = run;
+                else if (codeTicks == run) codeTicks = 0;
+                i = j;
+            }
+
+            out.append(text, last, matcher.start());
+            int index = Integer.parseInt(matcher.group(1)) - 1;
+
+            if (codeTicks != 0 || index < 0 || index >= citationSources.size()) {
+                out.append(matcher.group());
+            } else {
+                com.virtixstudio.kruxai.models.SearchResult source =
+                        citationSources.get(index);
+                String url = source.getUrl();
+                String title = source.getTitle();
+
+                if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) {
+                    out.append(matcher.group());
+                } else {
+                    if (title == null || title.trim().isEmpty()) {
+                        title = source.getDomain();
+                    }
+                    if (title == null || title.trim().isEmpty()) {
+                        title = "Source " + (index + 1);
+                    }
+
+                    title = title.trim()
+                            .replace("\\", "\\\\")
+                            .replace("[", "\\[")
+                            .replace("]", "\\]")
+                            .replace("*", "\\*")
+                            .replace("_", "\\_")
+                            .replace("`", "\\`");
+
+                    out.append("[").append(title).append("](<")
+                            .append(url.replace(">", "%3E"))
+                            .append(">)");
+                }
+            }
+            last = matcher.end();
+        }
+
+        return out.append(text.substring(last)).toString();
     }
 
     private String normalizeInlineHtml(String text) {
