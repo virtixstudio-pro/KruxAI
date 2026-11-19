@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -14,6 +15,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -25,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -40,6 +43,13 @@ final class WebPreviewDialog {
 
     /** À appeler hors du thread principal : bloque jusqu'au choix. Retourne les fichiers (retouchés ou non), ou null si annulé. */
     static Map<String, String> show(final Activity act, final Map<String, String> files) {
+        return show(act, files, null);
+    }
+
+    /** refiner != null : ajoute « Demander à Krux » (modification écrite par l'IA) et la correction automatique des erreurs de l'aperçu. */
+    static Map<String, String> show(final Activity act, final Map<String, String> files, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner) {
+        final AtomicReference<Map<String, String>> latest = new AtomicReference<>(files);
+        final AtomicBoolean busy = new AtomicBoolean(false);
         final String json = new JSONObject(files).toString();
         final AtomicReference<Map<String, String>> result = new AtomicReference<>(null);
         final CountDownLatch decided = new CountDownLatch(1);
@@ -69,7 +79,7 @@ final class WebPreviewDialog {
             title.setTypeface(null, android.graphics.Typeface.BOLD);
             root.addView(title);
             TextView hint = new TextView(act);
-            hint.setText("Teste l'app. « Retoucher » change un texte, « Couleurs » la palette : sans IA, donc gratuit.");
+            hint.setText("Teste l'app. « Retoucher » et « Couleurs » : sans IA, gratuit. Ou écris à Krux ce que tu veux changer.");
             hint.setTextColor(tx2);
             hint.setTextSize(13);
             hint.setPadding(0, dp(act, 4), 0, dp(act, 12));
@@ -114,6 +124,38 @@ final class WebPreviewDialog {
             frame.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             root.addView(frame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
+            final TextView status = new TextView(act);
+            status.setTextColor(tx2);
+            status.setTextSize(12);
+            status.setPadding(0, dp(act, 6), 0, 0);
+            status.setVisibility(View.GONE);
+            if (refiner != null) {
+                LinearLayout askRow = new LinearLayout(act);
+                askRow.setOrientation(LinearLayout.HORIZONTAL);
+                askRow.setGravity(Gravity.CENTER_VERTICAL);
+                askRow.setPadding(0, dp(act, 10), 0, 0);
+                final EditText askBox = new EditText(act);
+                askBox.setHint("Demander à Krux : « mets un bouton rouge »…");
+                askBox.setTextColor(tx);
+                askBox.setHintTextColor(tx2);
+                askBox.setTextSize(14);
+                askBox.setMaxLines(3);
+                askRow.addView(askBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                int onAcc = androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.5 ? Color.BLACK : Color.WHITE;
+                TextView send = button(act, "Envoyer", onAcc, accent);
+                send.setOnClickListener(v -> {
+                    String req = askBox.getText().toString().trim();
+                    if (req.isEmpty() || busy.get()) return;
+                    askBox.setText("");
+                    refine(act, web, refiner, latest, req, "Krux travaille sur ta demande…", status, busy, dlg, null);
+                });
+                LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                sLp.leftMargin = dp(act, 8);
+                askRow.addView(send, sLp);
+                root.addView(askRow);
+            }
+            root.addView(status);
+
             LinearLayout row = new LinearLayout(act);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.END);
@@ -122,11 +164,21 @@ final class WebPreviewDialog {
             int onAccent = androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.5 ? Color.BLACK : Color.WHITE;
             TextView ok = button(act, "Créer l'app", onAccent, accent);
             cancel.setOnClickListener(v -> { decided.countDown(); dlg.dismiss(); });
-            ok.setOnClickListener(v -> web.evaluateJavascript("KruxPreview.result()", value -> {
-                result.set(parse(value, files));
-                decided.countDown();
-                dlg.dismiss();
-            }));
+            final int[] autoFixes = {0};
+            ok.setOnClickListener(v -> {
+                if (busy.get()) return; // Krux travaille encore : on attend sa réponse
+                web.evaluateJavascript("KruxPreview.result()", value -> {
+                    if (refiner != null && autoFixes[0] < 2 && hasErrors(value)) {
+                        autoFixes[0]++;
+                        refine(act, web, refiner, latest, "Corrige les erreurs d'exécution de l'aperçu (écran blanc ou message d'erreur) sans rien changer d'autre.",
+                            "Erreur dans l'aperçu : Krux la corrige (" + autoFixes[0] + "/2)…", status, busy, dlg, null);
+                        return;
+                    }
+                    result.set(parse(value, latest.get()));
+                    decided.countDown();
+                    dlg.dismiss();
+                });
+            });
             row.addView(cancel);
             LinearLayout.LayoutParams okLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             okLp.leftMargin = dp(act, 8);
@@ -160,6 +212,48 @@ final class WebPreviewDialog {
             return null;
         }
         return result.get();
+    }
+
+    /** Vrai si l'aperçu a signalé une erreur d'exécution (champ hasErrors de KruxPreview.result()). */
+    private static boolean hasErrors(String value) {
+        try {
+            String inner = new JSONArray("[" + value + "]").getString(0);
+            return new JSONObject(inner).optBoolean("hasErrors", false);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Demande à Krux (hors thread principal) puis recharge l'aperçu. En cas d'échec, l'aperçu reste tel quel et le message le dit. */
+    private static void refine(final Activity act, final WebView web, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner,
+                               final AtomicReference<Map<String, String>> latest, final String request, final String working,
+                               final TextView status, final AtomicBoolean busy, final Dialog dlg, final Runnable done) {
+        if (!busy.compareAndSet(false, true)) return;
+        status.setVisibility(View.VISIBLE);
+        status.setText(working);
+        web.evaluateJavascript("KruxPreview.result()", value -> new Thread(() -> {
+            Map<String, String> out = null;
+            String msg;
+            try {
+                out = refiner.refine(request, parse(value, latest.get()));
+                msg = "Fait. Vérifie le résultat dans l'aperçu.";
+            } catch (Exception e) {
+                String m = e.getMessage();
+                msg = "Krux n'a pas pu appliquer ça : " + (m == null || m.isEmpty() ? "erreur inconnue" : m) + " L'aperçu n'a pas changé.";
+            }
+            final Map<String, String> fin = out;
+            final String fm = msg;
+            act.runOnUiThread(() -> {
+                busy.set(false);
+                if (!dlg.isShowing()) return;
+                status.setText(fm);
+                if (fin != null) {
+                    latest.set(fin);
+                    web.evaluateJavascript("KruxPreview.load(" + JSONObject.quote(new JSONObject(fin).toString()) + ")", null);
+                    if (done != null) done.run();
+                }
+            });
+        }).start());
     }
 
     /** Résultat de KruxPreview.result() : texte JSON entouré de guillemets (evaluateJavascript). Si illisible : fichiers d'origine. */

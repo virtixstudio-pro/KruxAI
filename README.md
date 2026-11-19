@@ -124,3 +124,5 @@ Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT
 - [ ] **« Modifier avec KRUX » = petite carte de conversation** dans le Studio (pas de retour aux messages), modification visible en direct.
 - [ ] **Tous les fichiers créés visibles dans « Mes fichiers »** (voir `fichiers-onglet.patch`).
 - [ ] **Krux Code** : l'onglet n'existe pas encore (voir 3b), à créer.
+
+- **Aperçu : Demander à Krux** (19/11) : champ « Demander à Krux » dans l aperçu web (AppBuilder.Refiner, WebPreviewDialog), correction automatique des erreurs de l aperçu (2 essais), relance automatique d un build annulé ou expiré (2 fois). Jamais testé sur téléphone ni sur une vraie CI.

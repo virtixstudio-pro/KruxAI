@@ -34,6 +34,9 @@ public class AppBuilder {
 
     public interface Generator { String generate(String system, String userPrompt) throws Exception; }
 
+    /** Aperçu web : applique une demande de l'utilisateur sur les fichiers actuels (appel IA) et renvoie les nouveaux fichiers. */
+    public interface Refiner { Map<String, String> refine(String request, Map<String, String> files) throws Exception; }
+
     public interface Listener {
         void onStatus(String status);
         void onDone(File apk, String repoUrl);
@@ -49,6 +52,8 @@ public class AppBuilder {
          * Retourne les fichiers après retouches (les mêmes si rien n'a changé), ou null pour annuler.
          */
         default Map<String, String> confirmWebPreview(Map<String, String> files) { return files; }
+        /** Comme ci-dessus, avec en plus « Demander à Krux » : refiner applique une demande écrite sur les fichiers actuels. */
+        default Map<String, String> confirmWebPreview(Map<String, String> files, Refiner refiner) { return confirmWebPreview(files); }
     }
 
     /** Refus volontaire de l'IA ou de la politique : inutile de réessayer. */
@@ -464,7 +469,7 @@ public class AppBuilder {
                     applyFix(current, fx.files, s, web);
                     l.onStatus("Vérification du code…");
                     localFixes(gen, s, description, current, l, null, web);
-                    if (web) current = webPreview(l, current, s);
+                    if (web) current = webPreview(gen, s, description, l, current);
                     metaDesc = before.isEmpty() ? description : before + "\nMODIFICATION : " + description;
                 } else if (saved != null) {
                     l.onStatus("Reprise : le code déjà écrit est retrouvé…");
@@ -511,7 +516,7 @@ public class AppBuilder {
                     name = p.name;
                     BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
                     if (web) {
-                        try { current = webPreview(l, current, s); }
+                        try { current = webPreview(gen, s, description, l, current); }
                         catch (Refusal r) { BuildCheckpoint.clear(outDir); throw r; }
                         BuildCheckpoint.save(outDir, description, name, current, System.currentTimeMillis());
                     }
@@ -531,8 +536,18 @@ public class AppBuilder {
     }
 
     /** Aperçu React avec retouches locales (zéro appel IA). Refusal si l'utilisateur annule ; les retouches sont revérifiées. */
-    static Map<String, String> webPreview(Listener l, Map<String, String> current, BuildSpec s) throws Exception {
-        Map<String, String> edited = l.confirmWebPreview(new LinkedHashMap<>(current));
+    static Map<String, String> webPreview(final Generator gen, final BuildSpec s, final String description, Listener l, Map<String, String> current) throws Exception {
+        final Listener fl = l;
+        Refiner refiner = (request, files) -> {
+            Map<String, String> work = new LinkedHashMap<>(WebBuilder.normalize(files));
+            Parsed fx = generateParsed(gen, WebBuilder.modifySystemPrompt(s),
+                buildModifyPrompt(description, request, work), false, s, fl, true);
+            applyFix(work, fx.files, s, true);
+            localFixes(gen, s, description, work, fl, null, true);
+            checkWebPolicy(work, s);
+            return work;
+        };
+        Map<String, String> edited = l.confirmWebPreview(new LinkedHashMap<>(current), refiner);
         if (edited == null) throw new Refusal("Création annulée après l'aperçu. Rien n'a été envoyé et ton quota n'est pas utilisé.");
         Map<String, String> norm = WebBuilder.normalize(edited);
         List<String> problems = WebBuilder.validate(norm);
@@ -650,6 +665,7 @@ public class AppBuilder {
                 }
 
                 int fixes = 0;
+                int interrupted = 0;
                 String lastLog = "";
                 while (true) {
                     l.onStatus(fixes == 0
@@ -670,6 +686,11 @@ public class AppBuilder {
                         return;
                     }
                     String conclusion = run.optString("conclusion");
+                    if (("cancelled".equals(conclusion) || "timed_out".equals(conclusion)) && interrupted < 2) {
+                        interrupted++;
+                        l.onStatus("Build interrompu : je le relance automatiquement (" + interrupted + "/2)…");
+                        continue;
+                    }
                     if ("cancelled".equals(conclusion) || "timed_out".equals(conclusion))
                         throw new Exception("Le build a été interrompu (" + conclusion + "). Réessaie dans un instant.");
                     if (fixes >= s.maxFixes)
