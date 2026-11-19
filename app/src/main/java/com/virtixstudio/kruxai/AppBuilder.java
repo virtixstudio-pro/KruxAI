@@ -568,17 +568,19 @@ public class AppBuilder {
 
     static String buildModifyPrompt(String before, String request, Map<String, String> current) {
         StringBuilder sb = new StringBuilder();
-        sb.append("DESCRIPTION D'ORIGINE : ").append(before.isEmpty() ? "(inconnue)" : before)
-          .append("\n\nMODIFICATION DEMANDÉE : ").append(request)
-          .append("\n\nFICHIERS ACTUELS :\n");
-        int budget = 60000;
-        StringBuilder skipped = new StringBuilder();
-        for (Map.Entry<String, String> e : current.entrySet()) {
-            if (e.getValue().length() > budget) { skipped.append("\n- ").append(e.getKey()); continue; }
-            sb.append("=== ").append(e.getKey()).append(" ===\n").append(e.getValue()).append("\n");
-            budget -= e.getValue().length();
+        sb.append("DESCRIPTION D ORIGINE : ").append(before)
+          .append("\n\nMODIFICATION DEMANDEE : ").append(request);
+        sb.append("\n\nINVENTAIRE DES FICHIERS :\n");
+        for (String path : current.keySet()) {
+            sb.append("- ").append(path).append("\n");
         }
-        if (skipped.length() > 0) sb.append("\nFICHIERS NON MONTRÉS (trop longs, ne les réécris pas) :").append(skipped);
+        Map<String, String> relevant = com.virtixstudio.kruxai.builder.RelevantFiles.select(current, request, 8, 36000);
+        sb.append("\nFICHIERS PERTINENTS :\n");
+        for (Map.Entry<String, String> e : relevant.entrySet()) {
+            sb.append("=== ").append(e.getKey()).append(" ===\n");
+            sb.append(e.getValue()).append("\n");
+        }
+        sb.append("\nNe modifie que les fichiers necessaires. Ne regenere jamais le projet entier. Preserve les fichiers non concernes.");
         return sb.toString();
     }
 
