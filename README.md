@@ -150,3 +150,8 @@ Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT
 4. [ ] Sélecteur de modèles en parchemin ; recadrage libre des photos ; fin du thème Blanc ; TTS Live et bulle.
 5. [ ] Création d'apps : erreur « code exploitable », pauses anti-saturation, clé de signature stable, mode Web / React Native.
 6. [ ] Proxy IA à déployer, retirer les clés de l'APK, puis révoquer et renouveler toutes les clés (pas d'APK public avant).
+
+## Connexion Google - noté le 22/11/2026
+- [x] `google-connexion` : `GoogleSignInHelper` (Credential Manager + Firebase `GoogleAuthProvider`) branché sur les boutons de `AuthWelcomeActivity` et `LoginActivity`. Avant, les deux boutons étaient des bouchons. Nouveau compte Google : profil enregistré (`saveProfile`).
+- [ ] Côté Firebase (projet `krux-9fd33`) : activer le fournisseur Google ; la SHA-1 de la clé stable doit être dans l'app Android (étape « Print Debug Certificate Fingerprints » du workflow) ; retélécharger `google-services.json` après ajout.
+- [ ] À tester sur téléphone : connexion Google nouveau compte et compte existant ; erreur « SHA-1 » si l'empreinte manque.

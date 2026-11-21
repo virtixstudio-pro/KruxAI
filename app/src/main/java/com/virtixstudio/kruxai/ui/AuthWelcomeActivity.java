@@ -34,8 +34,7 @@ public class AuthWelcomeActivity extends AppCompatActivity {
             ));
         });
 
-        btnGoogle.setOnClickListener(v -> {
-            // Google sera configuré plus tard.
-        });
+        btnGoogle.setOnClickListener(v -> startActivity(
+                new Intent(AuthWelcomeActivity.this, LoginActivity.class).putExtra("auto_google", true)));
     }
 }

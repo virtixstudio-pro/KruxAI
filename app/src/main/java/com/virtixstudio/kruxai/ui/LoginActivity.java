@@ -134,9 +134,8 @@ public class LoginActivity extends AppCompatActivity {
         );
 
         Button btnGoogle = findViewById(R.id.btnGoogle);
-        btnGoogle.setOnClickListener(v ->
-                showMessage(getString(R.string.google_config_required))
-        );
+        btnGoogle.setOnClickListener(v -> startGoogle());
+        if (getIntent().getBooleanExtra("auto_google", false)) btnGoogle.post(this::startGoogle);
 
         tvToggleMode.setOnClickListener(v -> {
             if (!isLoading) {
@@ -382,6 +381,30 @@ public class LoginActivity extends AppCompatActivity {
                         showMessage("Impossible de se connecter.");
                     }
                 });
+    }
+
+    private void startGoogle() {
+        if (isLoading) return;
+        setLoading(true);
+        GoogleSignInHelper.start(this, new GoogleSignInHelper.Callback() {
+            @Override
+            public void onSuccess(com.google.firebase.auth.AuthResult r, String givenName) {
+                setLoading(false);
+                FirebaseUser u = r.getUser();
+                if (u != null && r.getAdditionalUserInfo() != null && r.getAdditionalUserInfo().isNewUser()) {
+                    String n = givenName != null && !givenName.isEmpty() ? givenName
+                            : (u.getDisplayName() == null ? "" : u.getDisplayName());
+                    saveProfile(u.getUid(), n, u.getEmail() == null ? "" : u.getEmail());
+                }
+                navigateToMain();
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                showMessage(message);
+            }
+        });
     }
 
     private void handleForgotPassword() {
