@@ -171,6 +171,14 @@ public class MyAppsActivity extends AppCompatActivity {
         edit.setOnClickListener(v -> askModification(appDir));
         row.addView(edit);
 
+        Button code = new Button(this);
+        code.setText("Code");
+        code.setAllCaps(false);
+        final File zip = appDir == null ? null : com.virtixstudio.kruxai.builder.SourceZip.file(appDir);
+        code.setEnabled(zip != null && zip.isFile());
+        code.setOnClickListener(v -> shareZip(zip));
+        row.addView(code);
+
         Button del = new Button(this);
         del.setText("Supprimer");
         del.setAllCaps(false);
@@ -200,6 +208,20 @@ public class MyAppsActivity extends AppCompatActivity {
                     finish();
                 })
                 .show(), this);
+    }
+
+    /** Partage le zip du code source (Fichiers, Drive, messagerie…). */
+    private void shareZip(File zip) {
+        try {
+            android.net.Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", zip);
+            Intent i = new Intent(Intent.ACTION_SEND);
+            i.setType("application/zip");
+            i.putExtra(Intent.EXTRA_STREAM, uri);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(i, "Code source de l'app"));
+        } catch (Exception e) {
+            Toast.makeText(this, "Partage impossible : " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void install(File apk) {

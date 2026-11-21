@@ -2,6 +2,7 @@ package com.virtixstudio.kruxai;
 
 import com.virtixstudio.kruxai.builder.BuildCheckpoint;
 import com.virtixstudio.kruxai.builder.PreviewHtml;
+import com.virtixstudio.kruxai.builder.SourceZip;
 import com.virtixstudio.kruxai.builder.BuildSpec;
 import com.virtixstudio.kruxai.builder.BuildTemplates;
 import com.virtixstudio.kruxai.builder.BuildValidator;
@@ -684,6 +685,9 @@ public class AppBuilder {
                         // Code source compressé (quelques Ko) rangé à côté de l'APK, pour pouvoir reconstruire l'app.
                         BuildCheckpoint.save(new File(outDir, repo), description, name, current, System.currentTimeMillis());
                         writeMeta(new File(outDir, repo), description, name, appId);
+                        Map<String, String> zipFiles = new LinkedHashMap<>(all);
+                        zipFiles.putAll(current);
+                        SourceZip.write(new File(outDir, repo), zipFiles);
                         l.onDone(apk, url);
                         return;
                     }

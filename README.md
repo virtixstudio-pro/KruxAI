@@ -58,6 +58,7 @@ Vérifiés avec `git apply --check` et `javac` (syntaxe seule). Rien n'est compi
 Légende : [ ] à faire, [~] en cours, [x] fait. Un patch à la fois, README mis à jour à chaque patch.
 
 ### 0. En attente de push
+- [x] `zip-code-source.patch` : zip du projet complet (`krux-source.zip`, classe `SourceZip`) rangé à côté de l'APK après chaque build réussi, et bouton **Code** dans « Mes apps » pour le partager. À tester sur un vrai build.
 - [x] `reflexion-verification-etape.patch` : étape « Vérification de la réponse » (et « Correction de la réponse ») dans la ligne de réflexion.
 
 ### 1. Petits correctifs qui se voient tout de suite
@@ -76,7 +77,7 @@ Légende : [ ] à faire, [~] en cours, [x] fait. Un patch à la fois, README mis
 9. [~] **Erreur « L'IA n'a pas produit de code exploitable »** (revient tout le temps) : à confirmer avec la phrase complète après les deux-points. Cause probable : un seul gros JSON avec tous les fichiers, fragile. Remède : blocs `=== chemin ===` suivis du code, en plusieurs passes (plan et écrans, fichiers par lots, relecture) dans `AppBuilder.generateParsed`. Patch `code-exploitable` : repli en blocs et raison de chaque essai dans le message ; si ça revient, coller la phrase complète.
 10. [ ] **Pauses anti-saturation** : espacer les appels par fournisseur (erreurs 429) et remplacer « Ce moteur est saturé, je passe sur un autre… » par « Je prends une courte pause… ».
 10. [ ] **Clé de signature stable par app** : sans elle, une app modifiée ne peut pas remplacer l'ancienne, et pas d'AAB pour Google Play.
-10. [ ] **Reprise d'apps** : le bouton **Modifier** existe déjà dans « Mes apps ». Reste à vérifier et ajouter le **zip du code source à côté de l'APK** (aucun code de zip trouvé pour l'instant).
+10. [x] **Reprise d'apps** : bouton **Modifier** et zip du code source à côté de l'APK (bouton **Code**, patch `zip-code-source`). Reste à tester sur un vrai build.
 11. [ ] **Nouveau mode « Web / React Native »** (inspiré de Snapp AI) : projets en TypeScript, TSX, JS ; aperçu en direct dans l'app (compilateur TSX embarqué + react-native-web dans une WebView, proche du rendu final mais pas identique à Android) ; éditeur de code ; modification par chat. Livraison : **APK** et **AAB** par GitHub Actions. **iOS** : export du code source seulement, car l'installation sur iPhone demande un compte Apple Developer payant avec carte.
 
 ### 3. Intelligence et services
