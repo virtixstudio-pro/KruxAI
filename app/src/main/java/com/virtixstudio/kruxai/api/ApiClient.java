@@ -171,6 +171,7 @@ public class ApiClient {
             cancellationNotified = false;
 
             Exception lastError = null;
+            String lastModelName = "";
             java.util.HashSet<KruxModel> failedHard = new java.util.HashSet<>();
 
             for (int round = 0; round < MAX_ROUNDS; round++) {
@@ -227,6 +228,7 @@ public class ApiClient {
                             return;
                         }
                         lastError = e;
+                        lastModelName = model.getDisplayName();
                         Log.w(TAG, model.getDisplayName() + " indisponible : " + e.getMessage(), e);
 
                         if (ModelCooldown.isRateLimit(e.getMessage())) {
@@ -246,7 +248,13 @@ public class ApiClient {
                 if (!limitedNow) break;
             }
 
-            callback.onError(buildFriendlyError(lastError));
+            String detail = "";
+            if (lastError != null && lastError.getMessage() != null && !lastError.getMessage().isEmpty()) {
+                String raw = lastError.getMessage().replaceAll("(?i)key=[^&\\s]+", "key=***").replace('\n', ' ').trim();
+                if (raw.length() > 120) raw = raw.substring(0, 120);
+                detail = "\n\n(détail : " + (lastModelName.isEmpty() ? "" : lastModelName + " : ") + raw + ")";
+            }
+            callback.onError(buildFriendlyError(lastError) + detail);
         }).start();
     }
 
@@ -383,6 +391,11 @@ public class ApiClient {
     }
 
 
+    private static volatile String cachedSearchKey = null;
+    private static volatile long cachedSearchAt = 0;
+    private static volatile String cachedSearchContext = null;
+    private static volatile List<SearchResult> cachedSearchResults = null;
+
     private static String sendWithWebLoop(
             KruxModel model,
             String systemPrompt,
@@ -417,32 +430,47 @@ public class ApiClient {
                 callback.onWebSearchStarted(query);
             }
 
-            WebSearchEngine engine = new WebSearchEngine();
-
             CountDownLatch latch = new CountDownLatch(1);
             final String[] webContext = {""};
             final List<SearchResult>[] webResults = new List[]{null};
             final String[] webError = {null};
 
-            engine.search(query, new WebSearchEngine.SearchCallback() {
-                @Override
-                public void onSuccess(
-                        List<SearchResult> results,
-                        String formattedContext
-                ) {
-                    webResults[0] = results;
-                    webContext[0] = formattedContext;
-                    latch.countDown();
-                }
+            boolean finished;
+            String cacheKey = query.trim().toLowerCase(java.util.Locale.ROOT);
+            if (cacheKey.equals(cachedSearchKey)
+                    && System.currentTimeMillis() - cachedSearchAt < 5 * 60 * 1000L
+                    && cachedSearchContext != null) {
+                webContext[0] = cachedSearchContext;
+                webResults[0] = cachedSearchResults;
+                finished = true;
+            } else {
+                WebSearchEngine engine = new WebSearchEngine();
+                engine.search(query, new WebSearchEngine.SearchCallback() {
+                    @Override
+                    public void onSuccess(
+                            List<SearchResult> results,
+                            String formattedContext
+                    ) {
+                        webResults[0] = results;
+                        webContext[0] = formattedContext;
+                        latch.countDown();
+                    }
 
-                @Override
-                public void onError(String error) {
-                    webError[0] = error;
-                    latch.countDown();
-                }
-            });
+                    @Override
+                    public void onError(String error) {
+                        webError[0] = error;
+                        latch.countDown();
+                    }
+                });
 
-            boolean finished = latch.await(25, TimeUnit.SECONDS);
+                finished = latch.await(25, TimeUnit.SECONDS);
+                if (finished && webError[0] == null && webContext[0] != null && !webContext[0].trim().isEmpty()) {
+                    cachedSearchKey = cacheKey;
+                    cachedSearchAt = System.currentTimeMillis();
+                    cachedSearchContext = webContext[0];
+                    cachedSearchResults = webResults[0];
+                }
+            }
 
             if (!finished
                     || webError[0] != null
@@ -477,7 +505,13 @@ public class ApiClient {
                     + "Réponds directement à l'utilisateur.";
         }
 
-        return sendWithModel(model, systemPrompt, currentPrompt, callback);
+        String last = sendWithModel(model, systemPrompt, currentPrompt, callback);
+        if (last != null && extractWebQuery(last) != null) {
+            return sendWithModel(model, systemPrompt,
+                    currentPrompt + "\n\nN'utilise plus aucun outil. Réponds directement avec les informations ci-dessus.",
+                    callback);
+        }
+        return last;
     }
 
     private static String extractWebQuery(String response) {
@@ -498,19 +532,21 @@ public class ApiClient {
         String block = response.substring(
                 start + startTag.length(),
                 end
-        ).trim();
+        ).replace("\\n", "\n").trim();
 
         String[] lines = block.split("\\r?\\n", 3);
+        String first = lines[0].trim();
 
-        if (lines.length < 2) {
+        if (!first.toLowerCase(java.util.Locale.ROOT).startsWith("web_search")) {
             return null;
         }
 
-        if (!"web_search".equalsIgnoreCase(lines[0].trim())) {
-            return null;
+        String query;
+        if (lines.length >= 2 && !lines[1].trim().isEmpty()) {
+            query = lines[1].trim();
+        } else {
+            query = first.substring("web_search".length()).replaceFirst("^[\\s:=\\-]+", "").trim();
         }
-
-        String query = lines[1].trim();
 
         return query.isEmpty() ? null : query;
     }
