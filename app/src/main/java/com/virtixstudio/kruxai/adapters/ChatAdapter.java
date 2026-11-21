@@ -1288,12 +1288,10 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** Titre d'une ligne : étape en cours (live) ou nombre d'étapes (terminé). */
     static String reasoningTitle(String reasoning, boolean live) {
-        int steps = 0;
         String last = "";
-        for (String line : reasoning.split("\\n")) {
+        for (String line : reasoning.replace("\u200B", "\n").split("\\n")) {
             String t = line.replaceAll("^[\\s•·*\\-–—✓✔✅☑⋯…>]+", "").trim();
             if (t.isEmpty()) continue;
-            steps++;
             last = t;
         }
         if (live) {
@@ -1301,8 +1299,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (last.length() > 70) last = last.substring(0, 70).trim();
             return (last.endsWith("…") || last.endsWith(".")) ? last : last + "…";
         }
-        if (steps == 0) return "Processus de réflexion";
-        return "Réflexion · " + steps + (steps > 1 ? " étapes" : " étape");
+        return "Réflexion";
     }
 
     private void setupReasoning(
@@ -1318,7 +1315,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             boolean live = message.isStreaming();
             boolean open = expandedReasoning.contains(message);
             holder.layoutReasoning.setVisibility(View.VISIBLE);
-            holder.tvReasoningContent.setText(reasoning);
+            holder.tvReasoningContent.setText(reasoning.replace("\u200B", "\n\n").trim());
             holder.tvReasoningContent.setVisibility(open ? View.VISIBLE : View.GONE);
             holder.ivArrowReasoning.setRotation(open ? 90 : 0);
             TextView stepsTitle = holder.btnToggleReasoning.findViewById(R.id.tvReasoningTitle);

@@ -157,10 +157,12 @@ public class SystemPromptBuilder {
 
     private boolean thinking = false;
     private static final String REASONING_AUTO =
-        "\n\nRAISONNEMENT AUTONOME : tu décides seul si une demande mérite de réfléchir. "
-      + "Demande simple, salutation, question courte : réponds directement, sans bloc de réflexion. "
-      + "Tâche difficile (plusieurs étapes, code, calcul, comparaison, faits à vérifier, demande ambiguë) : commence ta réponse par un bloc <REFLEXION>…</REFLEXION> de 5 lignes maximum, puis ta réponse juste après. "
-      + "Dans ce bloc, en phrases courtes : 1) ce que l'utilisateur demande vraiment ; 2) ce que tu sais avec certitude ; 3) ce dont tu n'es pas sûr ; 4) une question que tu te poses à toi-même, avec ta réponse ; 5) si une recherche web_search est nécessaire avant de répondre. "
+        "\n\nRAISONNEMENT : demande simple, salutation, question courte : réponds directement, sans bloc de réflexion. "
+      + "Demande difficile (code ou bug à comprendre, calcul, comparaison, plusieurs étapes, faits à vérifier, demande ambiguë) : commence ta réponse par un bloc <REFLEXION>…</REFLEXION>, puis ta réponse juste après. "
+      + "Dans ce bloc, pense vraiment, à la première personne, comme quelqu'un qui cherche la solution : reformule le problème avec tes mots, essaie une première piste, cherche ses failles, "
+      + "compare au moins deux approches quand il y en a, vérifie les détails (chiffres, cas limites, noms exacts), corrige-toi si tu te trompes, et ne conclus que quand tu es sûr. "
+      + "Écris librement, sans plan tout fait, sans numérotation imposée, sans phrases de remplissage, et sans rien inventer pour faire joli. "
+      + "Longueur adaptée : quelques lignes si c'est assez simple, jusqu'à une vingtaine de lignes si c'est difficile. Ne répète pas la réflexion dans la réponse. "
       + "Si une information est incertaine ou récente, demande l'outil web_search au lieu de deviner. "
       + "Si tu demandes un outil avec <KRUX_TOOL>, écris uniquement l'outil, sans bloc <REFLEXION>. ";
 
