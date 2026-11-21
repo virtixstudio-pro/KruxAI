@@ -156,6 +156,60 @@ public final class WorkspaceStore {
         try (FileOutputStream out = new FileOutputStream(f)) { out.write(data); }
     }
 
+    /**
+     * Range un fichier écrit par Krux dans l'onglet Fichiers (dossier à plat, nom nettoyé, jamais d'écrasement :
+     * un nom déjà pris donne « nom (2).ext »). Un fichier identique déjà présent est réutilisé, pas dupliqué.
+     */
+    public synchronized File saveGenerated(String rawName, String text) throws IOException {
+        String name = safeName(rawName);
+        byte[] data = (text == null ? "" : text).getBytes(StandardCharsets.UTF_8);
+        if (data.length > MAX_BYTES) throw new IOException("Fichier trop gros (1 Mo maximum)");
+        File same = new File(root, name);
+        if (same.isFile() && same.length() == data.length) {
+            try {
+                if (readText(same).equals(text == null ? "" : text)) return same;
+            } catch (IOException ignored) { }
+        }
+        if (list().size() >= MAX_FILES) throw new IOException("Limite de " + MAX_FILES + " fichiers atteinte");
+        File f = uniqueFile(name);
+        try (FileOutputStream out = new FileOutputStream(f)) { out.write(data); }
+        return f;
+    }
+
+    /**
+     * Fait apparaître dans Fichiers ceux que Krux avait rangés dans des sous-dossiers (workspace/<date>/).
+     * On COPIE : les originaux ne sont ni déplacés ni supprimés. Chaque sous-dossier n'est traité qu'une fois
+     * (marqueur .adopted), donc un fichier supprimé ensuite dans Fichiers ne revient pas.
+     */
+    public synchronized int adoptSubfolders() {
+        File[] dirs = root.listFiles();
+        int copied = 0;
+        if (dirs == null) return 0;
+        for (File d : dirs) {
+            if (!d.isDirectory()) continue;
+            File mark = new File(d, ".adopted");
+            if (mark.exists()) continue;
+            File[] inside = d.listFiles();
+            if (inside != null) {
+                for (File f : inside) {
+                    if (!f.isFile() || f.getName().startsWith(".") || f.length() > MAX_BYTES) continue;
+                    try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
+                        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = in.read(buf)) > 0) bo.write(buf, 0, r);
+                        byte[] data = bo.toByteArray();
+                        if (looksBinary(data, data.length)) continue;
+                        saveGenerated(f.getName(), new String(data, StandardCharsets.UTF_8));
+                        copied++;
+                    } catch (IOException ignored) { }
+                }
+            }
+            try { new FileOutputStream(mark).close(); } catch (IOException ignored) { }
+        }
+        return copied;
+    }
+
     public boolean delete(File f) {
         return isInside(f) && f.isFile() && f.delete();
     }

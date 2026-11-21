@@ -1,7 +1,7 @@
 # KRUX AI
 
 Application Android native (Java) de Virtix Studio : discussion avec plusieurs modèles d'IA, création d'applications Android, recherche web, voix, mémoire.
-Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 18 novembre 2026.
+Dépôt : `virtixstudio-pro/KruxAI`, branche `main`. Mise à jour du 22 novembre 2026.
 
 ## Règles de travail (à respecter)
 
@@ -87,7 +87,7 @@ Légende : [ ] à faire, [~] en cours, [x] fait. Un patch à la fois, README mis
 
 ### 3b. Fichiers et Krux Code
 - [~] **Onglet Fichiers et barre latérale compacte** (import de fichiers, tuiles Mes apps / Fichiers) : `fichiers-onglet.patch`.
-- [ ] **Krux Code** : écran réservé au code, sans bavardage, qui édite les fichiers importés comme dans un terminal ; style sombre original, diff rouge et vert, bouton Annuler.
+- [~] **Krux Code** (fichiers-krux-code, 22/11, à tester) : écran réservé au code, sans bavardage, qui édite les fichiers importés comme dans un terminal ; style sombre original, diff rouge et vert, bouton Annuler.
 
 ### 4. Sécurité et publication
 15. [ ] **Proxy IA** : déployer `worker/ai-proxy`, mettre son URL dans `krux_config.json`, retirer les clés de l'APK (`build.gradle`, workflow), puis **révoquer et renouveler toutes les clés**. Pas d'APK public avant.
@@ -124,6 +124,29 @@ Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT
 - [ ] **Édition manuelle sans IA** dans l'aperçu : ajouter des éléments, coller des blocs, agrandir, déplacer.
 - [ ] **« Modifier avec KRUX » = petite carte de conversation** dans le Studio (pas de retour aux messages), modification visible en direct.
 - [ ] **Tous les fichiers créés visibles dans « Mes fichiers »** (voir `fichiers-onglet.patch`).
-- [ ] **Krux Code** : l'onglet n'existe pas encore (voir 3b), à créer.
+- [~] **Krux Code** (fichiers-krux-code, 22/11, à tester) : l'onglet n'existe pas encore (voir 3b), à créer.
 
 - **Aperçu : Demander à Krux** (19/11) : champ « Demander à Krux » dans l aperçu web (AppBuilder.Refiner, WebPreviewDialog), correction automatique des erreurs de l aperçu (2 essais), relance automatique d un build annulé ou expiré (2 fois). Jamais testé sur téléphone ni sur une vraie CI.
+
+## Journal du 22/11/2026
+
+### Fait (patchs à appliquer : zip-code-source puis fichiers-krux-code)
+- [x] `zip-code-source` : après chaque build réussi, `krux-source.zip` (projet complet, classe `SourceZip`) est rangé à côté de l'APK ; bouton **Code** dans « Mes apps » pour le partager. Les apps déjà créées n'ont pas de zip.
+- [x] `fichiers-krux-code` : **Krux Code** (`KruxCodeActivity`) : écran réservé au code, ouvre un fichier de Fichiers, répond seulement par du code, diff rouge/vert, « Appliquer » puis « Annuler la modification ».
+- [x] Barre latérale modernisée : trois tuiles égales (Mes apps, Fichiers, Krux Code), tuiles de 64 dp, bouton « Nouveau chat » plus haut.
+- [x] Tout fichier généré par Krux est rangé à plat dans l'onglet **Fichiers** (`WorkspaceStore.saveGenerated`, appelé par `MainActivity.deliverToWorkspace`). Avant, ils allaient dans des sous-dossiers `workspace/<date>/` que l'onglet ne montrait pas, et un chemin à sous-dossiers faisait échouer l'écriture.
+- [x] Anciens fichiers des sous-dossiers : COPIÉS dans Fichiers au premier passage (`adoptSubfolders`, marqueur `.adopted`), originaux intacts.
+
+### À tester sur téléphone (rien n'est compilé en local)
+- [ ] Compilation GitHub Actions des deux patchs.
+- [ ] Krux Code : ouvrir un fichier, demander une modif, Appliquer, Annuler ; créer un nouveau fichier.
+- [ ] Demander un fichier à Krux : il apparaît dans Fichiers (pas en double au redémarrage).
+- [ ] Bouton Code de « Mes apps » sur un nouveau build.
+
+### Reste à faire, dans l'ordre
+1. [ ] Mémoire : Krux décide de ce qu'il retient dès l'inscription (`MemoryBook`, `MemoryExtractor`, `MemorySelector`).
+2. [ ] Recherche web partie 2 (2e moteur, recherches enchaînées, plus de pages lues, sources citées).
+3. [ ] Patch d'économie de quotas ; bannière hors ligne « Réessayer ».
+4. [ ] Sélecteur de modèles en parchemin ; recadrage libre des photos ; fin du thème Blanc ; TTS Live et bulle.
+5. [ ] Création d'apps : erreur « code exploitable », pauses anti-saturation, clé de signature stable, mode Web / React Native.
+6. [ ] Proxy IA à déployer, retirer les clés de l'APK, puis révoquer et renouveler toutes les clés (pas d'APK public avant).

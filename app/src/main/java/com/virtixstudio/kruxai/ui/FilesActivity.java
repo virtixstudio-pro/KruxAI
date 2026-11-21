@@ -56,6 +56,7 @@ public class FilesActivity extends AppCompatActivity {
         ac = KruxTheme.get(this, "accent");
         fill = KruxTheme.get(this, "input");
         store = new WorkspaceStore(new File(getFilesDir(), "workspace"));
+        store.adoptSubfolders();
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);

@@ -46,9 +46,9 @@
     <TextView android:tag="krux:input,text"
         android:id="@+id/btnNewChat"
         android:layout_width="match_parent"
-        android:layout_height="42dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="8dp"
+        android:layout_height="46dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="10dp"
         android:background="@drawable/bg_rounded_input"
         android:clickable="true"
         android:focusable="true"
@@ -58,7 +58,7 @@
         android:textColor="#FAF7FF"
         android:textSize="14sp" />
 
-    <!-- RACCOURCIS : MES APPS, FICHIERS -->
+    <!-- RACCOURCIS : MES APPS, FICHIERS, KRUX CODE -->
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -69,8 +69,8 @@
         <LinearLayout android:tag="krux:input"
             android:id="@+id/navMyApps"
             android:layout_width="0dp"
-            android:layout_height="58dp"
-            android:layout_marginEnd="4dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="3dp"
             android:layout_weight="1"
             android:background="@drawable/bg_rounded_input"
             android:clickable="true"
@@ -96,8 +96,9 @@
         <LinearLayout android:tag="krux:input"
             android:id="@+id/navFiles"
             android:layout_width="0dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="4dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:layout_weight="1"
             android:background="@drawable/bg_rounded_input"
             android:clickable="true"
@@ -116,6 +117,33 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="Fichiers"
+                android:textColor="#EDE7F5"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout android:tag="krux:input"
+            android:id="@+id/navKruxCode"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="3dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_rounded_input"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView android:tag="krux:text2"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_opt_code"
+                android:tint="#BFA7FF" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Krux Code"
                 android:textColor="#EDE7F5"
                 android:textSize="12sp" />
         </LinearLayout>

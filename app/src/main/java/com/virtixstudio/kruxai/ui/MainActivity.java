@@ -1690,14 +1690,13 @@ private final ActivityResultLauncher<String[]> filePicker =
         final com.google.firebase.auth.FirebaseUser user = currentUser;
         new Thread(() -> {
             try {
-                java.io.File dir = new java.io.File(getFilesDir(), "workspace/" + stamp);
-                dir.mkdirs();
+                // Tout fichier généré va dans l'onglet Fichiers (dossier à plat) ; le cloud garde les chemins d'origine.
+                com.virtixstudio.kruxai.core.WorkspaceStore store = new com.virtixstudio.kruxai.core.WorkspaceStore(new java.io.File(getFilesDir(), "workspace"));
                 java.util.List<com.virtixstudio.kruxai.core.WorkspaceBundle.Entry> entries = new java.util.ArrayList<>();
                 int raw = 0;
                 for (com.virtixstudio.kruxai.utils.FileDelivery.DFile f : files) {
-                    try (java.io.FileOutputStream os = new java.io.FileOutputStream(new java.io.File(dir, f.name))) {
-                        os.write(f.content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    }
+                    try { store.saveGenerated(f.name, f.content); }
+                    catch (java.io.IOException e) { android.util.Log.w("KRUX_WS", "Fichiers : " + e.getMessage()); }
                     entries.add(new com.virtixstudio.kruxai.core.WorkspaceBundle.Entry(f.name, f.content));
                     raw += f.bytes();
                 }
@@ -3983,6 +3982,13 @@ private final ActivityResultLauncher<String[]> filePicker =
             navFiles.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(GravityCompat.START);
                 startActivity(new Intent(MainActivity.this, FilesActivity.class));
+            });
+        }
+        View navKruxCode = findViewById(R.id.navKruxCode);
+        if (navKruxCode != null) {
+            navKruxCode.setOnClickListener(v -> {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                startActivity(new Intent(MainActivity.this, KruxCodeActivity.class));
             });
         }
         if (navCustomize != null) {
