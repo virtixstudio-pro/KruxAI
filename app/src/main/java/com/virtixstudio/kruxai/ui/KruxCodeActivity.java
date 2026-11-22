@@ -191,9 +191,9 @@ public class KruxCodeActivity extends AppCompatActivity {
         sendBtn = send;
         send.setOnClickListener(v -> { if (busy) stopAgent(); else submit(); });
         inputBar.addView(input, new LinearLayout.LayoutParams(0, -2, 1f));
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(px(52), px(46));
-        sp.leftMargin = px(8);
-        inputBar.addView(send, sp);
+        LinearLayout.LayoutParams sendLp = new LinearLayout.LayoutParams(px(52), px(46));
+        sendLp.leftMargin = px(8);
+        inputBar.addView(send, sendLp);
         root.addView(inputBar, new LinearLayout.LayoutParams(-1, -2));
 
         setContentView(root);
