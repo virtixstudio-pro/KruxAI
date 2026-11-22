@@ -655,6 +655,13 @@ public class AppBuilder {
                 Map<String, String> all = new LinkedHashMap<>(BuildTemplates.gradleFiles(s, appId));
                 if (web) {
                     all.putAll(WebTemplates.shellFiles(name.replace('-', ' ')));
+                    String iconPng = com.virtixstudio.kruxai.core.AppOptions.takeIcon();
+                    String shellManifest = all.get("app/src/main/AndroidManifest.xml");
+                    if (iconPng != null && shellManifest != null && !shellManifest.contains("android:icon")) {
+                        all.put("app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", "base64:" + iconPng);
+                        all.put("app/src/main/AndroidManifest.xml",
+                                shellManifest.replace("<application ", "<application android:icon='@mipmap/ic_launcher' "));
+                    }
                     all.put(".github/workflows/build.yml", WebTemplates.workflow(s));
                 } else {
                     all.put(".github/workflows/build.yml", BuildTemplates.workflow(s));

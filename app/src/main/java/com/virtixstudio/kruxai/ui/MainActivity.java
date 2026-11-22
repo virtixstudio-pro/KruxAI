@@ -2333,8 +2333,240 @@ private final ActivityResultLauncher<String[]> filePicker =
                 .setMessage(shown + "\n\nCréations restantes cette semaine : " + (quota - used) + "/" + quota
                        )
                 .setNegativeButton("Annuler", null)
-                .setPositiveButton("Lancer", (d, w) -> startAppBuild(fToken, desc))
+                .setPositiveButton("Continuer", (d, w) -> showAppQuestions(desc, brief -> startAppBuild(fToken, brief)))
                 .show(), this);
+    }
+
+    // ---------------------------------------------------------------- panneau de questions avant la création
+
+    private String questionIconB64 = null;
+    private android.widget.ImageView questionIconPreview;
+    private TextView questionIconLabel;
+
+    private final ActivityResultLauncher<String> appIconPicker =
+            registerForActivityResult(
+                    new ActivityResultContracts.GetContent(),
+                    uri -> { if (uri != null) onAppIconPicked(uri); }
+            );
+
+    /** Image importée : recadrée en carré, 192 px, gardée en PNG (base64) pour devenir l'icône de l'app. */
+    private void onAppIconPicked(android.net.Uri uri) {
+        try {
+            android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                android.graphics.BitmapFactory.decodeStream(in, null, o);
+            }
+            int sample = 1;
+            while (o.outWidth / (sample * 2) >= 512 && o.outHeight / (sample * 2) >= 512) sample *= 2;
+            o = new android.graphics.BitmapFactory.Options();
+            o.inSampleSize = sample;
+            android.graphics.Bitmap src;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                src = android.graphics.BitmapFactory.decodeStream(in, null, o);
+            }
+            if (src == null) throw new java.io.IOException("image illisible");
+            int side = Math.min(src.getWidth(), src.getHeight());
+            android.graphics.Bitmap square = android.graphics.Bitmap.createBitmap(
+                    src, (src.getWidth() - side) / 2, (src.getHeight() - side) / 2, side, side);
+            android.graphics.Bitmap icon = android.graphics.Bitmap.createScaledBitmap(square, 192, 192, true);
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+            icon.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bo);
+            questionIconB64 = android.util.Base64.encodeToString(bo.toByteArray(), android.util.Base64.NO_WRAP);
+            if (questionIconPreview != null) questionIconPreview.setImageBitmap(icon);
+            if (questionIconLabel != null) questionIconLabel.setText("Icône importée");
+        } catch (Exception e) {
+            Toast.makeText(this, "Image impossible à lire : " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void paintChip(TextView c, boolean on, int accent, int text) {
+        GradientDrawable g = new GradientDrawable();
+        g.setCornerRadius(dp(18));
+        g.setColor(on ? accent : 0xFF1F1A2E);
+        c.setBackground(g);
+        c.setTextColor(on ? 0xFF0B0A12 : text);
+    }
+
+    /** Une rangée de choix : un seul (multi = false) ou plusieurs ; sel[] garde l'état. */
+    private android.widget.HorizontalScrollView chipRow(final String[] opts, final boolean[] sel, final boolean multi,
+                                                        final int accent, final int text, final Runnable onChange) {
+        android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(this);
+        hs.setHorizontalScrollBarEnabled(false);
+        final android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        hs.addView(row);
+        final TextView[] chips = new TextView[opts.length];
+        for (int i = 0; i < opts.length; i++) {
+            final int idx = i;
+            TextView c = new TextView(this);
+            c.setText(opts[i]);
+            c.setTextSize(13);
+            c.setGravity(android.view.Gravity.CENTER);
+            c.setPadding(dp(14), 0, dp(14), 0);
+            c.setClickable(true);
+            chips[i] = c;
+            paintChip(c, sel[i], accent, text);
+            c.setOnClickListener(v -> {
+                if (multi) {
+                    sel[idx] = !sel[idx];
+                } else {
+                    for (int k = 0; k < sel.length; k++) sel[k] = (k == idx);
+                }
+                for (int k = 0; k < chips.length; k++) paintChip(chips[k], sel[k], accent, text);
+                if (onChange != null) onChange.run();
+            });
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(-2, dp(38));
+            lp.rightMargin = dp(8);
+            row.addView(c, lp);
+        }
+        return hs;
+    }
+
+    private TextView questionLabel(String title, String sub, int text) {
+        TextView t = new TextView(this);
+        t.setText(sub == null ? title : title + "\n" + sub);
+        t.setTextColor(text);
+        t.setTextSize(14);
+        t.setTypeface(null, android.graphics.Typeface.BOLD);
+        t.setPadding(0, dp(16), 0, dp(8));
+        return t;
+    }
+
+    /** Panneau « quelques questions » avant de créer l'app : style, fonctions, nom, icône, base de données. */
+    private void showAppQuestions(final String desc, final java.util.function.Consumer<String> go) {
+        final BottomSheetDialog dlg = new BottomSheetDialog(this);
+        final int accent = KruxTheme.get(this, "accent");
+        final int text = 0xFFF8FAFC;
+        final int dim = 0xFF9A90AD;
+        questionIconB64 = null;
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        android.widget.LinearLayout col = new android.widget.LinearLayout(this);
+        col.setOrientation(android.widget.LinearLayout.VERTICAL);
+        col.setBackgroundColor(0xFF111318);
+        col.setPadding(dp(18), dp(14), dp(18), dp(20));
+        sv.addView(col);
+
+        TextView head = new TextView(this);
+        head.setText("Précise ton application");
+        head.setTextColor(text);
+        head.setTextSize(19);
+        head.setTypeface(null, android.graphics.Typeface.BOLD);
+        col.addView(head);
+        TextView sub = new TextView(this);
+        sub.setText("Quelques choix, Krux s'occupe du reste. Tout est facultatif.");
+        sub.setTextColor(dim);
+        sub.setTextSize(13);
+        col.addView(sub);
+
+        // Style
+        final String[] styles = {"Moderne", "Sombre", "Coloré", "Minimal"};
+        final boolean[] styleSel = {true, false, false, false};
+        col.addView(questionLabel("Style visuel", null, text));
+        col.addView(chipRow(styles, styleSel, false, accent, text, null));
+
+        // Fonctions en plus
+        final String[] extras = {"Mode sombre", "Rappels", "Partage", "Export des données", "Statistiques"};
+        final boolean[] extraSel = new boolean[extras.length];
+        col.addView(questionLabel("Fonctions en plus", null, text));
+        col.addView(chipRow(extras, extraSel, true, accent, text, null));
+
+        // Nom
+        col.addView(questionLabel("Nom de l'application", "Si tu laisses vide, Krux choisit.", text));
+        final android.widget.EditText etName = new android.widget.EditText(this);
+        etName.setHint("Ex. Mon carnet");
+        etName.setHintTextColor(dim);
+        etName.setTextColor(text);
+        etName.setTextSize(14);
+        etName.setSingleLine(true);
+        etName.setPadding(dp(14), dp(10), dp(14), dp(10));
+        GradientDrawable nb = new GradientDrawable();
+        nb.setColor(0xFF1F1A2E);
+        nb.setCornerRadius(dp(14));
+        etName.setBackground(nb);
+        col.addView(etName);
+
+        // Icône
+        col.addView(questionLabel("Icône", "Importe une image : elle devient l'icône de l'application.", text));
+        android.widget.LinearLayout iconRow = new android.widget.LinearLayout(this);
+        iconRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        questionIconPreview = new android.widget.ImageView(this);
+        questionIconPreview.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        GradientDrawable ib = new GradientDrawable();
+        ib.setColor(0xFF1F1A2E);
+        ib.setCornerRadius(dp(14));
+        questionIconPreview.setBackground(ib);
+        iconRow.addView(questionIconPreview, new android.widget.LinearLayout.LayoutParams(dp(56), dp(56)));
+        questionIconLabel = new TextView(this);
+        questionIconLabel.setText("Aucune : Krux en crée une");
+        questionIconLabel.setTextColor(dim);
+        questionIconLabel.setTextSize(13);
+        questionIconLabel.setPadding(dp(12), 0, dp(12), 0);
+        iconRow.addView(questionIconLabel, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
+        TextView pick = new TextView(this);
+        pick.setText("Importer");
+        pick.setTextSize(13);
+        pick.setGravity(android.view.Gravity.CENTER);
+        pick.setPadding(dp(14), 0, dp(14), 0);
+        pick.setClickable(true);
+        paintChip(pick, true, accent, text);
+        pick.setOnClickListener(v -> appIconPicker.launch("image/*"));
+        iconRow.addView(pick, new android.widget.LinearLayout.LayoutParams(-2, dp(38)));
+        col.addView(iconRow);
+
+        // Base de données
+        final String[] dbs = {"Pas de base de données", "Oui, Supabase", "Plus tard"};
+        final boolean[] dbSel = {true, false, false};
+        col.addView(questionLabel("Base de données", "Pour sauvegarder les données en ligne.", text));
+        final TextView dbNote = new TextView(this);
+        dbNote.setText("Krux prépare l'app pour se brancher à Supabase (gratuit, sans carte). Le guide pas à pas pour créer ton projet arrive dans une prochaine mise à jour ; en attendant les données restent sur le téléphone.");
+        dbNote.setTextColor(dim);
+        dbNote.setTextSize(12);
+        dbNote.setPadding(0, dp(8), 0, 0);
+        dbNote.setVisibility(View.GONE);
+        col.addView(chipRow(dbs, dbSel, false, accent, text, () -> dbNote.setVisibility(dbSel[1] ? View.VISIBLE : View.GONE)));
+        col.addView(dbNote);
+
+        // Boutons
+        TextView create = new TextView(this);
+        create.setText("Créer l'application");
+        create.setTextSize(15);
+        create.setTypeface(null, android.graphics.Typeface.BOLD);
+        create.setGravity(android.view.Gravity.CENTER);
+        create.setClickable(true);
+        paintChip(create, true, accent, text);
+        android.widget.LinearLayout.LayoutParams cp = new android.widget.LinearLayout.LayoutParams(-1, dp(48));
+        cp.topMargin = dp(22);
+        col.addView(create, cp);
+        TextView cancel = new TextView(this);
+        cancel.setText("Annuler");
+        cancel.setTextColor(dim);
+        cancel.setTextSize(14);
+        cancel.setGravity(android.view.Gravity.CENTER);
+        cancel.setClickable(true);
+        cancel.setOnClickListener(v -> dlg.dismiss());
+        col.addView(cancel, new android.widget.LinearLayout.LayoutParams(-1, dp(44)));
+
+        create.setOnClickListener(v -> {
+            StringBuilder b = new StringBuilder(desc);
+            b.append("\n\nCHOIX DE L'UTILISATEUR :");
+            for (int i = 0; i < styles.length; i++) if (styleSel[i]) b.append(" style ").append(styles[i].toLowerCase()).append(".");
+            StringBuilder ex = new StringBuilder();
+            for (int i = 0; i < extras.length; i++) if (extraSel[i]) ex.append(ex.length() > 0 ? ", " : "").append(extras[i].toLowerCase());
+            if (ex.length() > 0) b.append(" Fonctions en plus : ").append(ex).append(".");
+            String nm = etName.getText().toString().trim();
+            if (!nm.isEmpty()) b.append(" Nom de l'app : ").append(nm).append(".");
+            if (questionIconB64 != null) b.append(" L'icône est fournie par l'utilisateur : n'en crée aucune.");
+            if (dbSel[1]) b.append(" Isole l'accès aux données dans un seul fichier (src/data.ts), stockage local pour l'instant, facile à brancher sur Supabase ensuite.");
+            com.virtixstudio.kruxai.core.AppOptions.setIcon(questionIconB64);
+            dlg.dismiss();
+            go.accept(b.toString());
+        });
+
+        dlg.setContentView(sv);
+        dlg.setOnShowListener(d2 -> dlg.getBehavior().setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED));
+        dlg.setOnDismissListener(d2 -> { questionIconPreview = null; questionIconLabel = null; });
+        dlg.show();
     }
 
     /** Envoie le code source compressé (et l'APK s'il fait 10 Mo ou moins) sur les serveurs Virtix Studio. */

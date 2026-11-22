@@ -78,6 +78,14 @@ public class KruxCodeActivity extends AppCompatActivity {
     private File undoFile;
     private boolean busy;
     private SharedPreferences sp;
+    private static final int PAGE_CHARS = 2000;   // texte d'une page envoyé à l'IA (quotas gratuits)
+    private static final int OBS_CHARS = 3500;    // total des pages gardées pour une demande
+    private TextView webTitle, webToggle;
+    private android.widget.HorizontalScrollView tabsScroll;
+    private LinearLayout tabsRow;
+    private boolean webMin = true;
+    private String pendingWebUrl = "";
+    private String lastNoted = "";
     private JSONArray sessions = new JSONArray();
     private String sessId = "";
     private boolean replaying;
@@ -150,9 +158,36 @@ public class KruxCodeActivity extends AppCompatActivity {
         webBox = new LinearLayout(this);
         webBox.setOrientation(LinearLayout.VERTICAL);
         webBox.setVisibility(View.GONE);
-        TextView webClose = pill("Navigateur de Krux ✕", TXT, PANEL);
-        webClose.setOnClickListener(v -> webBox.setVisibility(View.GONE));
-        webBox.addView(webClose, new LinearLayout.LayoutParams(-1, px(34)));
+        LinearLayout webHead = new LinearLayout(this);
+        webHead.setGravity(Gravity.CENTER_VERTICAL);
+        webTitle = new TextView(this);
+        webTitle.setTextColor(DIM);
+        webTitle.setTextSize(12);
+        webTitle.setTypeface(Typeface.MONOSPACE);
+        webTitle.setSingleLine(true);
+        webTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        webTitle.setPadding(px(16), 0, px(8), 0);
+        webToggle = pill("Agrandir", TXT, PANEL);
+        webToggle.setTextSize(11);
+        webToggle.setMinHeight(px(28));
+        webToggle.setOnClickListener(v -> setWebMin(!webMin));
+        TextView webClose = pill("✕", TXT, PANEL);
+        webClose.setTextSize(11);
+        webClose.setMinHeight(px(28));
+        webClose.setOnClickListener(v -> closeWeb());
+        webHead.addView(webTitle, new LinearLayout.LayoutParams(0, -2, 1f));
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, px(28));
+        tp.rightMargin = px(6);
+        webHead.addView(webToggle, tp);
+        webHead.addView(webClose, new LinearLayout.LayoutParams(px(40), px(28)));
+        webBox.addView(webHead, new LinearLayout.LayoutParams(-1, px(34)));
+        tabsScroll = new android.widget.HorizontalScrollView(this);
+        tabsScroll.setHorizontalScrollBarEnabled(false);
+        tabsScroll.setVisibility(View.GONE);
+        tabsRow = new LinearLayout(this);
+        tabsRow.setPadding(px(12), 0, px(12), px(4));
+        tabsScroll.addView(tabsRow);
+        webBox.addView(tabsScroll, new LinearLayout.LayoutParams(-1, -2));
         web = new WebView(this);
         WebSettings ws = web.getSettings();
         ws.setJavaScriptEnabled(true);
@@ -161,11 +196,12 @@ public class KruxCodeActivity extends AppCompatActivity {
         ws.setAllowContentAccess(false);
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView v, String url) {
+                rememberPage(url, v.getTitle());
                 final Runnable r = pageWait;
                 if (r != null) { pageWait = null; v.postDelayed(r, 900); }
             }
         });
-        webBox.addView(web, new LinearLayout.LayoutParams(-1, px(230)));
+        webBox.addView(web, new LinearLayout.LayoutParams(-1, px(64)));
         root.addView(webBox, new LinearLayout.LayoutParams(-1, -2));
 
         scroll = new ScrollView(this);
@@ -274,6 +310,117 @@ public class KruxCodeActivity extends AppCompatActivity {
 
     // ------------------------------------------------------------------ sessions (conservées entre deux ouvertures)
 
+    private static String trimObs(String s) {
+        return s.length() <= OBS_CHARS ? s : s.substring(s.length() - OBS_CHARS);
+    }
+
+    private static String hostOf(String url) {
+        try {
+            String h = android.net.Uri.parse(url).getHost();
+            return h == null ? url : h.replaceFirst("^www\\.", "");
+        } catch (Exception e) { return url; }
+    }
+
+    /** Navigateur réduit (petite fenêtre) ou agrandi ; l'état est gardé par session. */
+    private void setWebMin(boolean min) {
+        webMin = min;
+        web.setLayoutParams(new LinearLayout.LayoutParams(-1, px(min ? 64 : 230)));
+        webToggle.setText(min ? "Agrandir" : "Réduire");
+        if (!min) loadPending();
+        JSONObject o = curSession();
+        if (o != null) {
+            try { o.put("web_min", min); } catch (Exception ignored) { }
+            saveSessions();
+        }
+    }
+
+    private void loadPending() {
+        if (pendingWebUrl.isEmpty()) return;
+        String u = pendingWebUrl;
+        pendingWebUrl = "";
+        web.loadUrl(u);
+    }
+
+    private void closeWeb() {
+        JSONObject o = curSession();
+        if (o != null) { o.remove("tabs"); saveSessions(); }
+        pendingWebUrl = "";
+        lastNoted = "";
+        try { web.stopLoading(); web.loadUrl("about:blank"); } catch (Exception ignored) { }
+        webBox.setVisibility(View.GONE);
+        refreshTabs();
+    }
+
+    /** Chaque page visitée s'ajoute à la session courante (6 au plus) et à son historique. */
+    private void rememberPage(String url, String title) {
+        if (url == null || url.isEmpty() || url.startsWith("about:")) return;
+        JSONObject o = curSession();
+        if (o == null) return;
+        String ti = (title == null || title.trim().isEmpty()) ? hostOf(url) : title.trim();
+        if (ti.length() > 40) ti = ti.substring(0, 40) + "…";
+        try {
+            JSONArray old = o.optJSONArray("tabs");
+            JSONArray next = new JSONArray();
+            for (int i = 0; old != null && i < old.length(); i++) {
+                JSONObject t = old.optJSONObject(i);
+                if (t != null && !url.equals(t.optString("url"))) next.put(t);
+            }
+            next.put(new JSONObject().put("url", url).put("title", ti));
+            while (next.length() > 6) next.remove(0);
+            o.put("tabs", next);
+        } catch (Exception ignored) { }
+        saveSessions();
+        webTitle.setText("🌐 " + ti);
+        refreshTabs();
+        if (!url.equals(lastNoted)) {
+            lastNoted = url;
+            line("🌐 " + ti + " (" + hostOf(url) + ")", DIM);
+        }
+    }
+
+    private void refreshTabs() {
+        if (tabsRow == null) return;
+        tabsRow.removeAllViews();
+        JSONObject o = curSession();
+        JSONArray tabs = o == null ? null : o.optJSONArray("tabs");
+        if (tabs == null || tabs.length() < 2) { tabsScroll.setVisibility(View.GONE); return; }
+        for (int i = 0; i < tabs.length(); i++) {
+            JSONObject t = tabs.optJSONObject(i);
+            if (t == null) continue;
+            final String u = t.optString("url");
+            TextView chip = pill(t.optString("title"), TXT, PANEL);
+            chip.setTextSize(11);
+            chip.setMinHeight(px(28));
+            chip.setSingleLine(true);
+            chip.setOnClickListener(v -> { pendingWebUrl = ""; web.loadUrl(u); });
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, px(28));
+            cp.rightMargin = px(6);
+            tabsRow.addView(chip, cp);
+        }
+        tabsScroll.setVisibility(View.VISIBLE);
+    }
+
+    /** Au changement de session : le navigateur de cette session (réduit, page rechargée seulement si on l'agrandit). */
+    private void showSessionWeb() {
+        JSONObject o = curSession();
+        JSONArray tabs = o == null ? null : o.optJSONArray("tabs");
+        if (tabs == null || tabs.length() == 0) {
+            pendingWebUrl = "";
+            lastNoted = "";
+            try { web.stopLoading(); web.loadUrl("about:blank"); } catch (Exception ignored) { }
+            webBox.setVisibility(View.GONE);
+            refreshTabs();
+            return;
+        }
+        JSONObject last = tabs.optJSONObject(tabs.length() - 1);
+        webBox.setVisibility(View.VISIBLE);
+        webTitle.setText("🌐 " + (last == null ? "" : last.optString("title")));
+        pendingWebUrl = last == null ? "" : last.optString("url");
+        lastNoted = pendingWebUrl;
+        setWebMin(o.optBoolean("web_min", true));
+        refreshTabs();
+    }
+
     private JSONObject curSession() {
         for (int i = 0; i < sessions.length(); i++) {
             JSONObject o = sessions.optJSONObject(i);
@@ -347,6 +494,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
         replaying = false;
         if (fileLabel != null) updateLabel();
+        if (web != null && webBox != null) showSessionWeb();
     }
 
     private void record(String text, int color) {
@@ -506,6 +654,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         String kind = act.substring(0, bar);
         String arg = act.substring(bar + 1).trim();
         webBox.setVisibility(View.VISIBLE);
+        if (webTitle != null) webTitle.setText("🌐 chargement…");
         final Runnable[] finish = new Runnable[1];
         final boolean[] done = new boolean[1];
         finish[0] = () -> {
@@ -516,7 +665,7 @@ public class KruxCodeActivity extends AppCompatActivity {
                 String t = "";
                 try { t = new JSONArray("[" + val + "]").optString(0); } catch (Exception ignored) { }
                 t = t.replaceAll("[ \\t]+", " ").replaceAll("\\n{3,}", "\n\n").trim();
-                if (t.length() > 6000) t = t.substring(0, 6000) + "\n[…texte coupé]";
+                if (t.length() > PAGE_CHARS) t = t.substring(0, PAGE_CHARS) + "\n[…texte coupé]";
                 cb.done("PAGE " + web.getUrl() + " :\n" + t + "\n\n");
             });
         };
@@ -559,7 +708,7 @@ public class KruxCodeActivity extends AppCompatActivity {
                     String act = step < MAX_STEPS ? actionOf(response) : null;
                     if (act == null) { handleAnswer(response); return; }
                     setBusy(true);
-                    runTool(act, result -> { if (myRun == runId) agentStep(ask, observations + result, step + 1); });
+                    runTool(act, result -> { if (myRun == runId) agentStep(ask, trimObs(observations + result), step + 1); });
                 });
             }
 

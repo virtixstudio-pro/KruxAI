@@ -11,7 +11,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 public class ScreenReaderService extends AccessibilityService {
 
     private static volatile ScreenReaderService instance;
-    private static final int MAX_CHARS = 6000;
+    private static final int MAX_CHARS = 2500;
 
     public static boolean isOn() { return instance != null; }
 

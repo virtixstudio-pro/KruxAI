@@ -131,7 +131,11 @@ public class GithubClient {
 
     public void putFile(String repo, String path, String content) throws Exception {
         String url = "/repos/" + owner + "/" + repo + "/contents/" + path;
-        String b64 = Base64.encodeToString(content.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP);
+        // Un contenu « base64:… » est un fichier binaire (ex. l'icône PNG) ; le reste est du texte.
+        byte[] raw = content.startsWith("base64:")
+                ? Base64.decode(content.substring(7), Base64.DEFAULT)
+                : content.getBytes(StandardCharsets.UTF_8);
+        String b64 = Base64.encodeToString(raw, Base64.NO_WRAP);
         Http last = null;
         for (int i = 0; i < 4; i++) {
             JSONObject b = new JSONObject().put("message", "KRUX: " + path).put("content", b64);
