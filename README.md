@@ -209,3 +209,9 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - Fait (patch krux-lit-la-doc) : Krux lit docs.txt du site Virtix quand la question le concerne (utils/VirtixDocs.java). Patch site : site-pages-pro.
 - À tester sur téléphone. Rien n'est compilé ici (pas de SDK Android).
 - Mis de côté : patch de la barre latérale, à refaire en plus sobre.
+
+## Mise à jour du 22/11/2026 (site)
+
+- Fait (patch site-virtix-docs) : pages Applications, Documentation et Créateurs dans docs/, menu étendu sur toutes les pages, docs/docs.txt pour Krux.
+- À faire : compléter createurs.html (nom, liens) ; vérifier que docs.txt répond une fois le site redéployé.
+- Mis de côté : barre latérale, à refaire plus sobre.

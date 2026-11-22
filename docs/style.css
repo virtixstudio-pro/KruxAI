@@ -65,3 +65,8 @@ header.top a.brand img{height:26px;width:auto;display:block}
 .hero-logo{display:block;margin:0 auto;width:clamp(220px,52vw,380px);height:auto}
 .hero .sub{text-indent:.42em}
 .hero .lede{margin-left:auto;margin-right:auto}
+
+/* --- Navigation étendue --- */
+header.top{flex-wrap:wrap}
+header.top nav{flex-wrap:wrap;gap:10px 24px}
+header.top nav a[aria-current="page"]{color:var(--fg)}
