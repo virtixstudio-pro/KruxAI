@@ -237,6 +237,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         webSearchEngine = new WebSearchEngine();
         android.util.Log.e("KRUX_BOOT", "BOOT 05: WebSearchEngine OK");
+        com.virtixstudio.kruxai.utils.VirtixDocs.refreshAsync(getApplicationContext());
 
         String accountId = currentUser.getUid();
 
@@ -1786,6 +1787,16 @@ private final ActivityResultLauncher<String[]> filePicker =
 
         if (webContext != null && !webContext.isEmpty()) {
             historyBuilder.append("\nContexte Recherche Web:\n").append(webContext);
+        }
+
+        if (com.virtixstudio.kruxai.utils.VirtixDocs.concerns(userPrompt)) {
+            String vdocs = com.virtixstudio.kruxai.utils.VirtixDocs.cached(getApplicationContext());
+            if (!vdocs.isEmpty()) {
+                historyBuilder.append("\nDOCUMENTATION VIRTIX (source officielle ; répondre à partir de ce texte, ne rien inventer au-delà) :\n").append(vdocs).append("\n");
+            } else {
+                historyBuilder.append("\nDocumentation Virtix en ligne (pas encore chargée sur ce téléphone) : ")
+                        .append(com.virtixstudio.kruxai.utils.VirtixDocs.SITE).append("/documentation.html\n");
+            }
         }
 
         String memoryBlock = com.virtixstudio.kruxai.utils.MemoryBook.formatForPrompt(

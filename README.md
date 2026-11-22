@@ -203,3 +203,9 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 3. [ ] Compteur de 20 messages par jour (code de ChatGPT, non poussé, bloque l'envoi si le réseau est lent) : décider, puis version non bloquante.
 4. [ ] Lecture d'écran : autoriser « paramètres restreints » sur le téléphone (le patch est déjà poussé).
 5. [ ] Écran de création façon Snapp AI : attendre une capture d'écran du propriétaire.
+
+## Mise à jour du 22/11/2026 (documentation)
+
+- Fait (patch krux-lit-la-doc) : Krux lit docs.txt du site Virtix quand la question le concerne (utils/VirtixDocs.java). Patch site : site-pages-pro.
+- À tester sur téléphone. Rien n'est compilé ici (pas de SDK Android).
+- Mis de côté : patch de la barre latérale, à refaire en plus sobre.
