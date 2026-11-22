@@ -1,10 +1,19 @@
 package com.virtixstudio.kruxai.ui;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
@@ -20,15 +29,21 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Aperçu d'une app React (mode web) : page assets/preview/index.html dans une WebView, avec retouches locales
@@ -97,10 +112,18 @@ final class WebPreviewDialog {
             ws.setDomStorageEnabled(false);
             ws.setDatabaseEnabled(false);
             ws.setGeolocationEnabled(false);
+            // Commandes de Krux venant de la page (listen / stop / ask) : schéma krux:// reçu UNIQUEMENT du cadre principal.
+            // Aucun addJavascriptInterface : l'app générée (iframe isolée) n'a donc aucun accès à Java.
+            final AtomicReference<Consumer<Uri>> bridge = new AtomicReference<>();
             final boolean[] loaded = {false};
             web.setWebViewClient(new WebViewClient() {
                 @Override
                 public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                    Uri u = r.getUrl();
+                    if (r.isForMainFrame() && u != null && "krux".equals(u.getScheme())) {
+                        Consumer<Uri> b = bridge.get();
+                        if (b != null) b.accept(u);
+                    }
                     return true; // aucune navigation en dehors de l'aperçu
                 }
 
@@ -109,6 +132,7 @@ final class WebPreviewDialog {
                     if (loaded[0]) return;
                     loaded[0] = true;
                     v.evaluateJavascript("KruxPreview.load(" + JSONObject.quote(json) + ")", null);
+                    if (refiner != null) v.evaluateJavascript("KruxPhone.enableNative()", null);
                 }
             });
             web.setBackgroundColor(Color.WHITE);
@@ -156,6 +180,80 @@ final class WebPreviewDialog {
             }
             root.addView(status);
 
+            // Dictée de modifications depuis le visage de Krux : reconnaissance vocale -> refine() sur l'app ACTUELLE -> « C'est fait ».
+            final SpeechRecognizer[] rec = {null};
+            final TextToSpeech[] tts = {null};
+            final boolean[] ttsReady = {false};
+            if (refiner != null) {
+                tts[0] = new TextToSpeech(act, st -> ttsReady[0] = (st == TextToSpeech.SUCCESS));
+                bridge.set(uri -> {
+                    String cmd = uri.getHost() == null ? "" : uri.getHost();
+                    if ("stop".equals(cmd)) {
+                        if (rec[0] != null) rec[0].stopListening();
+                        return;
+                    }
+                    if ("ask".equals(cmd)) {
+                        String text = uri.getQueryParameter("t");
+                        if (busy.get()) return;
+                        if (text == null || text.trim().isEmpty()) {
+                            phoneJs(web, "KruxPhone.done(false," + JSONObject.quote("Je n'ai rien compris, réessaie.") + ")");
+                            return;
+                        }
+                        refine(act, web, refiner, latest, text.trim(), "Krux travaille sur ta demande…", status, busy, dlg, null,
+                                (ok, msg) -> {
+                                    phoneJs(web, "KruxPhone.done(" + ok + "," + JSONObject.quote(ok ? "" : msg) + ")");
+                                    if (ok && ttsReady[0] && tts[0] != null) {
+                                        tts[0].setLanguage(Locale.FRENCH);
+                                        tts[0].speak("C'est fait", TextToSpeech.QUEUE_FLUSH, null, "krux_done");
+                                    }
+                                });
+                        return;
+                    }
+                    if (!"listen".equals(cmd) || busy.get()) return;
+                    if (ContextCompat.checkSelfPermission(act, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(act, new String[]{Manifest.permission.RECORD_AUDIO}, 7731);
+                        phoneJs(web, "KruxPhone.state(" + JSONObject.quote("Autorise le micro, puis touche le micro. Tu peux aussi écrire.") + ")");
+                        return;
+                    }
+                    if (!SpeechRecognizer.isRecognitionAvailable(act)) {
+                        phoneJs(web, "KruxPhone.state(" + JSONObject.quote("Dictée indisponible sur ce téléphone : écris ta demande.") + ")");
+                        return;
+                    }
+                    if (rec[0] == null) {
+                        rec[0] = SpeechRecognizer.createSpeechRecognizer(act);
+                        rec[0].setRecognitionListener(new RecognitionListener() {
+                            @Override public void onReadyForSpeech(Bundle p) { }
+                            @Override public void onBeginningOfSpeech() { }
+                            @Override public void onRmsChanged(float rms) { }
+                            @Override public void onBufferReceived(byte[] buf) { }
+                            @Override public void onEndOfSpeech() { }
+                            @Override public void onEvent(int t, Bundle p) { }
+                            @Override public void onError(int e) {
+                                phoneJs(web, "KruxPhone.state(" + JSONObject.quote(e == SpeechRecognizer.ERROR_NO_MATCH || e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                                        ? "Je n'ai rien entendu : touche le micro ou écris." : "Problème de micro : touche le micro ou écris.") + ")");
+                            }
+                            @Override public void onResults(Bundle r) {
+                                ArrayList<String> m = r.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                                if (m == null || m.isEmpty() || m.get(0).trim().isEmpty()) {
+                                    phoneJs(web, "KruxPhone.state(" + JSONObject.quote("Je n'ai rien entendu : touche le micro ou écris.") + ")");
+                                    return;
+                                }
+                                phoneJs(web, "KruxPhone.heard(" + JSONObject.quote(m.get(0).trim()) + ",true)");
+                            }
+                            @Override public void onPartialResults(Bundle p) {
+                                ArrayList<String> m = p.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                                if (m != null && !m.isEmpty()) phoneJs(web, "KruxPhone.heard(" + JSONObject.quote(m.get(0)) + ",false)");
+                            }
+                        });
+                    }
+                    Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
+                    i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+                    rec[0].startListening(i);
+                });
+            }
+
             LinearLayout row = new LinearLayout(act);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.END);
@@ -187,6 +285,9 @@ final class WebPreviewDialog {
 
             dlg.setContentView(root);
             dlg.setOnDismissListener(d -> {
+                bridge.set(null);
+                if (rec[0] != null) { rec[0].destroy(); rec[0] = null; }
+                if (tts[0] != null) { tts[0].stop(); tts[0].shutdown(); tts[0] = null; }
                 web.stopLoading();
                 frame.removeAllViews();
                 web.destroy();
@@ -225,9 +326,21 @@ final class WebPreviewDialog {
     }
 
     /** Demande à Krux (hors thread principal) puis recharge l'aperçu. En cas d'échec, l'aperçu reste tel quel et le message le dit. */
+    private static void phoneJs(WebView web, String code) {
+        web.evaluateJavascript(code, null);
+    }
+
     private static void refine(final Activity act, final WebView web, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner,
                                final AtomicReference<Map<String, String>> latest, final String request, final String working,
                                final TextView status, final AtomicBoolean busy, final Dialog dlg, final Runnable done) {
+        refine(act, web, refiner, latest, request, working, status, busy, dlg, done, null);
+    }
+
+    /** result (ok, message) est appelé à la fin, pour que le faux téléphone dise « C'est fait » ou l'erreur. */
+    private static void refine(final Activity act, final WebView web, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner,
+                               final AtomicReference<Map<String, String>> latest, final String request, final String working,
+                               final TextView status, final AtomicBoolean busy, final Dialog dlg, final Runnable done,
+                               final java.util.function.BiConsumer<Boolean, String> result) {
         if (!busy.compareAndSet(false, true)) return;
         status.setVisibility(View.VISIBLE);
         status.setText(working);
@@ -252,6 +365,7 @@ final class WebPreviewDialog {
                     web.evaluateJavascript("KruxPreview.load(" + JSONObject.quote(new JSONObject(fin).toString()) + ")", null);
                     if (done != null) done.run();
                 }
+                if (result != null) result.accept(fin != null, fm);
             });
         }).start());
     }

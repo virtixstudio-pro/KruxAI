@@ -145,8 +145,23 @@
     };
   }
 
+  // Pont vers l'app Java : navigation du cadre principal vers krux://listen | stop | ask?t=... (interceptée par la WebView).
+  // Défini seulement quand Java l'active (enableNative) ; l'iframe de l'app n'y a pas accès.
+  var navN = 0;
+  function go(cmd, text) {
+    navN++;
+    window.location.href = 'krux://' + cmd + '?n=' + navN + (text ? '&t=' + encodeURIComponent(text) : '');
+  }
+  function enableNative() {
+    window.KruxNative = {
+      listen: function () { go('listen'); },
+      stopListening: function () { go('stop'); },
+      ask: function (t) { go('ask', t); }
+    };
+  }
+
   window.KruxPhone = {
-    view: view, setAppName: setAppName, done: done, state: setState,
+    enableNative: enableNative, view: view, setAppName: setAppName, done: done, state: setState,
     heard: function (text, fin) { $('kxText').textContent = text || ''; if (fin) submit(text); }
   };
 })();

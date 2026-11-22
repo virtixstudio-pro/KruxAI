@@ -41,5 +41,7 @@ const { JSDOM } = require('jsdom');
   W.KruxPreview.load(JSON.stringify({ 'index.html': '<title>Todo Pro</title>', 'src/main.tsx': 'x' }));
   ok(D.getElementById('appName').textContent === 'Todo Pro' && D.getElementById('appLetter').textContent === 'T', 'nom de l’app tiré du <title>');
   ok(typeof W.KruxPreview.result === 'function', 'KruxPreview.result toujours disponible');
+  delete W.KruxNative; W.KruxPhone.enableNative();
+  ok(typeof W.KruxNative.listen === 'function' && typeof W.KruxNative.ask === 'function' && typeof W.KruxNative.stopListening === 'function', 'enableNative : pont listen / stopListening / ask défini');
   console.log(fails ? 'FAILS=' + fails : 'PHONE_ALL_OK'); process.exit(fails ? 1 : 0);
 })();
