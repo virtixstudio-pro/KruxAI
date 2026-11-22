@@ -142,6 +142,21 @@ public class ApiClient {
         return joined == null ? new String[0] : joined.split("\n");
     }
 
+    /** Faux si cette version de l'app n'a pas la clé de ce moteur (le moteur est alors sauté sans masquer la vraie erreur). */
+    private static boolean hasKey(KruxModel m) {
+        if (com.virtixstudio.kruxai.core.AiProxy.enabled()) return true;
+        String k;
+        switch (m.getProvider()) {
+            case "GROQ": k = BuildConfig.GROQ_API_KEY; break;
+            case "CEREBRAS": k = BuildConfig.CEREBRAS_API_KEY; break;
+            case "MISTRAL": k = BuildConfig.MISTRAL_API_KEY; break;
+            case "HUGGINGFACE": k = BuildConfig.HF_API_KEY; break;
+            case "GEMINI": k = BuildConfig.GEMINI_API_KEY; break;
+            default: return true;
+        }
+        return k != null && !k.trim().isEmpty();
+    }
+
     private static boolean readsImages(KruxModel m) {
         String p = m.getProvider();
         return "GEMINI".equals(p) || "MISTRAL".equals(p);
@@ -203,6 +218,11 @@ public class ApiClient {
 
                 boolean limitedNow = false;
                 for (KruxModel model : ready) {
+                    if (!hasKey(model)) {
+                        Log.w(TAG, model.getDisplayName() + " : clé absente dans cette version, moteur sauté");
+                        failedHard.add(model);
+                        continue;
+                    }
                     try {
                         Log.d(TAG, "Tentative avec " + model.getDisplayName());
 
@@ -248,6 +268,9 @@ public class ApiClient {
                 if (!limitedNow) break;
             }
 
+            if (lastError == null) {
+                lastError = new Exception("Clé API absente : aucune clé IA n'est configurée dans cette version de l'app.");
+            }
             String detail = "";
             if (lastError != null && lastError.getMessage() != null && !lastError.getMessage().isEmpty()) {
                 String raw = lastError.getMessage().replaceAll("(?i)key=[^&\\s]+", "key=***").replace('\n', ' ').trim();

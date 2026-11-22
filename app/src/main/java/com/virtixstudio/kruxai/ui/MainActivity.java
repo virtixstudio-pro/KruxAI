@@ -2258,6 +2258,12 @@ private final ActivityResultLauncher<String[]> filePicker =
                 etInput.requestFocus();
             }
         }
+        String createDesc = intent.getStringExtra("create_app");
+        if (createDesc != null) {
+            intent.removeExtra("create_app");
+            final String cd = createDesc.trim();
+            if (!cd.isEmpty() && etInput != null) etInput.post(() -> autoCreateApp(cd));
+        }
         String dir = intent.getStringExtra("modify_dir"), text = intent.getStringExtra("modify_text");
         intent.removeExtra("modify_dir");
         intent.removeExtra("modify_text");

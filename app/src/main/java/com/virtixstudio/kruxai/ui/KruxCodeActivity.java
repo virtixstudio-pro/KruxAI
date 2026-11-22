@@ -66,8 +66,9 @@ public class KruxCodeActivity extends AppCompatActivity {
           + "Si la demande est impossible ou trop floue, réponds seulement par une ligne qui commence par IMPOSSIBLE: et la raison en une phrase. "
           + "Si on te demande un NOUVEAU FICHIER, écris d'abord une ligne FICHIER: nom.extension, puis le bloc de code. "
           + "Tu peux aussi consulter le web : écris SEULEMENT une ligne OUVRIR: https://adresse (la page s'ouvre et tu en reçois le texte) "
-          + "ou CLIQUER: texte du lien ou du bouton. Une seule action par réponse, sans autre texte, et seulement si la demande en a besoin "
-          + "(documentation, exemple, contenu d'un site). Ensuite réponds comme d'habitude.";
+          + "ou CLIQUER: texte du lien ou du bouton, ou TAPER: nom du champ | texte à écrire (jamais de mot de passe), ou DEFILER: bas (ou haut). "
+          + "Une seule action par réponse, sans autre texte, et seulement si la demande en a besoin "
+          + "(documentation, exemple, contenu d'un site, remplir un formulaire). Avance pas à pas comme une personne, une action à la fois. Ensuite réponds comme d'habitude.";
 
     private WorkspaceStore store;
     private File current;
@@ -95,7 +96,7 @@ public class KruxCodeActivity extends AppCompatActivity {
     private TextView sendBtn;
     private TextView currentStatus;
     private int runId;
-    private static final int MAX_STEPS = 5;
+    private static final int MAX_STEPS = 8;
 
     private LinearLayout log;
     private ScrollView scroll;
@@ -620,6 +621,13 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
         input.setText("");
         line("› " + ask, TXT);
+        if (ask.matches("(?is)^\\s*(?:peux-tu |tu peux |s'il te pla[iî]t )?(?:cr[ée]+r?e?|fais(?:-moi)?|construis|g[ée]n[èe]re|d[ée]veloppe)\\b.{0,25}\\b(?:app|application|appli)\\b.*")) {
+            line("· Création d'application : j'ouvre le créateur de Krux (questions, puis compilation).", accent);
+            startActivity(new android.content.Intent(this, MainActivity.class)
+                    .putExtra("create_app", ask)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            return;
+        }
         setBusy(true);
         agentStep(ask, "", 0);
     }
@@ -644,7 +652,7 @@ public class KruxCodeActivity extends AppCompatActivity {
 
     private String actionOf(String response) {
         String r = response == null ? "" : response.replaceAll("(?s)<REFLEXION>.*?</REFLEXION>", "").trim();
-        Matcher m = Pattern.compile("(?m)^\\s*(OUVRIR|CLIQUER)\\s*:\\s*(.+?)\\s*$").matcher(r);
+        Matcher m = Pattern.compile("(?m)^\\s*(OUVRIR|CLIQUER|TAPER|DEFILER)\\s*:\\s*(.+?)\\s*$").matcher(r);
         return m.find() ? m.group(1) + "|" + m.group(2) : null;
     }
 
@@ -669,24 +677,94 @@ public class KruxCodeActivity extends AppCompatActivity {
                 cb.done("PAGE " + web.getUrl() + " :\n" + t + "\n\n");
             });
         };
-        if ("OUVRIR".equals(kind)) {
-            String u = arg.matches("(?i)^https?://.*") ? arg : (arg.matches("(?i)^[a-z][a-z0-9+.-]*:.*") ? "" : "https://" + arg);
-            if (u.isEmpty()) { line("· Adresse refusée : " + arg, RED); cb.done("ERREUR : adresse refusée (seulement http/https).\n\n"); return; }
-            line("· ouvre " + u.replaceFirst("(?i)^https?://", ""), DIM);
-            pageWait = finish[0];
-            web.loadUrl(u);
-        } else {
-            line("· clique « " + arg + " »", DIM);
-            String js = "(function(t){t=t.toLowerCase();var e=document.querySelectorAll('a,button,[role=button],input[type=submit]');"
-                    + "for(var i=0;i<e.length;i++){var x=(e[i].innerText||e[i].value||'').toLowerCase();"
-                    + "if(x.indexOf(t)>=0){e[i].click();return 'ok';}}return 'introuvable';})(" + JSONObject.quote(arg) + ")";
-            web.evaluateJavascript(js, val -> {
-                if (val != null && val.contains("introuvable")) { line("· introuvable : " + arg, DIM); }
+        final int myRun = runId;
+        final long pause = 450 + (long) (Math.random() * 850);   // une personne ne réagit pas instantanément
+        web.postDelayed(() -> {
+            if (myRun != runId) return;
+            if ("OUVRIR".equals(kind)) {
+                String u = arg.matches("(?i)^https?://.*") ? arg : (arg.matches("(?i)^[a-z][a-z0-9+.-]*:.*") ? "" : "https://" + arg);
+                if (u.isEmpty()) { line("· Adresse refusée : " + arg, RED); cb.done("ERREUR : adresse refusée (seulement http/https).\n\n"); return; }
+                line("· ouvre " + u.replaceFirst("(?i)^https?://", ""), DIM);
                 pageWait = finish[0];
-                web.postDelayed(finish[0], 2500);
-            });
+                web.loadUrl(u);
+            } else if ("TAPER".equals(kind)) {
+                int b2 = arg.indexOf('|');
+                final String field = (b2 < 0 ? arg : arg.substring(0, b2)).trim();
+                final String value = b2 < 0 ? "" : arg.substring(b2 + 1).trim();
+                line("· écrit dans « " + field + " »", DIM);
+                typeInto(field, value, myRun, () -> {
+                    if (myRun != runId) return;
+                    pageWait = finish[0];
+                    web.postDelayed(finish[0], 1200);
+                });
+            } else if ("DEFILER".equals(kind)) {
+                boolean up = arg.toLowerCase().startsWith("haut");
+                line("· fait défiler la page " + (up ? "vers le haut" : "vers le bas"), DIM);
+                web.evaluateJavascript("window.scrollBy({top:" + (up ? "-" : "") + "Math.round(window.innerHeight*0.8),behavior:'smooth'})", v -> {
+                    pageWait = finish[0];
+                    web.postDelayed(finish[0], 900 + (long) (Math.random() * 400));
+                });
+            } else {
+                if (arg.toLowerCase().matches(".*(payer|paiement|acheter|commander|pay now|purchase|buy now|checkout|supprimer le compte|delete account).*")) {
+                    new android.app.AlertDialog.Builder(KruxCodeActivity.this)
+                            .setTitle("Krux veut cliquer")
+                            .setMessage("« " + arg + " »")
+                            .setCancelable(false)
+                            .setPositiveButton("Autoriser", (dd, w) -> clickText(arg, finish[0]))
+                            .setNegativeButton("Refuser", (dd, w) -> { line("· clic refusé : " + arg, DIM); finish[0].run(); })
+                            .show();
+                } else {
+                    clickText(arg, finish[0]);
+                }
+            }
+        }, pause);
+        web.postDelayed(finish[0], 15000 + pause);
+    }
+
+    /** Clique sur le lien ou le bouton qui contient ce texte, après l'avoir amené à l'écran. */
+    private void clickText(final String arg, final Runnable finish) {
+        line("· clique « " + arg + " »", DIM);
+        String js = "(function(t){t=t.toLowerCase();var e=document.querySelectorAll('a,button,[role=button],input[type=submit]');"
+                + "for(var i=0;i<e.length;i++){var x=(e[i].innerText||e[i].value||'').toLowerCase();"
+                + "if(x.indexOf(t)>=0){e[i].scrollIntoView({block:'center',behavior:'smooth'});"
+                + "(function(el){setTimeout(function(){el.click();},450);})(e[i]);return 'ok';}}return 'introuvable';})(" + JSONObject.quote(arg) + ")";
+        web.evaluateJavascript(js, val -> {
+            if (val != null && val.contains("introuvable")) { line("· introuvable : " + arg, DIM); }
+            pageWait = finish;
+            web.postDelayed(finish, 2500);
+        });
+    }
+
+    /** Écrit dans un champ, caractère par caractère (35 à 95 ms), sans jamais toucher à un mot de passe. */
+    private void typeInto(final String field, final String value, final int run, final Runnable done) {
+        String findJs = "(function(t){t=t.toLowerCase();var e=document.querySelectorAll("
+                + "'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,[contenteditable=true]');"
+                + "for(var i=0;i<e.length;i++){var el=e[i];var l=((el.placeholder||'')+' '+(el.name||'')+' '+(el.id||'')+' '+(el.getAttribute('aria-label')||'')"
+                + "+' '+((el.labels&&el.labels[0])?el.labels[0].innerText:'')).toLowerCase();"
+                + "if(t===''||l.indexOf(t)>=0){if(el.type==='password')return 'mdp';el.scrollIntoView({block:'center'});el.focus();window.__kx=el;return 'ok';}}"
+                + "return 'introuvable';})(" + JSONObject.quote(field) + ")";
+        web.evaluateJavascript(findJs, val -> {
+            if (run != runId) return;
+            if (val != null && val.contains("mdp")) { line("· champ mot de passe : tape-le toi-même.", RED); done.run(); return; }
+            if (val == null || !val.contains("ok")) { line("· champ introuvable : " + field, DIM); done.run(); return; }
+            typeChars(value, 0, run, done);
+        });
+    }
+
+    private void typeChars(final String value, final int from, final int run, final Runnable done) {
+        if (run != runId) return;
+        if (from >= value.length()) {
+            web.evaluateJavascript("(function(){var el=window.__kx;if(el)el.dispatchEvent(new Event('change',{bubbles:true}));})()", v -> done.run());
+            return;
         }
-        web.postDelayed(finish[0], 15000);
+        int chunk = Math.max(1, value.length() / 60);
+        final int to = Math.min(value.length(), from + chunk);
+        String js = "(function(s){var el=window.__kx;if(!el)return;if(el.isContentEditable){el.textContent+=s;}else{"
+                + "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el),'value');var nv=(el.value||'')+s;"
+                + "if(d&&d.set)d.set.call(el,nv);else el.value=nv;}el.dispatchEvent(new Event('input',{bubbles:true}));})("
+                + JSONObject.quote(value.substring(from, to)) + ")";
+        web.evaluateJavascript(js, null);
+        web.postDelayed(() -> typeChars(value, to, run, done), 35 + (long) (Math.random() * 60));
     }
 
     private void agentStep(final String ask, final String observations, final int step) {
