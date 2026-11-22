@@ -32,10 +32,7 @@
   Array.prototype.forEach.call(document.querySelectorAll('[data-ic]'), function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); });
 
   // ---- visage de Krux (même visage partout)
-  var FACE = '<svg viewBox="0 0 40 40" width="100%" height="100%"><circle cx="20" cy="20" r="19" fill="#6d5dfc"/>' +
-    '<ellipse cx="14" cy="11" rx="8" ry="4" fill="#fff" opacity=".18"/>' +
-    '<ellipse class="eye" cx="14" cy="18" rx="2.6" ry="3.6" fill="#fff"/><ellipse class="eye" cx="26" cy="18" rx="2.6" ry="3.6" fill="#fff"/>' +
-    '<path d="M13 26q7 6 14 0" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>';
+  var FACE = '<svg viewBox="40 30 432 420" width="100%" height="100%"><circle cx="256" cy="250" r="214" fill="#0b0b14"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M66 252C52 170 108 90 190 78M446 252C460 170 404 90 322 78" stroke="#22D3EE" stroke-width="14"/><path d="M256 96C366 96 436 176 436 264C436 360 364 428 256 428C148 428 76 360 76 264C76 176 146 96 256 96Z" stroke="#22D3EE" stroke-width="16"/><path d="M128 190C160 140 232 118 306 130C270 138 220 152 196 188C176 170 150 172 128 190Z" stroke="#A855F7" stroke-width="13"/><path d="M256 96C252 64 276 44 302 52" stroke="#A855F7" stroke-width="12"/><circle cx="302" cy="52" r="14" fill="#22D3EE" stroke="none"/><path d="M160 214Q196 196 230 212M282 212Q316 196 352 214" stroke="#A855F7" stroke-width="12"/></g><g class="eye"><ellipse cx="196" cy="268" rx="28" ry="34" fill="none" stroke="#A855F7" stroke-width="15"/><circle cx="196" cy="272" r="15" fill="#A855F7"/><circle cx="191" cy="264" r="6" fill="#22D3EE"/></g><g class="eye"><ellipse cx="316" cy="268" rx="28" ry="34" fill="none" stroke="#A855F7" stroke-width="15"/><circle cx="316" cy="272" r="15" fill="#A855F7"/><circle cx="311" cy="264" r="6" fill="#22D3EE"/></g><g fill="none" stroke-linecap="round"><path d="M124 318l14-10M140 326l14-10M358 308l14 10M374 300l14 10" stroke="#FF7AA8" stroke-width="10"/><path d="M224 340Q256 372 288 340Q256 364 224 340Z" stroke="#A855F7" stroke-width="13" stroke-linejoin="round"/></g></svg>';
   Array.prototype.forEach.call(document.querySelectorAll('.face'), function (el) { el.innerHTML = FACE; });
 
   // ---- vues : home | app | notes
@@ -132,37 +129,6 @@
   notes.addEventListener('input', function () { try { window.localStorage.setItem('krux_phone_notes', notes.value); } catch (e) { } });
 
   // ---- Krux : dictée de modifications (l'app existante est modifiée, jamais recréée)
-  function addMsg(who, t) {
-    var d = document.createElement('div'); d.className = 'm ' + who; d.textContent = t;
-    var l = $('kxText'); l.appendChild(d); l.scrollTop = l.scrollHeight;
-  }
-  // ---- Éditeur intégré : nom, couleur, icône sans demander à Krux (rognage carré automatique)
-  (function () {
-    var tile = document.querySelector('#icoApp .tile'), nm = $('appName'), letter = $('appLetter');
-    var st = {}; try { st = JSON.parse(window.localStorage.getItem('krux_phone_edit') || '{}'); } catch (e) { }
-    function save() { try { window.localStorage.setItem('krux_phone_edit', JSON.stringify(st)); } catch (e) { } }
-    function apply() {
-      if (st.name) { nm.textContent = st.name; letter.textContent = st.name.charAt(0).toUpperCase(); $('edName').value = st.name; }
-      if (st.color) { tile.style.background = st.color; $('edColor').value = st.color; }
-      if (st.icon) { tile.style.background = 'center / cover url(' + st.icon + ')'; letter.style.visibility = 'hidden'; }
-    }
-    $('edName').addEventListener('input', function () { st.name = this.value.slice(0, 20); save(); apply(); });
-    $('edColor').addEventListener('input', function () { st.color = this.value; delete st.icon; letter.style.visibility = ''; save(); apply(); });
-    $('edIcon').addEventListener('change', function () {
-      var f = this.files && this.files[0]; if (!f) return;
-      var img = new Image(), u = URL.createObjectURL(f);
-      img.onload = function () {
-        var c = document.createElement('canvas'); c.width = c.height = 96;
-        var m = Math.min(img.width, img.height);
-        c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, 96, 96);
-        URL.revokeObjectURL(u);
-        try { st.icon = c.toDataURL('image/png'); save(); } catch (e) { }
-        apply();
-      };
-      img.src = u;
-    });
-    apply();
-  })();
   function setState(t) { $('kxState').textContent = t; }
   function closeKx() {
     if (kx.hidden) return;
@@ -176,22 +142,21 @@
     else setState('Écris ta demande ci-dessous.');
   }
   function openKx() {
-    closeQs(); kx.hidden = false; $('kxIn').value = '';
+    closeQs(); kx.hidden = false; $('kxText').textContent = ''; $('kxIn').value = '';
     if (!busy) listen();
   }
   function submit(text) {
     text = (text || '').trim();
     if (!text || busy) return;
     var n = native();
-    addMsg('u', text);
+    $('kxText').textContent = text;
     if (!n || !n.ask) { setState('Krux n’est pas encore branché dans cet aperçu.'); return; }
     busy = true; setState('Krux travaille…');
     try { n.ask(text); } catch (e) { done(false, 'Erreur : ' + e.message); }
   }
   function done(ok, msg) {
     busy = false;
-    var r = ok ? 'C’est fait.' : (msg || 'Impossible pour l’instant.');
-    setState(r); addMsg('k', r);
+    setState(ok ? 'C’est fait.' : (msg || 'Impossible pour l’instant.'));
     if (ok) view('app'); // on revoit l'app modifiée
   }
   Array.prototype.forEach.call(document.querySelectorAll('.face'), function (el) { el.addEventListener('click', function (e) { e.stopPropagation(); openKx(); }); });

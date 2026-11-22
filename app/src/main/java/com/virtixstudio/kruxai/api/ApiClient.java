@@ -692,10 +692,8 @@ public class ApiClient {
             JSONArray userParts = new JSONArray();
             userParts.put(new JSONObject().put("type", "text").put("text", userMessage));
             for (String one : imagesOf(img)) {
-                String dataUrl = "data:image/jpeg;base64," + one;
-                // Mistral documente image_url comme une simple chaîne ; les autres acceptent l'objet {url}
-                Object imageRef = endpoint.contains("mistral") ? (Object) dataUrl : new JSONObject().put("url", dataUrl);
-                userParts.put(new JSONObject().put("type", "image_url").put("image_url", imageRef));
+                userParts.put(new JSONObject().put("type", "image_url")
+                        .put("image_url", new JSONObject().put("url", "data:image/jpeg;base64," + one)));
             }
             messages.put(new JSONObject().put("role", "user").put("content", userParts));
         }

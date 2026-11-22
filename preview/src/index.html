@@ -22,9 +22,9 @@
   #wall { position: absolute; inset: 0; background: radial-gradient(120% 70% at 20% 10%, #7c5cff 0, transparent 55%), radial-gradient(100% 60% at 90% 40%, #ff6aa8 0, transparent 55%), radial-gradient(120% 80% at 30% 100%, #19c3b1 0, transparent 60%), linear-gradient(160deg, #10102a, #1b1140 55%, #0b1f2e); }
   #status { position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 11px; touch-action: none; background: linear-gradient(#0007, transparent); }
   #sIcons { margin-left: auto; margin-right: 8px; font-size: 10px; letter-spacing: 2px; }
-  #kxFab { position: absolute; right: 6px; top: 45%; width: 46px; height: 46px; z-index: 20; touch-action: none; cursor: grab; filter: drop-shadow(0 3px 8px #000a); }
+  #kxFab { position: absolute; left: 6px; top: 45%; width: 46px; height: 46px; z-index: 20; touch-action: none; cursor: grab; filter: drop-shadow(0 3px 8px #000a); }
   .face { width: 22px; height: 22px; flex: none; cursor: pointer; }
-  .face .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+  .face .eye, #kxFab .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
   #home { position: absolute; left: 0; right: 0; top: 26px; bottom: 46px; z-index: 1; padding: 18px 14px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 18px; }
   #bigClock { width: 100%; text-align: center; font-size: 54px; font-weight: 200; margin: 14px 0 22px; text-shadow: 0 2px 12px #0006; }
@@ -57,15 +57,11 @@
   .qt small { font-size: 9px; text-align: center; } .qt[aria-pressed="true"] { background: #4f46e5; color: #fff; }
   #qs input[type="range"] { width: 100%; margin: 12px 0 4px; }
   #qsHandle { width: 40px; height: 4px; border-radius: 2px; background: #888; margin: 6px auto 0; border: 0; padding: 0; display: block; }
-  #kx { position: absolute; left: 14%; right: 8px; bottom: 54px; z-index: 9; background: #1b1b26f5; border-radius: 20px; padding: 12px; box-shadow: 0 8px 24px #000a; }
+  #kx { position: absolute; left: 8px; right: 8px; bottom: 54px; z-index: 9; background: #1b1b26f5; border-radius: 20px; padding: 12px; box-shadow: 0 8px 24px #000a; }
   #kx[hidden] { display: none; }
   .kxHead { display: flex; align-items: center; gap: 8px; } .kxHead .face { width: 34px; height: 34px; }
   #kxState { flex: 1; font-size: 13px; } #kxClose { background: none; border: 0; color: #aaa; font-size: 16px; }
-  #kxText { max-height: 120px; overflow-y: auto; margin: 8px 2px; font-size: 14px; display: flex; flex-direction: column; gap: 5px; }
-  #kxText .m { max-width: 85%; padding: 6px 10px; border-radius: 14px; background: #2c2c3c; } #kxText .u { align-self: flex-end; background: #4f46e5; }
-  #kxEd { display: flex; gap: 6px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #fff2; font-size: 12px; }
-  #kxEd input[type=text] { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 10px; border: 1px solid #555; background: #0004; color: #fff; }
-  #kxEd input[type=color] { width: 32px; height: 28px; border: 0; padding: 0; background: none; } #edIconL { padding: 6px 10px; border-radius: 10px; background: #333346; }
+  #kxText { min-height: 18px; margin: 8px 2px; font-size: 14px; opacity: .85; }
   .kxRow { display: flex; gap: 6px; } .kxRow input { flex: 1; min-width: 0; padding: 8px; border-radius: 10px; border: 1px solid #555; background: #0004; color: #fff; }
   .kxRow button { padding: 8px 10px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; }
   #sIcons { display: inline-flex; gap: 5px; align-items: center; } #sIcons svg { width: 12px; height: 12px; }
@@ -118,7 +114,6 @@
     <div class="kxHead"><span class="face"></span><span id="kxState">Je t’écoute…</span><button id="kxClose" data-ic="close" aria-label="Fermer"></button></div>
     <div id="kxText"></div>
     <div class="kxRow"><button id="kxMic" data-ic="mic" aria-label="Dicter"></button><input id="kxIn" type="text" placeholder="ou écris ta demande"><button id="kxGo">OK</button></div>
-    <div id="kxEd"><input id="edName" type="text" placeholder="Nom de l’app"><input id="edColor" type="color" value="#6d5dfc" aria-label="Couleur"><label id="edIconL">Icône<input id="edIcon" type="file" accept="image/*" hidden></label></div>
   </div>
   <div id="dim"></div>
 </div></div></div>

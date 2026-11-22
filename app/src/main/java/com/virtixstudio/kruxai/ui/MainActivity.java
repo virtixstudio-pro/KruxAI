@@ -2169,7 +2169,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             byte[] buf = new byte[is.available()];
             is.read(buf);
             is.close();
-            return new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8)).optInt("weekly_quota", 5);
+            return new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8)).optInt("weekly_quota", 3);
         } catch (Exception e) {
             return 2;
         }
@@ -2275,7 +2275,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             is.close();
             org.json.JSONObject cfg = new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8));
             token = cfg.optString("token", "").trim();
-            quota = cfg.optInt("weekly_quota", 5);
+            quota = cfg.optInt("weekly_quota", 3);
         } catch (Exception ignored) { }
         if (token.isEmpty()) {
             Toast.makeText(this, "La création d'apps n'est pas configurée dans cette version de KRUX.", Toast.LENGTH_LONG).show();
@@ -2311,7 +2311,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             is.close();
             org.json.JSONObject cfg = new org.json.JSONObject(new String(buf, java.nio.charset.StandardCharsets.UTF_8));
             token = cfg.optString("token", "").trim();
-            quota = cfg.optInt("weekly_quota", 5);
+            quota = cfg.optInt("weekly_quota", 3);
         } catch (Exception ignored) { }
         if (token.isEmpty()) {
             Toast.makeText(this, "La création d'apps n'est pas configurée dans cette version de KRUX.", Toast.LENGTH_LONG).show();
