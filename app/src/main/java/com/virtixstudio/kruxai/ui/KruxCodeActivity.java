@@ -2,6 +2,7 @@ package com.virtixstudio.kruxai.ui;
 
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -29,6 +30,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,6 +71,10 @@ public class KruxCodeActivity extends AppCompatActivity {
     private String undoText;
     private File undoFile;
     private boolean busy;
+    private SharedPreferences sp;
+    private JSONArray sessions = new JSONArray();
+    private String sessId = "";
+    private boolean replaying;
 
     private LinearLayout log;
     private ScrollView scroll;
@@ -101,8 +109,15 @@ public class KruxCodeActivity extends AppCompatActivity {
         title.setGravity(Gravity.CENTER);
         final TextView pick = pill("Fichier ▾", BG, accent);
         pick.setOnClickListener(v -> fileMenu(v));
+        title.setText("Krux Code ▾");
+        title.setOnClickListener(v -> sessionMenu(v));
+        final TextView plus = pill("＋", BG, accent);
+        plus.setOnClickListener(v -> newSession(true));
         bar.addView(close);
         bar.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
+        LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(-2, -2);
+        pl.rightMargin = px(6);
+        bar.addView(plus, pl);
         bar.addView(pick);
         root.addView(bar, new LinearLayout.LayoutParams(-1, px(56)));
 
@@ -148,8 +163,15 @@ public class KruxCodeActivity extends AppCompatActivity {
             return WindowInsetsCompat.CONSUMED;
         });
 
-        line("Krux Code", accent);
-        line("Ouvre un fichier avec « Fichier », ou décris ce que tu veux créer. Rien n'est écrit tant que tu n'as pas appuyé sur Appliquer.", DIM);
+        sp = getSharedPreferences("krux_code", MODE_PRIVATE);
+        loadSessions();
+        restoreSession();
+        if (log.getChildCount() == 0) {
+            replaying = true;
+            line("Krux Code", accent);
+            line("Ouvre un fichier avec « Fichier », ou décris ce que tu veux créer. Rien n'est écrit tant que tu n'as pas appuyé sur Appliquer.", DIM);
+            replaying = false;
+        }
         updateLabel();
 
         String wanted = getIntent() == null ? null : getIntent().getStringExtra(EXTRA_FILE);
@@ -190,6 +212,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         t.setPadding(px(4), px(5), px(4), px(5));
         log.addView(t);
         scrollDown();
+        record(text, color);
         return t;
     }
 
@@ -198,12 +221,159 @@ public class KruxCodeActivity extends AppCompatActivity {
     }
 
     private void updateLabel() {
+        setSessFile(current == null ? "" : current.getName());
         if (current == null) {
             fileLabel.setText("nouveau fichier");
         } else {
             int lines = currentText.isEmpty() ? 0 : currentText.split("\n", -1).length;
             fileLabel.setText(current.getName() + "  ·  " + lines + " lignes");
         }
+    }
+
+
+    // ------------------------------------------------------------------ sessions (conservées entre deux ouvertures)
+
+    private JSONObject curSession() {
+        for (int i = 0; i < sessions.length(); i++) {
+            JSONObject o = sessions.optJSONObject(i);
+            if (o != null && sessId.equals(o.optString("id"))) return o;
+        }
+        return null;
+    }
+
+    private void saveSessions() {
+        if (sp == null) return;
+        sp.edit().putString("sessions", sessions.toString()).putString("cur", sessId).apply();
+    }
+
+    private void loadSessions() {
+        try { sessions = new JSONArray(sp.getString("sessions", "[]")); } catch (Exception e) { sessions = new JSONArray(); }
+        sessId = sp.getString("cur", "");
+        if (curSession() == null) {
+            if (sessions.length() > 0) sessId = sessions.optJSONObject(sessions.length() - 1).optString("id");
+            else newSession(false);
+        }
+    }
+
+    private void newSession(boolean show) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("id", String.valueOf(System.currentTimeMillis()));
+            o.put("title", "Session " + (sessions.length() + 1));
+            o.put("file", "");
+            o.put("lines", new JSONArray());
+            sessions.put(o);
+            sessId = o.optString("id");
+        } catch (Exception ignored) { }
+        saveSessions();
+        if (show) switchTo(sessId);
+    }
+
+    private void switchTo(String id) {
+        discardPending();
+        sessId = id;
+        saveSessions();
+        log.removeAllViews();
+        current = null;
+        currentText = "";
+        restoreSession();
+        updateLabel();
+    }
+
+    /** Rejoue les lignes enregistrées de la session courante et rouvre son fichier. */
+    private void restoreSession() {
+        JSONObject o = curSession();
+        if (o == null) return;
+        replaying = true;
+        JSONArray ls = o.optJSONArray("lines");
+        for (int i = 0; ls != null && i < ls.length(); i++) {
+            JSONArray one = ls.optJSONArray(i);
+            if (one != null) line(one.optString(0), one.optInt(1, DIM));
+        }
+        if (ls == null || ls.length() == 0) {
+            line("Krux Code", accent);
+            line("Décris ce que tu veux créer, ou ouvre un fichier avec « Fichier ». Rien n'est écrit tant que tu n'as pas appuyé sur Appliquer.", DIM);
+        }
+        String fn = o.optString("file", "");
+        if (!fn.isEmpty()) {
+            try {
+                File f = store.resolve(fn);
+                if (f != null && f.exists()) {
+                    currentText = store.readText(f);
+                    current = f;
+                }
+            } catch (Exception ignored) { }
+        }
+        replaying = false;
+        if (fileLabel != null) updateLabel();
+    }
+
+    private void record(String text, int color) {
+        if (replaying) return;
+        JSONObject o = curSession();
+        if (o == null) return;
+        try {
+            JSONArray ls = o.optJSONArray("lines");
+            if (ls == null) { ls = new JSONArray(); o.put("lines", ls); }
+            ls.put(new JSONArray().put(text).put(color));
+            while (ls.length() > 300) ls.remove(0);
+            if (o.optString("title", "").startsWith("Session ") && text.startsWith("› ")) {
+                String t = text.substring(2).trim();
+                o.put("title", t.length() > 28 ? t.substring(0, 28) + "…" : t);
+            }
+        } catch (Exception ignored) { }
+        saveSessions();
+    }
+
+    private void setSessFile(String name) {
+        JSONObject o = curSession();
+        if (o == null) return;
+        try { o.put("file", name); } catch (Exception ignored) { }
+        saveSessions();
+    }
+
+    /** Les dernières demandes de la session, pour que Krux garde le fil. */
+    private String recentAsks() {
+        JSONObject o = curSession();
+        if (o == null) return "";
+        JSONArray ls = o.optJSONArray("lines");
+        ArrayList<String> asks = new ArrayList<>();
+        for (int i = 0; ls != null && i < ls.length(); i++) {
+            JSONArray one = ls.optJSONArray(i);
+            if (one != null && one.optString(0).startsWith("› ")) asks.add(one.optString(0).substring(2));
+        }
+        if (asks.size() < 1) return "";
+        StringBuilder sb = new StringBuilder("DEMANDES PRÉCÉDENTES DE CETTE SESSION :\n");
+        for (int i = Math.max(0, asks.size() - 5); i < asks.size(); i++) sb.append("- ").append(asks.get(i)).append('\n');
+        return sb.append('\n').toString();
+    }
+
+    private void sessionMenu(View anchor) {
+        PopupMenu pm = new PopupMenu(this, anchor);
+        for (int i = 0; i < sessions.length(); i++) {
+            JSONObject o = sessions.optJSONObject(i);
+            if (o == null) continue;
+            pm.getMenu().add(0, i, i, (sessId.equals(o.optString("id")) ? "✓ " : "") + o.optString("title", "Session"));
+        }
+        pm.getMenu().add(0, 9000, 9000, "Supprimer cette session");
+        pm.setOnMenuItemClickListener(it -> {
+            int id = it.getItemId();
+            if (id == 9000) {
+                JSONArray keep = new JSONArray();
+                for (int i = 0; i < sessions.length(); i++) {
+                    JSONObject o = sessions.optJSONObject(i);
+                    if (o != null && !sessId.equals(o.optString("id"))) keep.put(o);
+                }
+                sessions = keep;
+                if (sessions.length() == 0) newSession(true);
+                else switchTo(sessions.optJSONObject(sessions.length() - 1).optString("id"));
+            } else if (id >= 0 && id < sessions.length()) {
+                JSONObject o = sessions.optJSONObject(id);
+                if (o != null) switchTo(o.optString("id"));
+            }
+            return true;
+        });
+        pm.show();
     }
 
     // ------------------------------------------------------------------ fichiers
@@ -263,9 +433,10 @@ public class KruxCodeActivity extends AppCompatActivity {
         line("› " + ask, TXT);
         busy = true;
         final TextView status = line("· Krux travaille…", DIM);
-        String user = current == null
+        String hist = recentAsks();
+        String user = hist + (current == null
                 ? "NOUVEAU FICHIER.\nDEMANDE : " + ask
-                : "FICHIER : " + current.getName() + "\n```\n" + currentText + "\n```\n\nDEMANDE : " + ask;
+                : "FICHIER : " + current.getName() + "\n```\n" + currentText + "\n```\n\nDEMANDE : " + ask);
         ApiClient.sendRequest(KruxModel.KRUX_CODEUR_PRO, SYSTEM, user, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String response, String modelBrand) {
@@ -395,15 +566,17 @@ public class KruxCodeActivity extends AppCompatActivity {
             char c = op.charAt(0);
             int start = sb.length();
             sb.append(c == '+' ? "+ " : c == '-' ? "- " : "  ").append(op.substring(1)).append('\n');
+            int cs = start + 2, ce = sb.length() - 1;
             if (c == '+') {
                 sb.setSpan(new BackgroundColorSpan(0x3328C76F), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new ForegroundColorSpan(GREEN), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(GREEN), start, cs, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (c == '-') {
                 sb.setSpan(new BackgroundColorSpan(0x33FF5C5C), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new ForegroundColorSpan(RED), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(RED), start, cs, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else {
-                sb.setSpan(new ForegroundColorSpan(DIM), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(DIM), start, cs, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
+            if (ce > cs) CodeHighlighter.apply(sb, cs, ce);
             shownLines++;
         }
 
