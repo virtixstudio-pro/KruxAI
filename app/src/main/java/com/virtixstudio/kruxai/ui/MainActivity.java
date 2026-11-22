@@ -1795,7 +1795,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             historyBuilder.append(memoryBlock);
         }
 
-        String systemPrompt = new SystemPromptBuilder().withThinking(isThinkingMode)
+        String systemPrompt = new SystemPromptBuilder().withThinking(isThinkingMode).withLearning(isLearningMode)
                 .withKruxModel(
                     selectedKruxModel != null
                         ? selectedKruxModel.getDisplayName()
@@ -2746,76 +2746,82 @@ private final ActivityResultLauncher<String[]> filePicker =
         }
     }
 
+    private android.content.res.ColorStateList plusTintOriginal;
+    private boolean plusTintSaved = false;
+
+    /** Le « + » prend la couleur d'accent quand le mode Réflexion ou Apprentissage est actif. */
+    private void updatePlusIndicator() {
+        if (btnPlus == null) return;
+        if (!plusTintSaved) {
+            plusTintOriginal = btnPlus.getImageTintList();
+            plusTintSaved = true;
+        }
+        boolean active = isThinkingMode || isLearningMode;
+        btnPlus.setImageTintList(active
+                ? android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "accent"))
+                : plusTintOriginal);
+    }
+
+    private void bindPlusSwitch(View row, androidx.appcompat.widget.SwitchCompat sw, boolean on, int accent,
+                                android.widget.CompoundButton.OnCheckedChangeListener listener) {
+        if (row == null || sw == null) return;
+        int[][] states = new int[][]{new int[]{android.R.attr.state_checked}, new int[0]};
+        sw.setThumbTintList(new android.content.res.ColorStateList(states, new int[]{accent, 0xFFB9AFCB}));
+        sw.setTrackTintList(new android.content.res.ColorStateList(states, new int[]{(accent & 0x00FFFFFF) | 0x66000000, 0x33FFFFFF}));
+        sw.setChecked(on);
+        sw.setOnCheckedChangeListener(listener);
+        row.setOnClickListener(v -> sw.toggle());
+    }
+
     private void showPlusBottomSheet() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        final BottomSheetDialog dialog = new BottomSheetDialog(this);
         View view = getLayoutInflater().inflate(R.layout.bottom_sheet_plus, null);
         dialog.setContentView(view);
         KruxTheme.applyTo(view, this);
+        final int accent = KruxTheme.get(this, "accent");
 
-        TextView optLearning = view.findViewById(R.id.optLearning);
-        TextView optDeepSearch = view.findViewById(R.id.optDeepSearch);
-        TextView optThinking = view.findViewById(R.id.optThinking);
-        TextView optFiles = view.findViewById(R.id.optFiles);
+        // Grandes icônes : joindre une photo ou un fichier
+        view.findViewById(R.id.optCamera).setOnClickListener(v -> { dialog.dismiss(); launchCamera(); });
+        view.findViewById(R.id.optPhoto).setOnClickListener(v -> { dialog.dismiss(); imagePicker.launch("image/*"); });
+        view.findViewById(R.id.optFiles).setOnClickListener(v -> { dialog.dismiss(); filePicker.launch(new String[]{"*/*"}); });
 
-        {   // icônes du menu : même couleur que le texte du thème
-            android.content.res.ColorStateList tint = android.content.res.ColorStateList.valueOf(KruxTheme.get(this, "text"));
-            for (int id : new int[]{R.id.optLearning, R.id.optDeepSearch, R.id.optThinking, R.id.optLive, R.id.optFloat, R.id.optFiles, R.id.optPhoto, R.id.optCamera}) {
-                TextView t = view.findViewById(id);
-                if (t != null) androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(t, tint);
-            }
-        }
-        TextView optFloat = view.findViewById(R.id.optFloat);
-        if (optFloat != null) {
-            optFloat.setText(com.virtixstudio.kruxai.live.FloatingKruxService.isRunning()
+        // Réglages : le menu reste ouvert, l'état se voit tout de suite
+        bindPlusSwitch(view.findViewById(R.id.rowWeb), (androidx.appcompat.widget.SwitchCompat) view.findViewById(R.id.swWeb),
+                isDeepSearchEnabled, accent, (b, on) -> {
+                    isDeepSearchEnabled = on;
+                    Toast.makeText(this, on ? "Recherche web activée" : "Recherche web désactivée", Toast.LENGTH_SHORT).show();
+                });
+        bindPlusSwitch(view.findViewById(R.id.rowThinking), (androidx.appcompat.widget.SwitchCompat) view.findViewById(R.id.swThinking),
+                isThinkingMode, accent, (b, on) -> {
+                    isThinkingMode = on;
+                    updatePlusIndicator();
+                    Toast.makeText(this, on ? "Mode Réflexion activé : jusqu'à ×4 de quota par message" : "Mode Réflexion désactivé",
+                            Toast.LENGTH_SHORT).show();
+                });
+        bindPlusSwitch(view.findViewById(R.id.rowLearning), (androidx.appcompat.widget.SwitchCompat) view.findViewById(R.id.swLearning),
+                isLearningMode, accent, (b, on) -> {
+                    isLearningMode = on;
+                    updatePlusIndicator();
+                    Toast.makeText(this, on ? "Mode Apprentissage activé" : "Mode Apprentissage désactivé", Toast.LENGTH_SHORT).show();
+                });
+
+        // Actions
+        view.findViewById(R.id.optLive).setOnClickListener(v -> { dialog.dismiss(); launchLive(); });
+        TextView tvFloat = view.findViewById(R.id.tvFloatTitle);
+        if (tvFloat != null) {
+            tvFloat.setText(com.virtixstudio.kruxai.live.FloatingKruxService.isRunning()
                     ? "Masquer le visage de Krux" : "Visage de Krux sur l'écran");
-            optFloat.setOnClickListener(v -> {
-                dialog.dismiss();
-                boolean ok = com.virtixstudio.kruxai.live.FloatingKruxService.toggle(MainActivity.this);
-                if (!ok) Toast.makeText(MainActivity.this,
-                        "Autorise « Afficher par-dessus les autres apps » pour KRUX, puis reviens et réessaie.",
-                        Toast.LENGTH_LONG).show();
-            });
         }
-
-        TextView optLive = view.findViewById(R.id.optLive);
-        optLive.setOnClickListener(v -> {
+        view.findViewById(R.id.optFloat).setOnClickListener(v -> {
             dialog.dismiss();
-            launchLive();
+            boolean ok = com.virtixstudio.kruxai.live.FloatingKruxService.toggle(MainActivity.this);
+            if (!ok) Toast.makeText(MainActivity.this,
+                    "Autorise « Afficher par-dessus les autres apps » pour KRUX, puis reviens et réessaie.",
+                    Toast.LENGTH_LONG).show();
         });
 
-        if (isLearningMode) optLearning.setText(" Mode Apprentissage [ACTIF]");
-        if (isDeepSearchEnabled) optDeepSearch.setText("Recherche Web Temps Réel [ACTIF]");
-        optThinking.setVisibility(android.view.View.GONE);
-
-        optLearning.setOnClickListener(v -> {
-            isLearningMode = !isLearningMode;
-            dialog.dismiss();
-        });
-
-        optDeepSearch.setOnClickListener(v -> {
-            isDeepSearchEnabled = !isDeepSearchEnabled;
-            Toast.makeText(this, isDeepSearchEnabled ? "Recherche Web Activée" : "Recherche Web Désactivée", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        optFiles.setOnClickListener(v -> {
-            dialog.dismiss();
-            filePicker.launch(new String[]{"*/*"});
-        });
-
-        TextView optPhoto = view.findViewById(R.id.optPhoto);
-        if (optPhoto != null) optPhoto.setOnClickListener(v -> {
-            dialog.dismiss();
-            imagePicker.launch("image/*");
-        });
-        TextView optCamera = view.findViewById(R.id.optCamera);
-        if (optCamera != null) optCamera.setOnClickListener(v -> {
-            dialog.dismiss();
-            launchCamera();
-        });
-
+        dialog.setOnShowListener(d -> dialog.getBehavior().setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED));
         dialog.show();
-
         KruxTheme.skin(dialog, this);
     }
 

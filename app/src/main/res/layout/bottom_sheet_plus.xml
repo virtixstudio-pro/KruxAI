@@ -4,124 +4,338 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="#111318"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:background="#111318">
+    android:paddingHorizontal="16dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="18dp">
 
-    <TextView android:tag="krux:text"
-        android:layout_width="wrap_content"
+    <View
+        android:layout_width="40dp"
+        android:layout_height="5dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_sheet_handle" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Options"
-        android:textColor="#F8FAFC"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal">
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optLearning"
-        android:drawableStart="@drawable/ic_opt_learning"
-        android:drawablePadding="14dp"
+        <LinearLayout android:tag="krux:input"
+            android:id="@+id/optCamera"
+            android:layout_width="0dp"
+            android:layout_height="92dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_sheet_tile"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView android:tag="krux:accent"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_opt_camera"
+                android:tint="#BFA7FF" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Appareil photo"
+                android:textColor="#F8FAFC"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout android:tag="krux:input"
+            android:id="@+id/optPhoto"
+            android:layout_width="0dp"
+            android:layout_height="92dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_sheet_tile"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView android:tag="krux:accent"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_opt_photo"
+                android:tint="#BFA7FF" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Photos"
+                android:textColor="#F8FAFC"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout android:tag="krux:input"
+            android:id="@+id/optFiles"
+            android:layout_width="0dp"
+            android:layout_height="92dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_sheet_tile"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView android:tag="krux:accent"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_opt_files"
+                android:tint="#BFA7FF" />
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Fichiers"
+                android:textColor="#F8FAFC"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/rowWeb"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Mode Apprentissage"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="8dp">
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optDeepSearch"
-        android:drawableStart="@drawable/ic_opt_web"
-        android:drawablePadding="14dp"
+        <ImageView android:tag="krux:text2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_opt_web"
+            android:tint="#F8FAFC" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Recherche web"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Krux cherche sur internet quand c'est utile"
+                android:textColor="#9A90AD"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swWeb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/rowThinking"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Recherche Web Temps Réel"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="8dp">
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optThinking"
-        android:drawableStart="@drawable/ic_opt_think"
-        android:drawablePadding="14dp"
+        <ImageView android:tag="krux:text2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_opt_think"
+            android:tint="#F8FAFC" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mode Réflexion"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp" />
+
+            <TextView android:tag="krux:text2"
+                android:id="@+id/tvThinkingNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Analyse, réflexion détaillée et relecture. Consomme jusqu'à ×4 de quota par message."
+                android:textColor="#FBBF77"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swThinking"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/rowLearning"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Mode Réflexion"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        android:minHeight="64dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="8dp">
 
+        <ImageView android:tag="krux:text2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_opt_learning"
+            android:tint="#F8FAFC" />
 
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mode Apprentissage"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp" />
 
-    <TextView android:tag="krux:text"
+            <TextView android:tag="krux:text2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Explications pas à pas, avec une petite question à la fin"
+                android:textColor="#9A90AD"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swLearning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/optLive"
-        android:drawableStart="@drawable/ic_opt_live"
-        android:drawablePadding="14dp"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Mode Live (parler à Krux)"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        android:minHeight="60dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="8dp">
 
-    <TextView android:tag="krux:text"
+        <ImageView android:tag="krux:text2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_opt_live"
+            android:tint="#F8FAFC" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mode Live"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Parler à Krux à voix haute"
+                android:textColor="#9A90AD"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/optFloat"
-        android:drawableStart="@drawable/ic_opt_face"
-        android:drawablePadding="14dp"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Visage de Krux sur l'écran"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        android:minHeight="60dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="8dp">
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optPhoto"
-        android:drawableStart="@drawable/ic_opt_photo"
-        android:drawablePadding="14dp"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Photo"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        <ImageView android:tag="krux:text2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/ic_opt_face"
+            android:tint="#F8FAFC" />
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optCamera"
-        android:drawableStart="@drawable/ic_opt_camera"
-        android:drawablePadding="14dp"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Appareil photo"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-    <TextView android:tag="krux:text"
-        android:id="@+id/optFiles"
-        android:drawableStart="@drawable/ic_opt_files"
-        android:drawablePadding="14dp"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="12dp"
-        android:text="Fichiers"
-        android:textColor="#F8FAFC"
-        android:textSize="15sp"
-        android:background="?attr/selectableItemBackground" />
+            <TextView android:tag="krux:text"
+                android:id="@+id/tvFloatTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Visage de Krux sur l'écran"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp" />
+
+            <TextView android:tag="krux:text2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Une bulle qui reste par-dessus les autres apps"
+                android:textColor="#9A90AD"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>

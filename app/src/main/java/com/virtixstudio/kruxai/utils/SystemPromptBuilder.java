@@ -171,6 +171,23 @@ public class SystemPromptBuilder {
         return this;
     }
 
+    private boolean learning = false;
+
+    private static final String REASONING_DEEP =
+        "\n\nMODE RÉFLEXION ACTIVÉ PAR L'UTILISATEUR : pour toute demande qui n'est pas une simple salutation, "
+      + "commence par un bloc <REFLEXION>…</REFLEXION> de plusieurs lignes (compare des pistes, vérifie les chiffres et les cas limites, corrige-toi), "
+      + "puis donne une réponse soignée et vérifiée. La qualité passe avant la vitesse. ";
+
+    private static final String LEARNING_ON =
+        "\n\nMODE APPRENTISSAGE ACTIVÉ : explique comme un bon professeur, étape par étape, avec des mots simples et un exemple concret. "
+      + "Termine par UNE seule petite question pour vérifier que c'est compris (sauf pour du code ou un fichier à livrer). "
+      + "Pour un exercice, guide l'utilisateur plutôt que de lui donner tout de suite la solution ; donne-la s'il la demande. ";
+
+    public SystemPromptBuilder withLearning(boolean enabled) {
+        this.learning = enabled;
+        return this;
+    }
+
     public String build() {
         StringBuilder profileContext = new StringBuilder();
 
@@ -205,6 +222,6 @@ public class SystemPromptBuilder {
             + "Ne les cite pas si on ne te les demande pas.\n";
 
         String siteContext = " SITE VIRTIX STUDIO : https://virtix-studio.kruxvirtix.workers.dev/ (présentation de Krux : /krux.html, confidentialité : /privacy.html, compte : /compte.html). Donne ce lien si on te demande la documentation ou des informations sur Virtix Studio, sans jamais donner une autre adresse. ";
-        return BASE_SYSTEM_PROMPT + modelContext + dateContext + siteContext + profileContext + quotaContext + history + REASONING_AUTO;
+        return BASE_SYSTEM_PROMPT + modelContext + dateContext + siteContext + profileContext + quotaContext + history + REASONING_AUTO + (thinking ? REASONING_DEEP : "") + (learning ? LEARNING_ON : "");
     }
 }
