@@ -256,7 +256,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                 MODE_PRIVATE
         ).getString("current_session_id", null);
 
-        if (currentSessionId == null || currentSessionId.isEmpty()) {
+        // Lancement à froid : on ouvre sur une nouvelle conversation (savedInstanceState != null = rotation, thème, etc. : on garde la session).
+        if (savedInstanceState == null || currentSessionId == null || currentSessionId.isEmpty()) {
             currentSessionId = "session_" + System.currentTimeMillis();
 
             getSharedPreferences(
