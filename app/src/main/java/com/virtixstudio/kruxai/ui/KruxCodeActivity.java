@@ -10,6 +10,9 @@ import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.View;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
@@ -61,7 +64,10 @@ public class KruxCodeActivity extends AppCompatActivity {
           + "Aucune phrase avant ni après le bloc. Ne change que ce qui est demandé : garde le style, l'indentation, les noms et les commentaires existants. "
           + "Ne raccourcis jamais le fichier, n'écris jamais « le reste est inchangé ». "
           + "Si la demande est impossible ou trop floue, réponds seulement par une ligne qui commence par IMPOSSIBLE: et la raison en une phrase. "
-          + "Si on te demande un NOUVEAU FICHIER, écris d'abord une ligne FICHIER: nom.extension, puis le bloc de code.";
+          + "Si on te demande un NOUVEAU FICHIER, écris d'abord une ligne FICHIER: nom.extension, puis le bloc de code. "
+          + "Tu peux aussi consulter le web : écris SEULEMENT une ligne OUVRIR: https://adresse (la page s'ouvre et tu en reçois le texte) "
+          + "ou CLIQUER: texte du lien ou du bouton. Une seule action par réponse, sans autre texte, et seulement si la demande en a besoin "
+          + "(documentation, exemple, contenu d'un site). Ensuite réponds comme d'habitude.";
 
     private WorkspaceStore store;
     private File current;
@@ -75,6 +81,10 @@ public class KruxCodeActivity extends AppCompatActivity {
     private JSONArray sessions = new JSONArray();
     private String sessId = "";
     private boolean replaying;
+    private WebView web;
+    private LinearLayout webBox;
+    private Runnable pageWait;
+    private static final int MAX_STEPS = 5;
 
     private LinearLayout log;
     private ScrollView scroll;
@@ -83,6 +93,12 @@ public class KruxCodeActivity extends AppCompatActivity {
     private View actionsRow;
     private float d;
     private int accent;
+
+    @Override
+    protected void onDestroy() {
+        if (web != null) { try { web.destroy(); } catch (Exception ignored) { } }
+        super.onDestroy();
+    }
 
     @Override
     protected void onCreate(Bundle b) {
@@ -127,6 +143,27 @@ public class KruxCodeActivity extends AppCompatActivity {
         fileLabel.setTypeface(Typeface.MONOSPACE);
         fileLabel.setPadding(px(16), px(2), px(16), px(8));
         root.addView(fileLabel, new LinearLayout.LayoutParams(-1, -2));
+
+        webBox = new LinearLayout(this);
+        webBox.setOrientation(LinearLayout.VERTICAL);
+        webBox.setVisibility(View.GONE);
+        TextView webClose = pill("Navigateur de Krux ✕", TXT, PANEL);
+        webClose.setOnClickListener(v -> webBox.setVisibility(View.GONE));
+        webBox.addView(webClose, new LinearLayout.LayoutParams(-1, px(34)));
+        web = new WebView(this);
+        WebSettings ws = web.getSettings();
+        ws.setJavaScriptEnabled(true);
+        ws.setDomStorageEnabled(true);
+        ws.setAllowFileAccess(false);
+        ws.setAllowContentAccess(false);
+        web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView v, String url) {
+                final Runnable r = pageWait;
+                if (r != null) { pageWait = null; v.postDelayed(r, 900); }
+            }
+        });
+        webBox.addView(web, new LinearLayout.LayoutParams(-1, px(230)));
+        root.addView(webBox, new LinearLayout.LayoutParams(-1, -2));
 
         scroll = new ScrollView(this);
         log = new LinearLayout(this);
@@ -309,7 +346,7 @@ public class KruxCodeActivity extends AppCompatActivity {
     }
 
     private void record(String text, int color) {
-        if (replaying) return;
+        if (replaying || text.startsWith("· Krux travaille")) return;
         JSONObject o = curSession();
         if (o == null) return;
         try {
@@ -432,18 +469,74 @@ public class KruxCodeActivity extends AppCompatActivity {
         input.setText("");
         line("› " + ask, TXT);
         busy = true;
+        agentStep(ask, "", 0);
+    }
+
+    private interface ToolDone { void done(String result); }
+
+    private String actionOf(String response) {
+        String r = response == null ? "" : response.replaceAll("(?s)<REFLEXION>.*?</REFLEXION>", "").trim();
+        Matcher m = Pattern.compile("(?m)^\\s*(OUVRIR|CLIQUER)\\s*:\\s*(.+?)\\s*$").matcher(r);
+        return m.find() ? m.group(1) + "|" + m.group(2) : null;
+    }
+
+    /** Exécute une action du navigateur de Krux puis rend le texte de la page. */
+    private void runTool(String act, final ToolDone cb) {
+        int bar = act.indexOf('|');
+        String kind = act.substring(0, bar);
+        String arg = act.substring(bar + 1).trim();
+        webBox.setVisibility(View.VISIBLE);
+        final Runnable[] finish = new Runnable[1];
+        final boolean[] done = new boolean[1];
+        finish[0] = () -> {
+            if (done[0]) return;
+            done[0] = true;
+            pageWait = null;
+            web.evaluateJavascript("(function(){return document.body?document.body.innerText:''})()", val -> {
+                String t = "";
+                try { t = new JSONArray("[" + val + "]").optString(0); } catch (Exception ignored) { }
+                t = t.replaceAll("[ \\t]+", " ").replaceAll("\\n{3,}", "\n\n").trim();
+                if (t.length() > 6000) t = t.substring(0, 6000) + "\n[…texte coupé]";
+                cb.done("PAGE " + web.getUrl() + " :\n" + t + "\n\n");
+            });
+        };
+        if ("OUVRIR".equals(kind)) {
+            String u = arg.matches("(?i)^https?://.*") ? arg : (arg.matches("(?i)^[a-z][a-z0-9+.-]*:.*") ? "" : "https://" + arg);
+            if (u.isEmpty()) { line("· Adresse refusée : " + arg, RED); cb.done("ERREUR : adresse refusée (seulement http/https).\n\n"); return; }
+            line("· ouvre " + u.replaceFirst("(?i)^https?://", ""), DIM);
+            pageWait = finish[0];
+            web.loadUrl(u);
+        } else {
+            line("· clique « " + arg + " »", DIM);
+            String js = "(function(t){t=t.toLowerCase();var e=document.querySelectorAll('a,button,[role=button],input[type=submit]');"
+                    + "for(var i=0;i<e.length;i++){var x=(e[i].innerText||e[i].value||'').toLowerCase();"
+                    + "if(x.indexOf(t)>=0){e[i].click();return 'ok';}}return 'introuvable';})(" + JSONObject.quote(arg) + ")";
+            web.evaluateJavascript(js, val -> {
+                if (val != null && val.contains("introuvable")) { line("· introuvable : " + arg, DIM); }
+                pageWait = finish[0];
+                web.postDelayed(finish[0], 2500);
+            });
+        }
+        web.postDelayed(finish[0], 15000);
+    }
+
+    private void agentStep(final String ask, final String observations, final int step) {
         final TextView status = line("· Krux travaille…", DIM);
         String hist = recentAsks();
         String user = hist + (current == null
                 ? "NOUVEAU FICHIER.\nDEMANDE : " + ask
                 : "FICHIER : " + current.getName() + "\n```\n" + currentText + "\n```\n\nDEMANDE : " + ask);
+        if (!observations.isEmpty()) user = user + "\n\nOBSERVATIONS (pages consultées) :\n" + observations;
         ApiClient.sendRequest(KruxModel.KRUX_CODEUR_PRO, SYSTEM, user, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String response, String modelBrand) {
                 runOnUiThread(() -> {
                     busy = false;
                     log.removeView(status);
-                    handleAnswer(response);
+                    String act = step < MAX_STEPS ? actionOf(response) : null;
+                    if (act == null) { handleAnswer(response); return; }
+                    busy = true;
+                    runTool(act, result -> agentStep(ask, observations + result, step + 1));
                 });
             }
 
