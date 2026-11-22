@@ -10,6 +10,26 @@
   var last = 'app', busy = false;
   var native = function () { return window.KruxNative || null; };
 
+  // ---- icônes SVG (aucun emoji dans le téléphone)
+  var ICON = {
+    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/>',
+    bt: '<path d="M7 7l10 10-5 4V3l5 4L7 17"/>',
+    air: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
+    hot: '<circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/>',
+    torch: '<path d="M8 2h8l-1.5 5h-5zM9.5 7h5v14a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1z"/>',
+    rot: '<path d="M21 12a9 9 0 0 1-15.5 6.2M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18.5 2v4h-4M5.5 22v-4h4"/>',
+    dnd: '<path d="M21 13.5A9 9 0 1 1 10.5 3a7 7 0 0 0 10.5 10.5z"/>',
+    eco: '<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 10.5v3M7 12h5M9.5 9.5v5"/>',
+    notes: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+    mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    back: '<path d="M15 5l-8 7 8 7z"/>', home: '<circle cx="12" cy="12" r="6.5"/>', recent: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+  function ic(n) {
+    return '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[n] + '</svg>';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ic]'), function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); });
+
   // ---- visage de Krux (même visage partout)
   var FACE = '<svg viewBox="0 0 40 40" width="100%" height="100%"><circle cx="20" cy="20" r="19" fill="#6d5dfc"/>' +
     '<ellipse cx="14" cy="11" rx="8" ry="4" fill="#fff" opacity=".18"/>' +
@@ -40,16 +60,16 @@
   tick(); setInterval(tick, 20000);
 
   // ---- réglages rapides (le mode avion coupe Wi-Fi, Bluetooth et point d'accès, comme sur un vrai téléphone)
-  var T = [['wifi', 'Wi‑Fi', '📶', 1], ['bt', 'Bluetooth', '🔷', 1], ['air', 'Mode avion', '✈️', 0], ['hot', 'Point d’accès', '📡', 0],
-    ['torch', 'Lampe', '🔦', 0], ['rot', 'Rotation auto', '🔄', 1], ['dnd', 'Ne pas déranger', '🌙', 0], ['eco', 'Économie d’énergie', '🔋', 0]];
+  var T = [['wifi', 'Wi‑Fi', 1], ['bt', 'Bluetooth', 1], ['air', 'Mode avion', 0], ['hot', 'Point d’accès', 0],
+    ['torch', 'Lampe', 0], ['rot', 'Rotation auto', 1], ['dnd', 'Ne pas déranger', 0], ['eco', 'Économie d’énergie', 0]];
   var st = {};
   function paint() {
     var icons = '';
     T.forEach(function (t) {
       $('qt-' + t[0]).setAttribute('aria-pressed', st[t[0]] ? 'true' : 'false');
-      if (st[t[0]] && t[0] !== 'rot' && t[0] !== 'eco') icons += t[2];
+      if (st[t[0]] && t[0] !== 'rot' && t[0] !== 'eco') icons += ic(t[0]);
     });
-    $('sIcons').textContent = icons;
+    $('sIcons').innerHTML = icons;
   }
   function setTile(k, on) {
     st[k] = on;
@@ -58,10 +78,10 @@
     paint();
   }
   T.forEach(function (t) {
-    st[t[0]] = !!t[3];
+    st[t[0]] = !!t[2];
     var b = document.createElement('button');
     b.className = 'qt'; b.id = 'qt-' + t[0];
-    b.innerHTML = '<span>' + t[2] + '</span><small>' + t[1] + '</small>';
+    b.innerHTML = '<span>' + ic(t[0]) + '</span><small>' + t[1] + '</small>';
     b.addEventListener('click', function () { setTile(t[0], !st[t[0]]); });
     $('qsGrid').appendChild(b);
   });
@@ -120,7 +140,7 @@
   }
   function done(ok, msg) {
     busy = false;
-    setState(ok ? 'C’est fait ✓' : (msg || 'Impossible pour l’instant.'));
+    setState(ok ? 'C’est fait.' : (msg || 'Impossible pour l’instant.'));
     if (ok) view('app'); // on revoit l'app modifiée
   }
   Array.prototype.forEach.call(document.querySelectorAll('.face'), function (el) { el.addEventListener('click', function (e) { e.stopPropagation(); openKx(); }); });

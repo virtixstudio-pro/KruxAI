@@ -7,6 +7,8 @@ const { JSDOM } = require('jsdom');
   const click = id => D.getElementById(id).dispatchEvent(new W.MouseEvent('click', { bubbles: true }));
   const view = () => D.getElementById('screen').getAttribute('data-view');
   ok(view() === 'app', 'démarre sur l’app demandée');
+  ok(!/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F\u25A1\u25B3\u25CB\u25C1\u2715]/u.test(D.getElementById('phone').innerHTML), 'aucun emoji ni symbole texte dans le téléphone (SVG partout)');
+  ok(D.querySelectorAll('#qsGrid svg').length === 8 && D.querySelectorAll('#nav svg').length === 3 && D.querySelectorAll('#icoNotes svg').length === 1, 'tuiles, navigation et Bloc-notes : icônes SVG');
   ok(D.querySelectorAll('.ico').length === 2, 'accueil : exactement 2 apps');
   ok(D.querySelectorAll('.face svg').length === 3, 'visage Krux présent (barre d’état, réglages, dictée)');
   const frameBefore = D.getElementById('frame');
@@ -16,7 +18,7 @@ const { JSDOM } = require('jsdom');
   click('nBack'); ok(view() === 'home', 'retour : revient à l’accueil');
   click('icoApp'); ok(view() === 'app' && D.getElementById('frame') === frameBefore, 'iframe jamais déplacée ni recréée');
   click('status'); ok(D.getElementById('qs').classList.contains('open'), 'clic barre d’état : réglages rapides ouverts');
-  click('qt-air'); ok(D.getElementById('qt-wifi').getAttribute('aria-pressed') === 'false' && D.getElementById('qt-bt').getAttribute('aria-pressed') === 'false', 'mode avion coupe Wi-Fi et Bluetooth');
+  click('qt-air'); ok(D.querySelectorAll('#sIcons svg').length === 1, 'barre d’état : une icône SVG (avion)'); ok(D.getElementById('qt-wifi').getAttribute('aria-pressed') === 'false' && D.getElementById('qt-bt').getAttribute('aria-pressed') === 'false', 'mode avion coupe Wi-Fi et Bluetooth');
   click('qt-bt'); ok(D.getElementById('qt-air').getAttribute('aria-pressed') === 'false', 'réactiver Bluetooth coupe le mode avion');
   click('qsHandle'); ok(!D.getElementById('qs').classList.contains('open'), 'panneau refermé');
   // glisser
@@ -35,7 +37,7 @@ const { JSDOM } = require('jsdom');
   ok(calls.includes('listen'), 'ouverture : lance l’écoute');
   W.KruxPhone.heard('mets le bouton en rouge', false); ok(D.getElementById('kxText').textContent === 'mets le bouton en rouge', 'texte dicté affiché');
   W.KruxPhone.heard('mets le bouton en rouge', true); ok(calls.includes('ask:mets le bouton en rouge'), 'fin de dictée : envoie la demande à Krux');
-  click('nHome'); W.KruxPhone.done(true); 
+  click('nHome'); W.KruxPhone.done(true);
   ok(D.getElementById('kxState').textContent.indexOf('C’est fait') === 0 && view() === 'app', 'terminé : « C’est fait » et retour sur l’app');
   // nom de l'app via KruxPreview.load
   W.KruxPreview.load(JSON.stringify({ 'index.html': '<title>Todo Pro</title>', 'src/main.tsx': 'x' }));
