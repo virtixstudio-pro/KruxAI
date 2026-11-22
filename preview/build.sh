@@ -10,6 +10,6 @@ npx esbuild src/runtime-entry.js --bundle --format=iife --target=chrome87 --mini
   --define:process.env.NODE_ENV=\"production\" --outfile=.rt.js
 node -e 'const fs=require("fs");fs.writeFileSync(process.argv[1],"window.KRUX_RT_SRC="+JSON.stringify(fs.readFileSync(".rt.js","utf8"))+";")' "$OUT/rt-src.js"
 cp node_modules/@babel/standalone/babel.min.js "$OUT/babel.min.js"
-cp src/core.js src/chrome.js src/index.html "$OUT/"
+cp src/core.js src/chrome.js src/phone.js src/index.html "$OUT/"
 rm -f .rt.js
 echo "Aperçu construit dans $OUT"

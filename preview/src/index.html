@@ -16,7 +16,47 @@
   #hint { flex: 1; text-align: right; opacity: .65; font-size: 12px; }
   #banner { padding: 8px 12px; background: #fde8e8; color: #8a1c1c; font-size: 13px; }
   #msg { padding: 8px 12px; background: var(--bar); font-size: 13px; border-bottom: 1px solid var(--line); }
-  #frame { flex: 1; width: 100%; border: 0; background: #fff; }
+  #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; background: #0b0b10; }
+  #phone { height: 100%; max-width: 100%; aspect-ratio: 9 / 19; border-radius: 30px; border: 6px solid #1c1c22; box-shadow: 0 0 0 2px #3a3a44, 0 10px 30px #0008; overflow: hidden; position: relative; background: #000; color: #fff; }
+  #screen { position: absolute; inset: 0; overflow: hidden; font-size: 13px; }
+  #wall { position: absolute; inset: 0; background: radial-gradient(120% 70% at 20% 10%, #7c5cff 0, transparent 55%), radial-gradient(100% 60% at 90% 40%, #ff6aa8 0, transparent 55%), radial-gradient(120% 80% at 30% 100%, #19c3b1 0, transparent 60%), linear-gradient(160deg, #10102a, #1b1140 55%, #0b1f2e); }
+  #status { position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 11px; touch-action: none; background: linear-gradient(#0007, transparent); }
+  #sIcons { margin-left: auto; margin-right: 8px; font-size: 10px; letter-spacing: 2px; }
+  .face { width: 22px; height: 22px; flex: none; cursor: pointer; }
+  .face .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+  #home { position: absolute; left: 0; right: 0; top: 26px; bottom: 46px; z-index: 1; padding: 18px 14px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 18px; }
+  #bigClock { width: 100%; text-align: center; font-size: 54px; font-weight: 200; margin: 14px 0 22px; text-shadow: 0 2px 12px #0006; }
+  .ico { width: 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; color: #fff; font-size: 11px; padding: 0; }
+  .tile { width: 56px; height: 56px; border-radius: 17px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; box-shadow: 0 4px 10px #0005; }
+  #appLetter { color: #fff; } #icoApp .tile { background: linear-gradient(135deg, #4f46e5, #8b5cf6); }
+  #icoNotes .tile { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+  #appLayer { position: absolute; left: 0; right: 0; top: 26px; bottom: 46px; z-index: 2; background: #fff; }
+  #screen[data-view="home"] #appLayer { visibility: hidden; pointer-events: none; }
+  #frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+  #screen[data-view="notes"] #frame { visibility: hidden; }
+  #notes { position: absolute; inset: 0; display: none; flex-direction: column; background: #fff8e1; color: #3b2f00; }
+  #screen[data-view="notes"] #notes { display: flex; }
+  #notes h3 { margin: 0; padding: 14px 16px 6px; font-size: 18px; } #notes textarea { flex: 1; border: 0; outline: 0; resize: none; background: transparent; color: inherit; padding: 8px 16px; font: 15px system-ui; }
+  #nav { position: absolute; bottom: 0; left: 0; right: 0; height: 46px; z-index: 5; display: flex; align-items: center; justify-content: space-around; background: #000b; }
+  #nav button { background: none; border: 0; color: #ddd; font-size: 18px; padding: 8px 22px; }
+  #qs { position: absolute; top: 0; left: 0; right: 0; z-index: 8; transform: translateY(-105%); transition: transform .22s ease; padding: 10px 12px 8px; background: #14141cf2; border-radius: 0 0 22px 22px; touch-action: none; box-shadow: 0 8px 24px #0009; }
+  #qs.open { transform: translateY(0); }
+  #qsHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 600; }
+  #qsHead .face { width: 30px; height: 30px; }
+  #qsGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .qt { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 2px; border: 0; border-radius: 14px; background: #2a2a36; color: #ccc; font-size: 17px; }
+  .qt small { font-size: 9px; text-align: center; } .qt[aria-pressed="true"] { background: #4f46e5; color: #fff; }
+  #qs input[type="range"] { width: 100%; margin: 12px 0 4px; }
+  #qsHandle { width: 40px; height: 4px; border-radius: 2px; background: #888; margin: 6px auto 0; border: 0; padding: 0; display: block; }
+  #kx { position: absolute; left: 8px; right: 8px; bottom: 54px; z-index: 9; background: #1b1b26f5; border-radius: 20px; padding: 12px; box-shadow: 0 8px 24px #000a; }
+  #kx[hidden] { display: none; }
+  .kxHead { display: flex; align-items: center; gap: 8px; } .kxHead .face { width: 34px; height: 34px; }
+  #kxState { flex: 1; font-size: 13px; } #kxClose { background: none; border: 0; color: #aaa; font-size: 16px; }
+  #kxText { min-height: 18px; margin: 8px 2px; font-size: 14px; opacity: .85; }
+  .kxRow { display: flex; gap: 6px; } .kxRow input { flex: 1; min-width: 0; padding: 8px; border-radius: 10px; border: 1px solid #555; background: #0004; color: #fff; }
+  .kxRow button { padding: 8px 10px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; }
+  #dim { position: absolute; inset: 0; z-index: 20; background: #000; opacity: 0; pointer-events: none; }
   #dlg, #pal { position: fixed; inset: 0; background: #0006; display: flex; align-items: flex-end; justify-content: center; }
   #dlg[hidden], #pal[hidden], #banner[hidden], #msg[hidden] { display: none; }
   .card { width: 100%; max-width: 560px; max-height: 80%; overflow: auto; background: Canvas; color: CanvasText; border-radius: 18px 18px 0 0; padding: 16px; }
@@ -38,7 +78,32 @@
 </div>
 <div id="banner" hidden></div>
 <div id="msg" hidden></div>
-<iframe id="frame" sandbox="allow-scripts" title="Aperçu"></iframe>
+<div id="stage"><div id="phone"><div id="screen" data-view="app">
+  <div id="wall"></div>
+  <div id="status"><span id="clock"></span><span id="sIcons"></span><span class="face" title="Krux"></span></div>
+  <div id="home">
+    <div id="bigClock"></div>
+    <button class="ico" id="icoApp"><span class="tile"><span id="appLetter">M</span></span><span id="appName">Mon app</span></button>
+    <button class="ico" id="icoNotes"><span class="tile">📝</span><span>Bloc-notes</span></button>
+  </div>
+  <div id="appLayer">
+    <iframe id="frame" sandbox="allow-scripts" title="Aperçu"></iframe>
+    <div id="notes"><h3>Bloc-notes</h3><textarea id="notesText" placeholder="Écris ici…"></textarea></div>
+  </div>
+  <div id="nav"><button id="nBack" aria-label="Retour">◁</button><button id="nHome" aria-label="Accueil">○</button><button id="nRecent" aria-label="Apps récentes">□</button></div>
+  <div id="qs">
+    <div id="qsHead"><span>Réglages rapides</span><span class="face" title="Parler à Krux"></span></div>
+    <div id="qsGrid"></div>
+    <input id="bright" type="range" min="20" max="100" value="100" aria-label="Luminosité">
+    <button id="qsHandle" aria-label="Fermer"></button>
+  </div>
+  <div id="kx" hidden>
+    <div class="kxHead"><span class="face"></span><span id="kxState">Je t’écoute…</span><button id="kxClose" aria-label="Fermer">✕</button></div>
+    <div id="kxText"></div>
+    <div class="kxRow"><button id="kxMic" aria-label="Dicter">🎤</button><input id="kxIn" type="text" placeholder="ou écris ta demande"><button id="kxGo">OK</button></div>
+  </div>
+  <div id="dim"></div>
+</div></div></div>
 
 <div id="dlg" hidden><div class="card">
   <h2>Modifier le texte</h2>
@@ -57,5 +122,6 @@
 <script src="rt-src.js"></script>
 <script src="core.js"></script>
 <script src="chrome.js"></script>
+<script src="phone.js"></script>
 </body>
 </html>
