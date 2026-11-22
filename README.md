@@ -163,3 +163,5 @@ Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT
 4. [ ] **Krux Code = vrai agent** (pas factice) : style terminal, sessions (bouton + en haut), conversations et fichiers conservés, coloration syntaxique, ouvre le navigateur de Krux, lit/extrait le texte des pages, parle peu et code plus.
 5. [ ] **Aperçu web** (HTML/CSS/JS) : mêmes systèmes que le faux téléphone.
 Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie de quota : peu de lecture, pas de gros cat.
+- [~] **Bug photos (22/11)** : avec une image, seuls Gemini et Mistral sont utilisés (`visionOnly`). KRUX Flow = Mistral. Hypothèse : Mistral refusait `image_url` en objet `{url}` (il documente une chaîne) ; la chaîne est maintenant envoyée pour Mistral. Le message « Clé Gemini absente » vu ensuite vient du repli sur Gemini (secret `GEMINI_API_KEY` vide ?) et masque la vraie erreur de Flow. À tester ; si ça échoue encore, coller l'erreur.
+- [~] **Mini chat Krux (22/11)** : avatar à droite, déplaçable ; panneau avec bulles (dictée ou texte) et éditeur intégré (nom, couleur, icône rognée en carré) sans appeler Krux. À tester.

@@ -132,6 +132,37 @@
   notes.addEventListener('input', function () { try { window.localStorage.setItem('krux_phone_notes', notes.value); } catch (e) { } });
 
   // ---- Krux : dictée de modifications (l'app existante est modifiée, jamais recréée)
+  function addMsg(who, t) {
+    var d = document.createElement('div'); d.className = 'm ' + who; d.textContent = t;
+    var l = $('kxText'); l.appendChild(d); l.scrollTop = l.scrollHeight;
+  }
+  // ---- Éditeur intégré : nom, couleur, icône sans demander à Krux (rognage carré automatique)
+  (function () {
+    var tile = document.querySelector('#icoApp .tile'), nm = $('appName'), letter = $('appLetter');
+    var st = {}; try { st = JSON.parse(window.localStorage.getItem('krux_phone_edit') || '{}'); } catch (e) { }
+    function save() { try { window.localStorage.setItem('krux_phone_edit', JSON.stringify(st)); } catch (e) { } }
+    function apply() {
+      if (st.name) { nm.textContent = st.name; letter.textContent = st.name.charAt(0).toUpperCase(); $('edName').value = st.name; }
+      if (st.color) { tile.style.background = st.color; $('edColor').value = st.color; }
+      if (st.icon) { tile.style.background = 'center / cover url(' + st.icon + ')'; letter.style.visibility = 'hidden'; }
+    }
+    $('edName').addEventListener('input', function () { st.name = this.value.slice(0, 20); save(); apply(); });
+    $('edColor').addEventListener('input', function () { st.color = this.value; delete st.icon; letter.style.visibility = ''; save(); apply(); });
+    $('edIcon').addEventListener('change', function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var img = new Image(), u = URL.createObjectURL(f);
+      img.onload = function () {
+        var c = document.createElement('canvas'); c.width = c.height = 96;
+        var m = Math.min(img.width, img.height);
+        c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, 96, 96);
+        URL.revokeObjectURL(u);
+        try { st.icon = c.toDataURL('image/png'); save(); } catch (e) { }
+        apply();
+      };
+      img.src = u;
+    });
+    apply();
+  })();
   function setState(t) { $('kxState').textContent = t; }
   function closeKx() {
     if (kx.hidden) return;
@@ -145,21 +176,22 @@
     else setState('Écris ta demande ci-dessous.');
   }
   function openKx() {
-    closeQs(); kx.hidden = false; $('kxText').textContent = ''; $('kxIn').value = '';
+    closeQs(); kx.hidden = false; $('kxIn').value = '';
     if (!busy) listen();
   }
   function submit(text) {
     text = (text || '').trim();
     if (!text || busy) return;
     var n = native();
-    $('kxText').textContent = text;
+    addMsg('u', text);
     if (!n || !n.ask) { setState('Krux n’est pas encore branché dans cet aperçu.'); return; }
     busy = true; setState('Krux travaille…');
     try { n.ask(text); } catch (e) { done(false, 'Erreur : ' + e.message); }
   }
   function done(ok, msg) {
     busy = false;
-    setState(ok ? 'C’est fait.' : (msg || 'Impossible pour l’instant.'));
+    var r = ok ? 'C’est fait.' : (msg || 'Impossible pour l’instant.');
+    setState(r); addMsg('k', r);
     if (ok) view('app'); // on revoit l'app modifiée
   }
   Array.prototype.forEach.call(document.querySelectorAll('.face'), function (el) { el.addEventListener('click', function (e) { e.stopPropagation(); openKx(); }); });
