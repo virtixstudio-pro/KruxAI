@@ -52,6 +52,12 @@
                  MESSAGE D'ACCUEIL
                  ================================================= -->
 
+            <com.virtixstudio.kruxai.ui.WelcomeGlobeView
+                android:id="@+id/welcomeGlobe"
+                android:layout_width="340dp"
+                android:layout_height="340dp"
+                android:layout_centerInParent="true" />
+
             <LinearLayout
                 android:id="@+id/welcomePanel"
                 

@@ -91,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private View welcomePanel;
     private EditText etSearchHistory;
     private KruxWelcomeSceneView welcomeScene;
+    private WelcomeGlobeView welcomeGlobe;
     private LinearLayout llVoiceVisualizer;
     private View waveBar1, waveBar2, waveBar3, waveBar4;
 
@@ -295,6 +296,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         setupFloatingChrome();
         tvWelcomeTitle = findViewById(R.id.tvWelcomeTitle);
         tvWelcomeSubtitle = findViewById(R.id.tvWelcomeSubtitle);
+        welcomeGlobe = findViewById(R.id.welcomeGlobe);
         welcomeScene = null; // la boule animée de l'accueil est retirée : tous les usages plus bas testent null
 
         llVoiceVisualizer = findViewById(R.id.llVoiceVisualizer);
@@ -1475,6 +1477,15 @@ private final ActivityResultLauncher<String[]> filePicker =
         boolean empty = messageList == null || messageList.isEmpty();
 
         welcomePanel.setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (welcomeGlobe != null) {
+            if (empty) {
+                if (welcomeGlobe.getVisibility() != View.VISIBLE || welcomeGlobe.getAlpha() < 1f) {
+                    welcomeGlobe.showAnimated();
+                }
+            } else {
+                welcomeGlobe.hideAnimated();
+            }
+        }
 
         if (!empty && welcomeScene != null) {
             welcomeScene.setAnimating(false);
@@ -3299,6 +3310,10 @@ private final ActivityResultLauncher<String[]> filePicker =
         if (welcomeScene != null) {
             welcomeScene.setPalette(background, accent);
             welcomeScene.setScene(scene);
+        }
+        if (welcomeGlobe != null) {
+            welcomeGlobe.setPalette(background, accent);
+            welcomeGlobe.setMinimal("minimal".equals(scene));
         }
         if (btnSend != null) {
             btnSend.setImageTintList(ColorStateList.valueOf(KruxTheme.get(this, "buttontext")));
