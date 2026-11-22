@@ -155,3 +155,11 @@ Objectif : qualité de pointe. L'utilisateur doit se dire « j'abandonne ChatGPT
 - [x] `google-connexion` : `GoogleSignInHelper` (Credential Manager + Firebase `GoogleAuthProvider`) branché sur les boutons de `AuthWelcomeActivity` et `LoginActivity`. Avant, les deux boutons étaient des bouchons. Nouveau compte Google : profil enregistré (`saveProfile`).
 - [ ] Côté Firebase (projet `krux-9fd33`) : activer le fournisseur Google ; la SHA-1 de la clé stable doit être dans l'app Android (étape « Print Debug Certificate Fingerprints » du workflow) ; retélécharger `google-services.json` après ajout.
 - [ ] À tester sur téléphone : connexion Google nouveau compte et compte existant ; erreur « SHA-1 » si l'empreinte manque.
+
+## À faire, noté le 22/11/2026 (demandes du propriétaire, dans l'ordre)
+1. [~] **Faux téléphone de l’aperçu** (agrandi, avatar déplaçable et navigateur faits, à tester sur téléphone) : grand (presque tout l'écran, un peu moins en haut comme une fenêtre Windows) ; 3e app factice **Navigateur** qui fonctionne ; avatar Krux sorti du téléphone, posé à côté (centre gauche), déplaçable, seulement pour personnaliser l'app avec lui.
+2. [ ] **Éditeur intégré à l'aperçu** : personnaliser l'app sans passer par Krux (ajouter une icône, rognage automatique...) pour économiser les quotas.
+3. [ ] **Bug photos** : envoi d'image = « API absent » (ex. Krux Flow) alors que le texte marche en choisissant Flow ; l'analyse de photo ne marche pas. Vérifier le choix du modèle vision et la clé.
+4. [ ] **Krux Code = vrai agent** (pas factice) : style terminal, sessions (bouton + en haut), conversations et fichiers conservés, coloration syntaxique, ouvre le navigateur de Krux, lit/extrait le texte des pages, parle peu et code plus.
+5. [ ] **Aperçu web** (HTML/CSS/JS) : mêmes systèmes que le faux téléphone.
+Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie de quota : peu de lecture, pas de gros cat.

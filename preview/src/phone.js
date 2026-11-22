@@ -20,6 +20,7 @@
     rot: '<path d="M21 12a9 9 0 0 1-15.5 6.2M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18.5 2v4h-4M5.5 22v-4h4"/>',
     dnd: '<path d="M21 13.5A9 9 0 1 1 10.5 3a7 7 0 0 0 10.5 10.5z"/>',
     eco: '<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 10.5v3M7 12h5M9.5 9.5v5"/>',
+    web: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
     notes: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
     back: '<path d="M15 5l-8 7 8 7z"/>', home: '<circle cx="12" cy="12" r="6.5"/>', recent: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
@@ -47,10 +48,28 @@
   });
   $('nRecent').addEventListener('click', function () {
     var v = screen.getAttribute('data-view');
-    view(v === 'home' ? last : (v === 'app' ? 'notes' : 'app'));
+    view(v === 'home' ? last : (v === 'app' ? 'notes' : (v === 'notes' ? 'web' : 'app')));
   });
   $('icoApp').addEventListener('click', function () { view('app'); });
   $('icoNotes').addEventListener('click', function () { view('notes'); });
+  $('icoWeb').addEventListener('click', function () { view('web'); });
+  // ---- Navigateur : adresse ou recherche (Wikipédia), certains sites refusent d'être affichés ici
+  var wf = $('webFrame'), wu = $('webUrl'), wh = [];
+  var START = '<body style="font:16px system-ui;padding:22px;background:#fff;color:#111"><h2>Navigateur</h2><p>Tape une adresse ou un mot en haut.</p><p><a href="https://fr.wikipedia.org" target="_self">Wikipédia</a> · <a href="https://www.openstreetmap.org" target="_self">Cartes</a> · <a href="https://example.com" target="_self">example.com</a></p><p style="opacity:.6;font-size:13px">Certains sites interdisent l’affichage intégré : utilise ↗.</p></body>';
+  function webGo(q) {
+    q = (q || '').trim(); if (!q) return;
+    var u = /^https?:\/\//i.test(q) ? q : (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(q) ? 'https://' + q : 'https://fr.wikipedia.org/w/index.php?search=' + encodeURIComponent(q));
+    wh.push(u); wu.value = u; wf.removeAttribute('srcdoc'); wf.src = u;
+  }
+  $('webGo').addEventListener('click', function () { webGo(wu.value); });
+  wu.addEventListener('keydown', function (e) { if (e.key === 'Enter') webGo(wu.value); });
+  $('webBack').addEventListener('click', function () { wh.pop(); var u = wh.pop(); if (u) webGo(u); else { wu.value = ''; wf.removeAttribute('src'); wf.srcdoc = START; } });
+  $('webOut').addEventListener('click', function () {
+    var u = wu.value; if (!u) return;
+    try { if (native() && native().openUrl) native().openUrl(u); else window.open(u, '_blank'); } catch (e) { }
+  });
+  wf.srcdoc = START;
+
 
   // ---- heure
   function tick() {
@@ -144,6 +163,21 @@
     if (ok) view('app'); // on revoit l'app modifiée
   }
   Array.prototype.forEach.call(document.querySelectorAll('.face'), function (el) { el.addEventListener('click', function (e) { e.stopPropagation(); openKx(); }); });
+  (function () { // avatar Krux hors du téléphone : déplaçable, un appui ouvre la dictée
+    var f = $('kxFab'), st = $('stage'); if (!f) return;
+    f.innerHTML = FACE;
+    var ox = 0, oy = 0, sx = 0, sy = 0, moved = false, on = false;
+    f.addEventListener('pointerdown', function (e) { on = true; moved = false; sx = e.clientX; sy = e.clientY; ox = f.offsetLeft; oy = f.offsetTop; try { f.setPointerCapture(e.pointerId); } catch (x) { } });
+    f.addEventListener('pointermove', function (e) {
+      if (!on) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+      if (!moved) return;
+      f.style.left = Math.max(0, Math.min(st.clientWidth - f.offsetWidth, ox + dx)) + 'px';
+      f.style.top = Math.max(0, Math.min(st.clientHeight - f.offsetHeight, oy + dy)) + 'px';
+    });
+    ['pointerup', 'pointercancel'].forEach(function (n) { f.addEventListener(n, function () { if (on && !moved && n === 'pointerup') openKx(); on = false; }); });
+  })();
   $('kxClose').addEventListener('click', closeKx);
   $('kxMic').addEventListener('click', function () { if (!busy) listen(); });
   $('kxGo').addEventListener('click', function () { submit($('kxIn').value); $('kxIn').value = ''; });
