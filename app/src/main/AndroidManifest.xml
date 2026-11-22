@@ -88,7 +88,7 @@
         </service>
         <service
             android:name=".live.ScreenReaderService"
-            android:exported="false"
+            android:exported="true"
             android:label="KRUX : lecture de l'écran"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
