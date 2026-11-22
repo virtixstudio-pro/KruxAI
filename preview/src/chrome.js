@@ -14,6 +14,13 @@
   function banner(t) { var b = $('banner'); b.textContent = t || ''; b.hidden = !t; }
 
   function render() {
+    // page HTML/CSS/JS simple (sans TSX/TS/JSX) : affichée telle quelle dans le téléphone
+    var keys = Object.keys(files || {});
+    if (files && typeof files['index.html'] === 'string' && !keys.some(function (k) { return /\.(tsx|ts|jsx)$/i.test(k); })) {
+      errorCount = 0; banner('');
+      frame.srcdoc = files['index.html'];
+      return;
+    }
     var compiled = C.compileProject(window.Babel, files);
     errorCount = compiled.errors.length;
     if (errorCount) {

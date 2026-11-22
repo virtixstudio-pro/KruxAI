@@ -333,7 +333,8 @@ public class HtmlPreviewActivity extends AppCompatActivity {
                 editMode ? "Terminer la modification" : "Modifier textes et boutons",
                 "Ajouter un bouton",
                 "Ajouter un texte",
-                "Recharger l'aperçu"
+                "Recharger l'aperçu",
+                "Aperçu téléphone Krux"
         };
         KruxTheme.skin(new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Paramètres de l'aperçu")
@@ -341,6 +342,11 @@ public class HtmlPreviewActivity extends AppCompatActivity {
                     if (which == 0) sendToKrux();
                     else if (which == 1) setEdit(!editMode);
                     else if (which == 2 || which == 3) addElement(which == 2);
+                    else if (which == 5) {
+                        java.util.Map<String, String> one = new java.util.LinkedHashMap<>();
+                        one.put("index.html", html == null ? "" : html);
+                        WebPreviewDialog.show(this, one);
+                    }
                     else { setEdit(false); load(); }
                 })
                 .show(), this);
