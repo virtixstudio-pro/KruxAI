@@ -84,6 +84,9 @@ public class KruxCodeActivity extends AppCompatActivity {
     private WebView web;
     private LinearLayout webBox;
     private Runnable pageWait;
+    private TextView sendBtn;
+    private TextView currentStatus;
+    private int runId;
     private static final int MAX_STEPS = 5;
 
     private LinearLayout log;
@@ -185,7 +188,8 @@ public class KruxCodeActivity extends AppCompatActivity {
         input.setPadding(px(14), px(10), px(14), px(10));
         input.setBackground(round(PANEL, 20));
         TextView send = pill("▶", BG, accent);
-        send.setOnClickListener(v -> submit());
+        sendBtn = send;
+        send.setOnClickListener(v -> { if (busy) stopAgent(); else submit(); });
         inputBar.addView(input, new LinearLayout.LayoutParams(0, -2, 1f));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(px(52), px(46));
         sp.leftMargin = px(8);
@@ -468,8 +472,24 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
         input.setText("");
         line("› " + ask, TXT);
-        busy = true;
+        setBusy(true);
         agentStep(ask, "", 0);
+    }
+
+    private void setBusy(boolean b) {
+        busy = b;
+        if (sendBtn != null) sendBtn.setText(b ? "■" : "▶");
+    }
+
+    /** Bouton Stop : coupe la requête en cours, le navigateur et la suite des actions. */
+    private void stopAgent() {
+        runId++;
+        try { ApiClient.cancelCurrentRequest(); } catch (Exception ignored) { }
+        pageWait = null;
+        if (web != null) { try { web.stopLoading(); } catch (Exception ignored) { } }
+        if (currentStatus != null) { log.removeView(currentStatus); currentStatus = null; }
+        setBusy(false);
+        line("· Arrêté.", DIM);
     }
 
     private interface ToolDone { void done(String result); }
@@ -521,7 +541,9 @@ public class KruxCodeActivity extends AppCompatActivity {
     }
 
     private void agentStep(final String ask, final String observations, final int step) {
+        final int myRun = runId;
         final TextView status = line("· Krux travaille…", DIM);
+        currentStatus = status;
         String hist = recentAsks();
         String user = hist + (current == null
                 ? "NOUVEAU FICHIER.\nDEMANDE : " + ask
@@ -531,19 +553,21 @@ public class KruxCodeActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String response, String modelBrand) {
                 runOnUiThread(() -> {
-                    busy = false;
+                    if (myRun != runId) return;
+                    setBusy(false);
                     log.removeView(status);
                     String act = step < MAX_STEPS ? actionOf(response) : null;
                     if (act == null) { handleAnswer(response); return; }
-                    busy = true;
-                    runTool(act, result -> agentStep(ask, observations + result, step + 1));
+                    setBusy(true);
+                    runTool(act, result -> { if (myRun == runId) agentStep(ask, observations + result, step + 1); });
                 });
             }
 
             @Override
             public void onError(String friendlyMessage) {
                 runOnUiThread(() -> {
-                    busy = false;
+                    if (myRun != runId) return;
+                    setBusy(false);
                     status.setText("· " + friendlyMessage);
                     status.setTextColor(RED);
                 });
@@ -551,7 +575,7 @@ public class KruxCodeActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled() {
-                runOnUiThread(() -> busy = false);
+                runOnUiThread(() -> { if (myRun == runId) setBusy(false); });
             }
         });
     }
