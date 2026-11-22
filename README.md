@@ -188,3 +188,18 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - [~] **Aperçu web HTML/CSS/JS dans le faux téléphone (22/11)** : menu « Paramètres de l'aperçu » > **Aperçu téléphone Krux** ouvre l'app HTML dans le même téléphone que les apps React (barre d'état, réglages rapides, Bloc-notes, Navigateur, avatar, éditeur d'icône). `chrome.js` affiche tel quel un `index.html` sans TSX/TS/JSX. Limites : le mini chat/dictée n'est pas branché pour les pages HTML (pas de `Refiner`) ; l'iframe est isolée (`allow-scripts` seul) donc `localStorage` peut être refusé dans la page. À tester. Reste : brancher la dictée sur « Modifier avec Krux », et décider si ce téléphone devient l'aperçu par défaut.
 - [x] **Bouton Stop de l'agent Krux Code (22/11)** : pendant que Krux travaille, le bouton ▶ devient ■ ; un appui coupe la requête (`ApiClient.cancelCurrentRequest`), le chargement du navigateur et la suite des actions (compteur `runId` qui ignore les réponses tardives). À tester.
 - [~] **Menu + modernisé (22/11)** : grandes icônes (appareil photo, photos, fichiers), vrais interrupteurs (web, Réflexion avec mention ×4 de quota, Apprentissage qui agit sur les réponses). À tester sur téléphone (menu-plus.patch).
+
+## Mise à jour du 22/11/2026 (soir)
+
+### Fait (rien n'est compilé en local : à vérifier par la CI puis sur téléphone)
+- [~] **Navigateur de Krux Code par session** (navigateur-session.patch) : réduit par défaut, pages visitées rangées dans la session (6 au plus, en pastilles), rechargées seulement à l'agrandissement. Texte de page envoyé à l'IA : 6000 → 2000 caractères (total 3500 par demande). Lecture d'écran : 6000 → 2500.
+- [~] **Panneau de questions avant la création d'une app** (panneau-creation.patch) : style, fonctions en plus, nom, icône importée (devient l'icône de l'APK, apps web), base de données (Supabase : pour l'instant seulement la couche `src/data.ts`). Les choix s'ajoutent à la demande, sans appel IA.
+- [~] **Krux Code agent** (krux-code-agent.patch) : pilote les sites à rythme humain (OUVRIR, CLIQUER, TAPER, DEFILER ; pause de 0,5 à 1,3 s avant chaque action, frappe de 35 à 95 ms par caractère, 8 actions au plus). Seules limites : jamais de mot de passe, confirmation avant un clic « payer / acheter / supprimer le compte ». Une demande « crée une application… » ouvre le créateur d'apps.
+- [~] **« Clé API absente » en reconnaissance d'images** (même patch) : un moteur sans clé dans l'APK est sauté au lieu d'écraser la vraie erreur ; si aucun moteur n'a de clé, le message le dit. Si ça revient, vérifier les secrets GitHub (surtout MISTRAL_API_KEY) et lire la ligne « (détail : … ) ».
+
+### À faire, dans l'ordre
+1. [ ] Guide Supabase pas à pas dans le navigateur intégré (carte « clique ici »), collage de l'URL et de la clé, branchement dans l'app.
+2. [ ] Icône importée aussi pour les apps natives (aujourd'hui : apps web seulement).
+3. [ ] Compteur de 20 messages par jour (code de ChatGPT, non poussé, bloque l'envoi si le réseau est lent) : décider, puis version non bloquante.
+4. [ ] Lecture d'écran : autoriser « paramètres restreints » sur le téléphone (le patch est déjà poussé).
+5. [ ] Écran de création façon Snapp AI : attendre une capture d'écran du propriétaire.
