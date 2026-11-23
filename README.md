@@ -215,3 +215,5 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - Fait (patch site-virtix-docs) : pages Applications, Documentation et Créateurs dans docs/, menu étendu sur toutes les pages, docs/docs.txt pour Krux.
 - À faire : compléter createurs.html (nom, liens) ; vérifier que docs.txt répond une fois le site redéployé.
 - Mis de côté : barre latérale, à refaire plus sobre.
+
+- [~] **Guide d'activation de la lecture d'écran (22/11)** : écran pas à pas (Accessibilité, puis « paramètres restreints » si grisé), détecte l'activation et se ferme tout seul ; ouvert par le visage de Krux et par Réglages > Lecture de l'écran. À tester sur téléphone.

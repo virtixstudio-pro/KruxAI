@@ -74,6 +74,7 @@
 
         <activity android:name=".ui.MyAppsActivity" android:exported="false" />
         <activity android:name=".ui.FilesActivity" android:exported="false" />
+        <activity android:name=".ui.ScreenAccessActivity" android:exported="false" />
         <activity android:name=".ui.KruxCodeActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.MemoryActivity" android:exported="false" />

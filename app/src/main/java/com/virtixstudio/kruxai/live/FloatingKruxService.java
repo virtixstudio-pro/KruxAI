@@ -284,8 +284,8 @@ public class FloatingKruxService extends Service {
         String screen = null;
         if (wantsScreen(q)) {
             if (!ScreenReaderService.isOn()) {
-                say("Pour lire ton écran, active KRUX dans Accessibilité. Si c'est grisé : infos de l'appli KRUX, les trois points en haut, puis Autoriser les paramètres restreints.");
-                Intent a = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                say("Pour lire ton écran, j'ouvre un petit guide d'activation.");
+                Intent a = new Intent(this, com.virtixstudio.kruxai.ui.ScreenAccessActivity.class);
                 a.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 try { startActivity(a); } catch (Exception ignored) { }
                 return;

@@ -103,6 +103,8 @@ public class SettingsActivity extends AppCompatActivity {
         row(data, "Synchronisation", com.virtixstudio.kruxai.core.CloudSync.statusLine(this) + "  ·  touche pour relancer", false, this::syncNow);
         row(data, "Mémoire", "Ce que KRUX sait de toi : voir, modifier, supprimer", false,
             () -> startActivity(new Intent(this, MemoryActivity.class)));
+        row(data, "Lecture de l'écran", "Active Krux pour lire ton écran, pas à pas", false,
+            () -> startActivity(new Intent(this, ScreenAccessActivity.class)));
         row(data, "Mes apps", "Les applications créées par KRUX et le quota de la semaine", false,
             () -> startActivity(new Intent(this, MyAppsActivity.class)));
 
