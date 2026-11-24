@@ -347,13 +347,7 @@ private final ActivityResultLauncher<String[]> filePicker =
                     @Override
                     public void onRetryRequested(ChatMessage message) {
                         if (message != null && message.getText() != null) {
-                            executeAiQuery(
-                                    message.getText(),
-                                    "",
-                                    new ArrayList<>(),
-                                    "",
-                                    ""
-                            );
+                            retryFrom(message);
                         }
                     }
 
@@ -1745,6 +1739,28 @@ private final ActivityResultLauncher<String[]> filePicker =
                 terminal.hideLater(6000);
             }
         }
+    }
+
+    /** Vrai « Réessayer » : efface la réponse (et tout ce qui suit ce message) puis régénère au même endroit. */
+    private void retryFrom(ChatMessage message) {
+        if (message == null || message.getText() == null || chatAdapter == null) return;
+        int idx = messageList.indexOf(message);
+        if (idx < 0) {
+            for (int i = 0; i < messageList.size(); i++) {
+                String a = messageList.get(i).getId();
+                if (a != null && a.equals(message.getId())) { idx = i; break; }
+            }
+        }
+        if (idx < 0) return;
+        for (int i = idx + 1; i < messageList.size(); i++) {
+            if (messageList.get(i).isStreaming()) return; // une réponse s'écrit encore : on n'y touche pas
+        }
+        int count = messageList.size() - (idx + 1);
+        if (count > 0) {
+            messageList.subList(idx + 1, messageList.size()).clear();
+            chatAdapter.notifyItemRangeRemoved(idx + 1, count);
+        }
+        executeAiQuery(message.getText(), "", new ArrayList<>(), "", "");
     }
 
     private void executeAiQuery(
@@ -3402,13 +3418,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         addUserAction(menu, R.drawable.ic_retry, "Réessayer", () -> {
             popup.dismiss();
             if (message.getText() != null) {
-                executeAiQuery(
-                        message.getText(),
-                        "",
-                        new ArrayList<>(),
-                        "",
-                        ""
-                );
+                retryFrom(message);
             }
         });
 
