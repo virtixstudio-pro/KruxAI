@@ -22,6 +22,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.virtixstudio.kruxai.R;
 
@@ -130,12 +131,29 @@ public final class MessageActions {
         ctx.startActivity(chooser);
     }
 
-    /** Feuille du bas : le texte entier est sélectionné, on peut ajuster la sélection ou tout copier. */
+    private static TextView pill(Context ctx, String label, boolean filled) {
+        TextView b = new TextView(ctx);
+        b.setText(label);
+        b.setGravity(Gravity.CENTER);
+        b.setTextSize(15);
+        b.setPadding(dp(ctx, 16), dp(ctx, 13), dp(ctx, 16), dp(ctx, 13));
+        if (filled) {
+            b.setTextColor(KruxTheme.get(ctx, "buttontext"));
+            b.setBackground(rounded(KruxTheme.get(ctx, "button"), dp(ctx, 100)));
+        } else {
+            b.setTextColor(KruxTheme.get(ctx, "text"));
+            b.setBackground(rounded(KruxTheme.get(ctx, "input"), dp(ctx, 100)));
+        }
+        return b;
+    }
+
+    /** Presque plein écran : texte grand, sélection à la main, boutons Tout sélectionner / Copier. */
     private static void selectSheet(Context ctx, String text) {
         Activity act = activity(ctx);
         if (act == null) return;
         final BottomSheetDialog dialog = new BottomSheetDialog(act);
         float r = dp(ctx, 24);
+        final int h = (int) (ctx.getResources().getDisplayMetrics().heightPixels * 0.92f);
 
         LinearLayout root = new LinearLayout(act);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -152,41 +170,46 @@ public final class MessageActions {
         root.addView(title);
 
         ScrollView scroll = new ScrollView(act);
-        TextView body = new TextView(act);
+        final TextView body = new TextView(act);
         body.setText(text, TextView.BufferType.SPANNABLE);
         body.setTextColor(KruxTheme.get(ctx, "text"));
-        body.setTextSize(15);
-        body.setLineSpacing(0, 1.16f);
+        body.setTextSize(17);
+        body.setLineSpacing(0, 1.2f);
         body.setTextIsSelectable(true);
         scroll.addView(body);
-        int maxH = (int) (ctx.getResources().getDisplayMetrics().heightPixels * 0.55f);
-        root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        scroll.post(() -> {
-            if (scroll.getHeight() > maxH) {
-                ViewGroup.LayoutParams lp = scroll.getLayoutParams();
-                lp.height = maxH;
-                scroll.setLayoutParams(lp);
-            }
-        });
+        root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        TextView copyAll = new TextView(act);
-        copyAll.setText("Tout copier");
-        copyAll.setGravity(Gravity.CENTER);
-        copyAll.setTextSize(15);
-        copyAll.setTextColor(KruxTheme.get(ctx, "buttontext"));
-        copyAll.setBackground(rounded(KruxTheme.get(ctx, "button"), dp(ctx, 100)));
-        copyAll.setPadding(dp(ctx, 20), dp(ctx, 12), dp(ctx, 20), dp(ctx, 12));
-        copyAll.setOnClickListener(v -> { copy(ctx, text); dialog.dismiss(); });
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        bp.topMargin = dp(ctx, 14);
-        root.addView(copyAll, bp);
-
-        dialog.setContentView(root);
-        dialog.setOnShowListener(d -> {
-            View sheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-            if (sheet != null) sheet.setBackgroundColor(Color.TRANSPARENT);
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        TextView all = pill(ctx, "Tout sélectionner", false);
+        TextView cp = pill(ctx, "Copier", true);
+        all.setOnClickListener(v -> {
             body.requestFocus();
             if (body.getText() instanceof Spannable) Selection.selectAll((Spannable) body.getText());
+        });
+        cp.setOnClickListener(v -> {
+            int a = body.getSelectionStart(), b = body.getSelectionEnd();
+            if (a >= 0 && b > a) copy(ctx, body.getText().subSequence(a, b).toString());
+            else copy(ctx, text);
+            dialog.dismiss();
+        });
+        LinearLayout.LayoutParams lp1 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        lp1.rightMargin = dp(ctx, 8);
+        row.addView(all, lp1);
+        row.addView(cp, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rp.topMargin = dp(ctx, 14);
+        root.addView(row, rp);
+
+        dialog.setContentView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, h));
+        dialog.setOnShowListener(d -> {
+            View sheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (sheet != null) {
+                sheet.setBackgroundColor(Color.TRANSPARENT);
+                BottomSheetBehavior<View> bh = BottomSheetBehavior.from(sheet);
+                bh.setSkipCollapsed(true);
+                bh.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
         });
         dialog.show();
     }
