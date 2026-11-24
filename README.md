@@ -245,3 +245,5 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - [~] **Ecran memoire (24/11)** : refait façon "Fichiers mémoire" (MemoryActivity) : sections, cartes avec date de mise à jour, vue d'un fichier à puces avec corbeille, barre "Indiquez à Krux ce qu'il faut modifier" (micro + IA). A tester, surtout les suppressions par IA.
 
 - [~] **Sources en haut (24/11)** : le bloc des sources web passe en haut de la réponse (item_chat_ai.xml). A tester.
+
+- [~] **Krux Code, édition ciblée (24/11)** : modifications par blocs CHERCHER/REMPLACER (seules les lignes concernées changent), fichier ouvert coloré avec numéros, menu Fichier > Ajouter des fichiers. A tester.

@@ -60,7 +60,8 @@ public class KruxCodeActivity extends AppCompatActivity {
 
     private static final String SYSTEM =
             "Tu es Krux Code, un outil de modification de code. Tu ne bavardes pas. "
-          + "Tu réponds UNIQUEMENT par le fichier COMPLET après modification, dans un seul bloc de code entre ``` et ```. "
+          + "Pour un fichier EXISTANT, tu ne renvoies QUE les modifications, sous forme de blocs, sans réécrire le reste : une ligne <<<<<<< CHERCHER, puis les lignes exactes à remplacer copiées du fichier (juste assez pour être uniques, jamais tout le fichier), puis une ligne =======, puis les nouvelles lignes, puis une ligne >>>>>>> REMPLACER. Un bloc par endroit modifié. Pour insérer, recopie une ligne voisine dans CHERCHER et remets-la dans REMPLACER avec les lignes ajoutées. "
+          + "Pour un NOUVEAU FICHIER, tu réponds par le fichier COMPLET dans un seul bloc de code entre ``` et ```. "
           + "Aucune phrase avant ni après le bloc. Ne change que ce qui est demandé : garde le style, l'indentation, les noms et les commentaires existants. "
           + "Ne raccourcis jamais le fichier, n'écris jamais « le reste est inchangé ». "
           + "Si la demande est impossible ou trop floue, réponds seulement par une ligne qui commence par IMPOSSIBLE: et la raison en une phrase. "
@@ -573,9 +574,11 @@ public class KruxCodeActivity extends AppCompatActivity {
         int n = Math.min(files.size(), 15);
         for (int i = 0; i < n; i++) pm.getMenu().add(0, i, i, files.get(i).getName());
         pm.getMenu().add(0, 100, 100, "Nouveau fichier");
+        pm.getMenu().add(0, 101, 101, "Ajouter des fichiers…");
         pm.setOnMenuItemClickListener(it -> {
             int id = it.getItemId();
             if (id == 100) newFile();
+            else if (id == 101) pickFiles();
             else if (id >= 0 && id < files.size()) openFile(files.get(id));
             return true;
         });
@@ -599,11 +602,130 @@ public class KruxCodeActivity extends AppCompatActivity {
             currentText = text;
             updateLabel();
             line("· Fichier ouvert : " + f.getName(), DIM);
+            showFileView(text);
             if (text.length() > MAX_CHARS) {
                 line("· Ce fichier est long (" + text.length() + " caractères) : Krux Code accepte " + MAX_CHARS + " caractères au maximum pour l'instant.", RED);
             }
         } catch (IOException e) {
             Toast.makeText(this, "Lecture impossible : " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+    // ------------------------------------------------------------------ modifications ciblées (seules les lignes concernées changent)
+
+    private String editError = "";
+
+    /** Applique les blocs CHERCHER / REMPLACER au texte ; null (avec editError) si un bloc est introuvable ou ambigu. */
+    private String applyEdits(String text, String answer) {
+        String t = text.replace("\r\n", "\n");
+        Matcher m = Pattern.compile("(?s)<<<<<<< CHERCHER[ \\t]*\\n(.*?)\\n=======[ \\t]*\\n(.*?)\\n?>>>>>>> REMPLACER").matcher(answer);
+        int n = 0;
+        while (m.find()) {
+            n++;
+            String search = m.group(1), repl = m.group(2);
+            int at = t.indexOf(search);
+            if (at >= 0 && t.indexOf(search, at + 1) >= 0) { editError = "Le bloc " + n + " correspond à plusieurs endroits."; return null; }
+            int len = search.length();
+            if (at < 0) { // tolérance : espaces de fin de ligne
+                String[] tl = t.split("\n", -1), sl = search.split("\n", -1);
+                int found = -1;
+                for (int i = 0; i + sl.length <= tl.length && found < 0; i++) {
+                    boolean ok = true;
+                    for (int j = 0; j < sl.length && ok; j++) ok = tl[i + j].replaceAll("\\s+$", "").equals(sl[j].replaceAll("\\s+$", ""));
+                    if (ok) found = i;
+                }
+                if (found < 0) { editError = "Le bloc " + n + " est introuvable dans le fichier."; return null; }
+                int start = 0;
+                for (int i = 0; i < found; i++) start += tl[i].length() + 1;
+                int end = start;
+                for (int j = 0; j < sl.length; j++) end += tl[found + j].length() + (j < sl.length - 1 ? 1 : 0);
+                at = start; len = end - start;
+            }
+            t = t.substring(0, at) + repl + t.substring(at + len);
+        }
+        if (n == 0) { editError = "Aucun bloc de modification lisible."; return null; }
+        return t;
+    }
+
+    // ------------------------------------------------------------------ fichier ouvert coloré
+
+    /** Affiche le début du fichier avec numéros de ligne et coloration syntaxique. */
+    private void showFileView(String text) {
+        String[] ls = text.replace("\r\n", "\n").split("\n", -1);
+        int shown = Math.min(ls.length, 60);
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+        for (int i = 0; i < shown; i++) {
+            int a = sb.length();
+            String num = String.format(java.util.Locale.US, "%3d ", i + 1);
+            sb.append(num);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(DIM), a, a + num.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            int cs = sb.length();
+            String code = ls[i].length() > 160 ? ls[i].substring(0, 160) + "…" : ls[i];
+            sb.append(code);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(TXT), cs, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            CodeHighlighter.apply(sb, cs, sb.length());
+            sb.append('\n');
+        }
+        if (ls.length > shown) {
+            int a = sb.length();
+            String more = "… " + (ls.length - shown) + " lignes de plus\n";
+            sb.append(more);
+            sb.setSpan(new android.text.style.ForegroundColorSpan(DIM), a, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        TextView tv = new TextView(this);
+        tv.setText(sb);
+        tv.setTypeface(android.graphics.Typeface.MONOSPACE);
+        tv.setTextSize(11.5f);
+        tv.setBackgroundColor(0xFF0F0D17);
+        tv.setPadding(px(10), px(8), px(10), px(8));
+        tv.setHorizontallyScrolling(true);
+        android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(this);
+        hs.addView(tv);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.setMargins(0, px(4), 0, px(8));
+        log.addView(hs, lp);
+        scrollDown();
+    }
+
+    // ------------------------------------------------------------------ ajout de fichiers depuis le téléphone
+
+    private void pickFiles() {
+        try {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(android.content.Intent.CATEGORY_OPENABLE);
+            i.setType("*/*");
+            i.putExtra(android.content.Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(i, 72);
+        } catch (Exception e) {
+            Toast.makeText(this, "Sélecteur de fichiers indisponible", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, android.content.Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != 72 || res != RESULT_OK || data == null) return;
+        java.util.ArrayList<android.net.Uri> uris = new java.util.ArrayList<>();
+        if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount(); i++) uris.add(data.getClipData().getItemAt(i).getUri());
+        else if (data.getData() != null) uris.add(data.getData());
+        File last = null;
+        int ok = 0;
+        for (android.net.Uri u : uris) {
+            String name = "fichier";
+            try (android.database.Cursor c = getContentResolver().query(u, null, null, null, null)) {
+                if (c != null && c.moveToFirst()) { int ix = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME); if (ix >= 0) name = c.getString(ix); }
+            } catch (Exception ignored) { }
+            try (java.io.InputStream in = getContentResolver().openInputStream(u)) {
+                last = store.importStream(name, in);
+                ok++;
+            } catch (Exception e) {
+                line("· Import impossible : " + name + " (" + e.getMessage() + ")", RED);
+            }
+        }
+        if (ok > 0) {
+            line("· " + ok + (ok > 1 ? " fichiers ajoutés" : " fichier ajouté") + " à l'espace de travail.", DIM);
+            if (last != null) openFile(last);
         }
     }
 
@@ -816,6 +938,15 @@ public class KruxCodeActivity extends AppCompatActivity {
         Matcher mn = Pattern.compile("(?m)^\\s*FICHIER\\s*:\\s*(\\S+)\\s*$").matcher(r);
         if (mn.find()) name = mn.group(1);
 
+        if (current != null && r.contains("<<<<<<< CHERCHER")) {
+            String res = applyEdits(currentText, r);
+            if (res == null) { line("· " + editError + " Rien n'a été modifié.", RED); return; }
+            pendingName = current.getName();
+            if (res.equals(currentText)) { line("· Aucun changement.", DIM); return; }
+            pendingText = res;
+            showDiff(currentText, res);
+            return;
+        }
         int open = r.indexOf("```");
         int nl = open < 0 ? -1 : r.indexOf('\n', open);
         int close = r.lastIndexOf("```");
