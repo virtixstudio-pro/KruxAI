@@ -247,3 +247,5 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - [~] **Sources en haut (24/11)** : le bloc des sources web passe en haut de la réponse (item_chat_ai.xml). A tester.
 
 - [~] **Krux Code, édition ciblée (24/11)** : modifications par blocs CHERCHER/REMPLACER (seules les lignes concernées changent), fichier ouvert coloré avec numéros, menu Fichier > Ajouter des fichiers. A tester.
+
+- [~] **Aperçu libre et grand (24/11)** : fenêtre plein écran sans cadre (WebPreviewDialog), Retoucher/Couleurs en pastilles, aperçu HTML dans le même téléphone (réglage krux_capacites/html_telephone, défaut vrai). Correction : le menu "Aperçu téléphone Krux" bloquait le thread principal. A tester.

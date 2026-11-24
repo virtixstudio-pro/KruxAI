@@ -8,12 +8,12 @@
   :root { color-scheme: light dark; --bar: #f2f2f6; --line: #8884; --acc: #4f46e5; --on: #fff; }
   @media (prefers-color-scheme: dark) { :root { --bar: #1e1e24; } }
   * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; font: 14px system-ui, sans-serif; background: Canvas; color: CanvasText; }
+  html, body { height: 100%; margin: 0; font: 14px system-ui, sans-serif; background: #000; color: #eee; }
   body { display: flex; flex-direction: column; }
-  #bar { display: flex; gap: 8px; align-items: center; padding: 8px; background: var(--bar); border-bottom: 1px solid var(--line); }
-  #bar button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; font-size: 14px; }
+  #bar { display: flex; gap: 6px; align-items: center; padding: 4px 6px; background: #000; }
+  #bar button { padding: 5px 11px; border: 0; border-radius: 14px; background: #ffffff1c; color: #eee; font-size: 13px; }
   #bar button[aria-pressed="true"] { background: var(--acc); color: var(--on); border-color: var(--acc); }
-  #hint { flex: 1; text-align: right; opacity: .65; font-size: 12px; }
+  #hint { display: none; flex: 1; text-align: right; opacity: .65; font-size: 12px; }
   #banner { padding: 8px 12px; background: #fde8e8; color: #8a1c1c; font-size: 13px; }
   #msg { padding: 8px 12px; background: var(--bar); font-size: 13px; border-bottom: 1px solid var(--line); }
   #stage { flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center; padding: 2px 4px 4px; background: #0b0b10; position: relative; }

@@ -216,6 +216,16 @@ public class HtmlPreviewActivity extends AppCompatActivity {
             }
         });
         load();
+        // par défaut, la page HTML s'ouvre dans le même grand téléphone libre que les apps (réglage html_telephone)
+        boolean phone = getSharedPreferences("krux_capacites", MODE_PRIVATE).getBoolean("html_telephone", true);
+        if (phone && !browser && html != null && !html.isEmpty()) {
+            final java.util.Map<String, String> one = new java.util.LinkedHashMap<>();
+            one.put("index.html", html);
+            new Thread(() -> {
+                WebPreviewDialog.showPreview(this, one);
+                runOnUiThread(this::finish);
+            }).start();
+        }
     }
 
     /** Mini-Android : coque sombre, barre d'état, écran arrondi, barre de navigation, tête de Krux au milieu à droite. */
@@ -345,7 +355,7 @@ public class HtmlPreviewActivity extends AppCompatActivity {
                     else if (which == 5) {
                         java.util.Map<String, String> one = new java.util.LinkedHashMap<>();
                         one.put("index.html", html == null ? "" : html);
-                        WebPreviewDialog.show(this, one);
+                        new Thread(() -> WebPreviewDialog.showPreview(this, one)).start();
                     }
                     else { setEdit(false); load(); }
                 })

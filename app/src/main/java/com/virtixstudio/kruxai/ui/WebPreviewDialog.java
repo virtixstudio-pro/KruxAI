@@ -63,6 +63,15 @@ final class WebPreviewDialog {
 
     /** refiner != null : ajoute « Demander à Krux » (modification écrite par l'IA) et la correction automatique des erreurs de l'aperçu. */
     static Map<String, String> show(final Activity act, final Map<String, String> files, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner) {
+        return show(act, files, refiner, false);
+    }
+
+    /** Aperçu seul (page HTML) : bouton Fermer, rien à créer. Bloque jusqu'à la fermeture : à appeler hors du thread principal. */
+    static void showPreview(final Activity act, final Map<String, String> files) {
+        show(act, files, null, true);
+    }
+
+    static Map<String, String> show(final Activity act, final Map<String, String> files, final com.virtixstudio.kruxai.AppBuilder.Refiner refiner, final boolean viewOnly) {
         final AtomicReference<Map<String, String>> latest = new AtomicReference<>(files);
         final AtomicBoolean busy = new AtomicBoolean(false);
         final String json = new JSONObject(files).toString();
@@ -81,10 +90,10 @@ final class WebPreviewDialog {
 
             LinearLayout root = new LinearLayout(act);
             root.setOrientation(LinearLayout.VERTICAL);
-            root.setPadding(dp(act, 16), dp(act, 16), dp(act, 16), dp(act, 14));
+            root.setPadding(dp(act, 4), dp(act, 6), dp(act, 4), dp(act, 6));
             GradientDrawable sheet = new GradientDrawable();
-            sheet.setColor(bg);
-            sheet.setCornerRadius(dp(act, 24));
+            sheet.setColor(Color.BLACK);
+            sheet.setCornerRadius(0);
             root.setBackground(sheet);
 
             TextView title = new TextView(act);
@@ -92,12 +101,14 @@ final class WebPreviewDialog {
             title.setTextColor(tx);
             title.setTextSize(18);
             title.setTypeface(null, android.graphics.Typeface.BOLD);
+            title.setVisibility(android.view.View.GONE);
             root.addView(title);
             TextView hint = new TextView(act);
             hint.setText("Teste l'app. « Retoucher » et « Couleurs » : sans IA, gratuit. Ou écris à Krux ce que tu veux changer.");
             hint.setTextColor(tx2);
             hint.setTextSize(13);
             hint.setPadding(0, dp(act, 4), 0, dp(act, 12));
+            hint.setVisibility(android.view.View.GONE);
             root.addView(hint);
 
             // Page locale : JavaScript permis, mais réseau, fichiers externes et stockage bloqués, aucun pont Java.
@@ -135,14 +146,13 @@ final class WebPreviewDialog {
                     if (refiner != null) v.evaluateJavascript("KruxPhone.enableNative()", null);
                 }
             });
-            web.setBackgroundColor(Color.WHITE);
+            web.setBackgroundColor(Color.BLACK);
             web.loadUrl(PAGE);
 
             final FrameLayout frame = new FrameLayout(act);
             GradientDrawable fg = new GradientDrawable();
-            fg.setColor(Color.WHITE);
-            fg.setCornerRadius(dp(act, 20));
-            fg.setStroke(dp(act, 2), (accent & 0x00FFFFFF) | 0x99000000);
+            fg.setColor(Color.BLACK);
+            fg.setCornerRadius(0);
             frame.setBackground(fg);
             frame.setClipToOutline(true);
             frame.addView(web, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -257,10 +267,10 @@ final class WebPreviewDialog {
             LinearLayout row = new LinearLayout(act);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.END);
-            row.setPadding(0, dp(act, 12), 0, 0);
+            row.setPadding(0, dp(act, 6), 0, 0);
             TextView cancel = button(act, "Annuler", tx2, Color.TRANSPARENT);
             int onAccent = androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.5 ? Color.BLACK : Color.WHITE;
-            TextView ok = button(act, "Créer l'app", onAccent, accent);
+            TextView ok = button(act, viewOnly ? "Fermer" : "Créer l'app", onAccent, accent);
             cancel.setOnClickListener(v -> { decided.countDown(); dlg.dismiss(); });
             final int[] autoFixes = {0};
             ok.setOnClickListener(v -> {
@@ -277,7 +287,7 @@ final class WebPreviewDialog {
                     dlg.dismiss();
                 });
             });
-            row.addView(cancel);
+            if (!viewOnly) row.addView(cancel);
             LinearLayout.LayoutParams okLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             okLp.leftMargin = dp(act, 8);
             row.addView(ok, okLp);
@@ -298,7 +308,7 @@ final class WebPreviewDialog {
             if (dlg.getWindow() != null) {
                 DisplayMetrics dm = act.getResources().getDisplayMetrics();
                 dlg.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-                dlg.getWindow().setLayout(dm.widthPixels - dp(act, 20), (int) (dm.heightPixels * 0.88f));
+                dlg.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                 dlg.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
             }
         });
