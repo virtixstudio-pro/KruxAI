@@ -72,6 +72,7 @@ public class KruxCodeActivity extends AppCompatActivity {
           + "(documentation, exemple, contenu d'un site, remplir un formulaire). Avance pas à pas comme une personne, une action à la fois. Ensuite réponds comme d'habitude.";
 
     private WorkspaceStore store;
+    private com.virtixstudio.kruxai.core.ProjectStore projects;
     private File current;
     private String currentText = "";
     private String pendingText;
@@ -118,6 +119,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         d = getResources().getDisplayMetrics().density;
         accent = KruxTheme.get(this, "accent");
         store = new WorkspaceStore(new File(getFilesDir(), "workspace"));
+        projects = new com.virtixstudio.kruxai.core.ProjectStore(new File(getFilesDir(), "projects"));
         store.adoptSubfolders();
 
         LinearLayout root = new LinearLayout(this);
@@ -575,10 +577,12 @@ public class KruxCodeActivity extends AppCompatActivity {
         for (int i = 0; i < n; i++) pm.getMenu().add(0, i, i, files.get(i).getName());
         pm.getMenu().add(0, 100, 100, "Nouveau fichier");
         pm.getMenu().add(0, 101, 101, "Ajouter des fichiers…");
+        pm.getMenu().add(0, 102, 102, "Importer un projet (zip)…");
         pm.setOnMenuItemClickListener(it -> {
             int id = it.getItemId();
             if (id == 100) newFile();
             else if (id == 101) pickFiles();
+            else if (id == 102) pickProjectZip();
             else if (id >= 0 && id < files.size()) openFile(files.get(id));
             return true;
         });
@@ -702,9 +706,45 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
     }
 
+    private void pickProjectZip() {
+        try {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(android.content.Intent.CATEGORY_OPENABLE);
+            i.setType("*/*");
+            i.putExtra(android.content.Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/x-zip-compressed", "application/octet-stream"});
+            startActivityForResult(i, 73);
+        } catch (Exception e) {
+            Toast.makeText(this, "Sélecteur de fichiers indisponible", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Importe le zip en arrière-plan (jusqu'à 60 Mo) sans appeler l'IA. */
+    private void importProjectZip(final android.net.Uri u) {
+        String nm = "projet.zip";
+        try (android.database.Cursor c = getContentResolver().query(u, null, null, null, null)) {
+            if (c != null && c.moveToFirst()) { int ix = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME); if (ix >= 0) nm = c.getString(ix); }
+        } catch (Exception ignored) { }
+        final String zipName = nm;
+        line("· Import du projet " + zipName + "…", DIM);
+        new Thread(() -> {
+            try (java.io.InputStream in = getContentResolver().openInputStream(u)) {
+                final com.virtixstudio.kruxai.core.ProjectStore.Result r = projects.importZip(zipName, in);
+                runOnUiThread(() -> {
+                    line("· Projet « " + r.dir.getName() + " » importé : " + r.files + " fichiers, "
+                            + WorkspaceStore.sizeLabel(r.bytes)
+                            + (r.skipped > 0 ? " (" + r.skipped + " ignorés : .git, build, local.properties…)" : "") + ".", DIM);
+                    line(r.androidGradle ? "· Projet Android (Gradle) reconnu." : "· Pas de projet Android Gradle reconnu (settings.gradle + app/).", DIM);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> line("· Import impossible : " + e.getMessage(), RED));
+            }
+        }).start();
+    }
+
     @Override
     protected void onActivityResult(int req, int res, android.content.Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == 73 && res == RESULT_OK && data != null && data.getData() != null) { importProjectZip(data.getData()); return; }
         if (req != 72 || res != RESULT_OK || data == null) return;
         java.util.ArrayList<android.net.Uri> uris = new java.util.ArrayList<>();
         if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount(); i++) uris.add(data.getClipData().getItemAt(i).getUri());
