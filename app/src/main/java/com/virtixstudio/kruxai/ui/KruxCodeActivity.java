@@ -1076,7 +1076,7 @@ public class KruxCodeActivity extends AppCompatActivity {
                     if (myRun != runId) return;
                     setBusy(false);
                     log.removeView(status);
-                    String act = (AgentPrefs.agentOn(this) && step < AgentPrefs.maxSteps(this)) ? actionOf(response) : null;
+                    String act = (AgentPrefs.agentOn(KruxCodeActivity.this) && step < AgentPrefs.maxSteps(KruxCodeActivity.this)) ? actionOf(response) : null;
                     if (act == null) { handleAnswer(response); return; }
                     setBusy(true);
                     runTool(act, result -> { if (myRun == runId) agentStep(ask, trimObs(observations + result), step + 1); });
