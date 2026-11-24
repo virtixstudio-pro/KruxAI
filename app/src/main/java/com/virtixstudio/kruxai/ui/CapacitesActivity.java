@@ -7,10 +7,13 @@ import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import com.virtixstudio.kruxai.R;
 
 /** Écran « Capacités » (même esprit que celui de Claude) : agent, navigateur en direct, nombre d'actions. */
 public class CapacitesActivity extends Activity {
@@ -45,9 +48,9 @@ public class CapacitesActivity extends Activity {
         back.setOnClickListener(v -> finish());
         root.addView(back);
 
-        toggle("🤖", "Mode agent", "Krux Code peut ouvrir des sites, cliquer, taper dans les champs et défiler pour accomplir une tâche, puis te rendre le résultat.",
+        toggle(R.drawable.ic_line_agent, "Mode agent", "Krux Code peut ouvrir des sites, cliquer, taper dans les champs et défiler pour accomplir une tâche, puis te rendre le résultat.",
                 "agent", AgentPrefs.agentOn(this));
-        toggle("🌐", "Navigateur en direct", "Affiche le navigateur de Krux pendant que l'agent travaille, pour que tu voies chaque page en temps réel. Tu peux t'y connecter toi-même à un site : les sessions restent ouvertes.",
+        toggle(R.drawable.ic_line_globe, "Navigateur en direct", "Affiche le navigateur de Krux pendant que l'agent travaille, pour que tu voies chaque page en temps réel. Tu peux t'y connecter toi-même à un site : les sessions restent ouvertes.",
                 "voir_navigateur", AgentPrefs.showBrowser(this));
 
         // nombre d'actions par demande : 3, 5, 8, 12 (un appui change la valeur)
@@ -78,15 +81,14 @@ public class CapacitesActivity extends Activity {
 
     private void showMax() { maxValue.setText(AgentPrefs.maxSteps(this) + " actions maximum"); }
 
-    private void toggle(String icon, String title, String desc, final String key, boolean on) {
+    private void toggle(int icon, String title, String desc, final String key, boolean on) {
         LinearLayout card = card();
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        TextView ic = new TextView(this);
-        ic.setText(icon);
-        ic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        ImageView ic = new ImageView(this);
+        ic.setImageDrawable(UiIcons.get(this, icon, text, 24));
         ic.setPadding(0, 0, dp(14), 0);
-        card.addView(ic);
+        card.addView(ic, new LinearLayout.LayoutParams(dp(38), dp(24)));
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.addView(title(title));

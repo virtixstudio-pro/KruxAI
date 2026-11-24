@@ -88,7 +88,8 @@ public final class DeliveredFileCards {
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(c);
-        title.setText("📦  " + files.size() + " fichiers");
+        title.setText(files.size() + " fichiers");
+        UiIcons.left(title, com.virtixstudio.kruxai.R.drawable.ic_line_package, text, 18, 8);
         title.setTextColor(text);
         title.setTextSize(14);
         title.setTypeface(null, Typeface.BOLD);
@@ -148,7 +149,8 @@ public final class DeliveredFileCards {
         String full = f.name.replace('\\', '/');
         String base = full.substring(full.lastIndexOf('/') + 1);
         TextView name = new TextView(c);
-        name.setText("📄  " + base);
+        name.setText(base);
+        UiIcons.left(name, com.virtixstudio.kruxai.R.drawable.ic_line_file, text, 16, 8);
         name.setTextColor(text);
         name.setTextSize(13);
         name.setTypeface(Typeface.MONOSPACE);
@@ -271,7 +273,8 @@ public final class DeliveredFileCards {
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
         TextView name = new TextView(c);
-        name.setText("📄  " + base);
+        name.setText(base);
+        UiIcons.left(name, com.virtixstudio.kruxai.R.drawable.ic_line_file, text, 16, 8);
         name.setTextColor(text);
         name.setTextSize(14);
         name.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
