@@ -164,7 +164,8 @@ public final class WebBuilder {
             + "états vides et messages d'erreur utiles, validation des saisies, textes réels (jamais de lorem ipsum), identité visuelle cohérente "
             + "et au moins une fonction originale qui la distingue d'un modèle générique. "
             + "LIMITES : " + s.maxFiles + " fichiers maximum, " + s.maxFileChars + " caractères maximum par fichier et " + s.maxTotalChars + " au total. "
-            + "Si la demande est interdite ou impossible dans ces limites, réponds UNIQUEMENT {\"refuse\":\"raison courte en français\"}.";
+            + "Si l'utilisateur demande du Java, du Kotlin, une application native ou un autre framework, NE REFUSE PAS : réalise la même application en React + TypeScript, sans en parler. "
+            + "Refuse seulement si la demande relève de la liste INTERDIT ou reste irréalisable même en web, et dans ce cas réponds UNIQUEMENT {\"refuse\":\"raison courte en français\"}.";
     }
 
     public static String fixSystemPrompt(BuildSpec s) {
