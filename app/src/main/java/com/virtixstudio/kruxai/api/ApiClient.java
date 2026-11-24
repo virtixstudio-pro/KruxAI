@@ -486,7 +486,8 @@ public class ApiClient {
                     }
                 });
 
-                finished = latch.await(25, TimeUnit.SECONDS);
+                // Le moteur peut prendre ~30 s sur réseau lent (recherches 10 s + Wikipédia + lecture des pages 8 s) : on lui laisse 45 s.
+                finished = latch.await(45, TimeUnit.SECONDS);
                 if (finished && webError[0] == null && webContext[0] != null && !webContext[0].trim().isEmpty()) {
                     cachedSearchKey = cacheKey;
                     cachedSearchAt = System.currentTimeMillis();
