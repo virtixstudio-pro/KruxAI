@@ -249,3 +249,19 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - [~] **Krux Code, édition ciblée (24/11)** : modifications par blocs CHERCHER/REMPLACER (seules les lignes concernées changent), fichier ouvert coloré avec numéros, menu Fichier > Ajouter des fichiers. A tester.
 
 - [~] **Aperçu libre et grand (24/11)** : fenêtre plein écran sans cadre (WebPreviewDialog), Retoucher/Couleurs en pastilles, aperçu HTML dans le même téléphone (réglage krux_capacites/html_telephone, défaut vrai). Correction : le menu "Aperçu téléphone Krux" bloquait le thread principal. A tester.
+
+## Notes du 24/11/2026 (patchs de la session, dans l'ordre)
+Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, ecran-memoire, sources-en-haut, apercu-libre-grand. Appliquer avec `git apply --exclude=README.md` (le README se met à jour à la main).
+- [~] **Éditeur photo** : menu Modifier la photo > Dessiner / entourer (`PhotoEditorDialog` : trait, cercle, flèche, couleurs, annuler, pivoter). Le bug des photos Mistral n'a pas eu besoin de correctif (les images passent).
+- [~] **Capacités** : Paramètres > Capacités (`CapacitesActivity`, `AgentPrefs`) : mode agent, navigateur en direct, actions par demande (3/5/8/12). Réglages dans `krux_capacites`.
+- [~] **Krux Code, édition ciblée** : blocs CHERCHER/REMPLACER (seules les lignes concernées changent), fichier ouvert coloré avec numéros, menu Fichier > Ajouter des fichiers. Surveiller les modèles qui respectent mal le format.
+- [~] **Écran mémoire** : refait façon « Fichiers mémoire » (sections, cartes avec date, vue à puces avec corbeille, barre « Indiquez à Krux ce qu'il faut modifier » avec micro). Tester les suppressions par IA.
+- [~] **Sources en haut** : le bloc des sources web est en haut de la réponse (`item_chat_ai.xml`).
+- [~] **Aperçu libre et grand** : fenêtre plein écran sans cadre (`WebPreviewDialog`), Retoucher/Couleurs en pastilles, aperçu HTML dans le même téléphone (`krux_capacites/html_telephone`, défaut vrai). Corrige un blocage : le menu « Aperçu téléphone Krux » appelait la fenêtre sur le thread principal.
+### À faire ensuite
+- [ ] Outil no-code dans le téléphone : choisir un élément pour changer texte, couleur, taille ; ajouter bouton ou image ; sauvegarder.
+- [ ] Interrupteur `html_telephone` dans Capacités.
+- [ ] Krux Code : import d'un zip ou d'un projet Android, compilation sans IA, clonage de dépôts et commandes.
+- [ ] Brancher la dictée du mini chat sur les pages HTML.
+- [ ] Plantage pendant l'écriture des réponses ; boutons d'action plus modernes ; tableaux ; design des sites générés ; panneau de questions avant création d'app.
+- [ ] Cloudflare : token, proxy IA, puis révocation et renouvellement des clés.
