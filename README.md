@@ -241,3 +241,7 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - [~] **Editeur photo (24/11)** : menu Modifier la photo > Dessiner / entourer (PhotoEditorDialog : trait, cercle, flèche, couleurs, annuler, pivoter). A tester.
 
 - [~] **Capacités (24/11)** : Paramètres > Capacités (CapacitesActivity, AgentPrefs) : mode agent, navigateur en direct, actions par demande (3/5/8/12). A tester.
+
+- [~] **Ecran memoire (24/11)** : refait façon "Fichiers mémoire" (MemoryActivity) : sections, cartes avec date de mise à jour, vue d'un fichier à puces avec corbeille, barre "Indiquez à Krux ce qu'il faut modifier" (micro + IA). A tester, surtout les suppressions par IA.
+
+- [~] **Sources en haut (24/11)** : le bloc des sources web passe en haut de la réponse (item_chat_ai.xml). A tester.
