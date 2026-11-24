@@ -265,3 +265,29 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 - [ ] Brancher la dictée du mini chat sur les pages HTML.
 - [ ] Plantage pendant l'écriture des réponses ; boutons d'action plus modernes ; tableaux ; design des sites générés ; panneau de questions avant création d'app.
 - [ ] Cloudflare : token, proxy IA, puis révocation et renouvellement des clés.
+
+## Journal du 24/11/2026 (soir)
+
+### Fait
+- [x] `anti-plantage-streaming` : mises à jour de la bulle regroupées (120 ms) pendant l'écriture. Poussé (7f32532). À tester.
+
+### Patchs prêts, à appliquer dans cet ordre (pas confirmés poussés)
+1. `recherche-longue` : attente du moteur de recherche web 25 s → 45 s (`ApiClient`). Hypothèse : si la coupure continue, coller l'erreur.
+2. `verif-cles-ci` : étape du build GitHub qui signale les clés IA vides (noms seulement). Si « clé API absente » revient, regarder ce journal.
+3. `boutons-actions` : boutons d'action 36 dp (`item_chat_ai.xml`).
+4. `boutons-pastille` : barre d'actions en pastille (`bg_actions_pill.xml`), après `boutons-actions`.
+5. `krux-code-import-zip` : « Importer un projet (zip) » dans Krux Code (`core/ProjectStore.java`, testé hors téléphone).
+6. `krux-code-import-dossier` : « Importer un dossier / projet Android » (après le 5).
+7. `projets-fichiers-krux-code` : projets visibles dans Fichiers, navigateur et édition dans Krux Code, nouveaux fichiers créés dans le projet (après le 6).
+
+### Reste à faire, dans l'ordre
+1. [ ] Écran de stockage dans les quotas : « Stockage X / 20 Mo » et bouton **Libérer de l'espace** (liste des projets par taille, suppression). Où se trouve l'écran des quotas : à préciser.
+2. [ ] Sauvegarde en ligne liée au compte (les projets reviennent après reconnexion) : D1 (5 Go gratuits), un projet compressé en morceaux d'environ 1 Mo, seuls les fichiers modifiés renvoyés. 20 Mo par compte, compté sur la taille compressée. Dépend du Worker Cloudflare déployé (token bloqué). Pas KV (1000 écritures par jour pour tout le compte).
+3. [ ] Krux Code : compiler un projet importé sans IA (circuit `GithubClient` : createRepo, putFile base64, dispatch, waitRun, downloadApk ; workflow `build.yml` Gradle à fournir si le zip n'en a pas). Puis clonage de dépôts et commandes.
+4. [ ] Bouton « Réessayer » dans la barre d'actions ; tableaux à refaire ; consignes de design dans le prompt des sites générés.
+5. [ ] Proxy Cloudflare, retrait des clés de l'APK, puis révocation des clés.
+- Tester l'APK une seule fois, après toutes les modifications.
+
+### Nettoyage du README à faire
+- Le bloc « À faire, noté le 22/11/2026 » est en double.
+- `README.m` est vide : à supprimer seulement avec ton accord.
