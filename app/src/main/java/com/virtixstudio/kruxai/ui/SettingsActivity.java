@@ -97,6 +97,11 @@ public class SettingsActivity extends AppCompatActivity {
         row(look, "Langue", languageName(LanguageManager.getLanguage(this)), false,
             () -> LanguageManager.showLanguageDialog(this));
 
+        // ---- Capacités
+        LinearLayout caps = section(root, "Capacités");
+        row(caps, "Agent et navigateur", "Mode agent, navigateur en direct, actions par demande", false,
+            () -> startActivity(new Intent(this, CapacitesActivity.class)));
+
         // ---- Données
         LinearLayout data = section(root, "Mes données");
         row(data, "Exporter la discussion", "Envoie la discussion en cours en texte (Markdown)", false, () -> give(ACTION_EXPORT));

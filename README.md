@@ -237,3 +237,5 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - Sites générés trop sobres : ajouter des consignes de design dans le prompt.
 - Panneau de questions avant la création d'une app, réflexion, envoi de photos, menu « + ».
 - Cloudflare : token (bouton « Continuer » bloqué), proxy, puis révocation des clés.
+
+- [~] **Editeur photo (24/11)** : menu Modifier la photo > Dessiner / entourer (PhotoEditorDialog : trait, cercle, flèche, couleurs, annuler, pivoter). A tester.

@@ -96,7 +96,6 @@ public class KruxCodeActivity extends AppCompatActivity {
     private TextView sendBtn;
     private TextView currentStatus;
     private int runId;
-    private static final int MAX_STEPS = 8;
 
     private LinearLayout log;
     private ScrollView scroll;
@@ -661,7 +660,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         int bar = act.indexOf('|');
         String kind = act.substring(0, bar);
         String arg = act.substring(bar + 1).trim();
-        webBox.setVisibility(View.VISIBLE);
+        webBox.setVisibility(AgentPrefs.showBrowser(this) ? View.VISIBLE : View.GONE);
         if (webTitle != null) webTitle.setText("🌐 chargement…");
         final Runnable[] finish = new Runnable[1];
         final boolean[] done = new boolean[1];
@@ -783,7 +782,7 @@ public class KruxCodeActivity extends AppCompatActivity {
                     if (myRun != runId) return;
                     setBusy(false);
                     log.removeView(status);
-                    String act = step < MAX_STEPS ? actionOf(response) : null;
+                    String act = (AgentPrefs.agentOn(this) && step < AgentPrefs.maxSteps(this)) ? actionOf(response) : null;
                     if (act == null) { handleAnswer(response); return; }
                     setBusy(true);
                     runTool(act, result -> { if (myRun == runId) agentStep(ask, trimObs(observations + result), step + 1); });
