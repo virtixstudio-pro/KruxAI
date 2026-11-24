@@ -92,7 +92,7 @@ public final class BuildProgress {
                 for (int i = 0; i < Math.min(3, tick + 1); i++) {
                     sb.append(".");
                 }
-                sb.append("  ·  ⏱ ").append(clock(elapsed));
+                sb.append("  ·  ").append(clock(elapsed));
             }
             sb.append("\n\n");
         } else if (!note.isEmpty()) {

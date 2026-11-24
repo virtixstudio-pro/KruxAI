@@ -22,6 +22,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.virtixstudio.kruxai.models.ChatSession;
+import com.virtixstudio.kruxai.ui.UiIcons;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,9 +94,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
         }
 
         if (isPinned) {
-            holder.tvTitle.setText("📌 " + title);
+            holder.tvTitle.setText(title);
+            UiIcons.left(holder.tvTitle, R.drawable.ic_line_pin, holder.tvTitle.getCurrentTextColor(), 14, 6);
         } else {
             holder.tvTitle.setText(title);
+            holder.tvTitle.setCompoundDrawablesRelative(null, null, null, null);
         }
 
         holder.itemView.setOnClickListener(v -> {

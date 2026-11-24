@@ -25,6 +25,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.virtixstudio.kruxai.R;
 import com.virtixstudio.kruxai.api.ApiClient;
 import com.virtixstudio.kruxai.core.WorkspaceStore;
 import com.virtixstudio.kruxai.models.KruxModel;
@@ -174,6 +175,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         webTitle.setSingleLine(true);
         webTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
         webTitle.setPadding(px(16), 0, px(8), 0);
+        UiIcons.left(webTitle, R.drawable.ic_line_globe, DIM, 14, 6);
         webToggle = pill("Agrandir", TXT, PANEL);
         webToggle.setTextSize(11);
         webToggle.setMinHeight(px(28));
@@ -285,12 +287,12 @@ public class KruxCodeActivity extends AppCompatActivity {
         final List<File> kids = projects.listDir(dir);
         final List<File> targets = new ArrayList<>();
         final List<String> labels = new ArrayList<>();
-        if (!atRoot) { targets.add(dir.getParentFile()); labels.add("⬆  Dossier parent"); }
+        if (!atRoot) { targets.add(dir.getParentFile()); labels.add("Dossier parent"); }
         int shown = 0;
         for (File k : kids) {
             if (shown++ >= 400) { break; }
             targets.add(k);
-            labels.add(k.isDirectory() ? "📁  " + k.getName() + "/" : k.getName() + "   (" + WorkspaceStore.sizeLabel(k.length()) + ")");
+            labels.add(k.isDirectory() ? k.getName() + "/" : k.getName() + "   (" + WorkspaceStore.sizeLabel(k.length()) + ")");
         }
         if (kids.size() > 400) { targets.add(null); labels.add("… " + (kids.size() - 400) + " autres éléments non affichés"); }
         if (kids.isEmpty()) { targets.add(null); labels.add(atRoot ? "Aucun projet importé (Fichier > Importer un projet)" : "Dossier vide"); }
@@ -434,11 +436,11 @@ public class KruxCodeActivity extends AppCompatActivity {
             o.put("tabs", next);
         } catch (Exception ignored) { }
         saveSessions();
-        webTitle.setText("🌐 " + ti);
+        webTitle.setText(ti);
         refreshTabs();
         if (!url.equals(lastNoted)) {
             lastNoted = url;
-            line("🌐 " + ti + " (" + hostOf(url) + ")", DIM);
+            line("Page : " + ti + " (" + hostOf(url) + ")", DIM);
         }
     }
 
@@ -478,7 +480,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
         JSONObject last = tabs.optJSONObject(tabs.length() - 1);
         webBox.setVisibility(View.VISIBLE);
-        webTitle.setText("🌐 " + (last == null ? "" : last.optString("title")));
+        webTitle.setText(last == null ? "" : last.optString("title"));
         pendingWebUrl = last == null ? "" : last.optString("url");
         lastNoted = pendingWebUrl;
         setWebMin(o.optBoolean("web_min", true));
@@ -953,7 +955,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         String kind = act.substring(0, bar);
         String arg = act.substring(bar + 1).trim();
         webBox.setVisibility(AgentPrefs.showBrowser(this) ? View.VISIBLE : View.GONE);
-        if (webTitle != null) webTitle.setText("🌐 chargement…");
+        if (webTitle != null) webTitle.setText("chargement…");
         final Runnable[] finish = new Runnable[1];
         final boolean[] done = new boolean[1];
         finish[0] = () -> {

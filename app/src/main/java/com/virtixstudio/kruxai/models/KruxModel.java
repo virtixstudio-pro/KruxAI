@@ -3,7 +3,7 @@ package com.virtixstudio.kruxai.models;
 public enum KruxModel {
 
     // ============================================================
-    // ⚡ PETITS MODÈLES
+    // PETITS MODÈLES
     // Économiques / rapides pour les demandes simples
     // ============================================================
 
@@ -54,7 +54,7 @@ public enum KruxModel {
 
 
     // ============================================================
-    // 🧠 GRANDS MODÈLES
+    // GRANDS MODÈLES
     // Pour raisonnement, code et tâches complexes
     // ============================================================
 

@@ -82,7 +82,7 @@ public class WebScraper {
             while (matcher.find() && count < 3) {
                 String videoId = matcher.group(1);
                 String title = matcher.group(2);
-                results.append("🎥 ").append(title).append("\n")
+                results.append("Vidéo : ").append(title).append("\n")
                        .append("https://www.youtube.com/watch?v=").append(videoId).append("\n\n");
                 count++;
             }
