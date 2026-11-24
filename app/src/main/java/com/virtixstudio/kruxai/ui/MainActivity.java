@@ -1870,6 +1870,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         setKruxState(KruxState.GENERATING);
         aiMessage.setReasoning("");
 
+        final java.util.concurrent.atomic.AtomicReference<String> pendingPartial = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicReference<String> pendingBrand = new java.util.concurrent.atomic.AtomicReference<>();
+        final java.util.concurrent.atomic.AtomicBoolean partialScheduled = new java.util.concurrent.atomic.AtomicBoolean(false);
         final ApiClient.ApiCallback kruxCallback = new ApiClient.ApiCallback() {
             @Override
             public void onWebSearchStarted(String query) {
@@ -2021,20 +2024,28 @@ private final ActivityResultLauncher<String[]> filePicker =
             @Override
             public void onPartialResponse(String partialResponse, String modelBrand) {
                 kruxThought(aiMessage, reflexionOf(partialResponse));
-                runOnUiThread(() -> {
+                // Regroupe les mises à jour : une seule par ~120 ms, la plus récente (évite le plantage par surcharge).
+                pendingPartial.set(partialResponse);
+                pendingBrand.set(modelBrand);
+                if (!partialScheduled.compareAndSet(false, true)) return;
+                netHandler.postDelayed(() -> {
+                    partialScheduled.set(false);
+                    final String latest = pendingPartial.getAndSet(null);
+                    final String brand = pendingBrand.get();
+                    if (latest == null || !aiMessage.isStreaming()) return; // réponse déjà terminée : on n'écrase pas le texte final
                     final String partialShown = com.virtixstudio.kruxai.utils.FileDelivery.demoteUnlessAsked(
-                            stripReflexion(partialResponse), userPrompt);
+                            stripReflexion(latest), userPrompt);
                     aiMessage.setText(hideTool(partialShown));
                     announceFiles(partialShown);
-                    KruxState wantState = isReflecting(partialResponse) ? KruxState.THINKING : KruxState.GENERATING;
+                    KruxState wantState = isReflecting(latest) ? KruxState.THINKING : KruxState.GENERATING;
                     if (kruxState != wantState) setKruxState(wantState);
-                    aiMessage.setModel(modelBrand);
+                    aiMessage.setModel(brand);
                     int position = messageList.indexOf(aiMessage);
                     if (position >= 0) {
                         chatAdapter.notifyItemChanged(position);
-                        rvChat.smoothScrollToPosition(position);
+                        rvChat.scrollToPosition(position);
                     }
-                });
+                }, 120);
             }
 
             @Override
