@@ -690,7 +690,7 @@ public class ApiClient {
 
         conn.setDoOutput(true);
         conn.setConnectTimeout(10000);
-        conn.setReadTimeout(30000);
+        conn.setReadTimeout(120000);
 
         JSONObject json = new JSONObject();
 
@@ -830,7 +830,7 @@ public class ApiClient {
 
         conn.setDoOutput(true);
         conn.setConnectTimeout(10000);
-        conn.setReadTimeout(30000);
+        conn.setReadTimeout(120000);
 
         JSONObject json = new JSONObject();
 
