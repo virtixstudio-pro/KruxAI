@@ -21,6 +21,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.virtixstudio.kruxai.core.ProjectStore;
 import com.virtixstudio.kruxai.core.WorkspaceStore;
 
 import java.io.File;
@@ -37,6 +38,7 @@ import java.util.Locale;
 public class FilesActivity extends AppCompatActivity {
 
     private WorkspaceStore store;
+    private ProjectStore projects;
     private LinearLayout list;
     private TextView summary;
     private float d;
@@ -57,6 +59,7 @@ public class FilesActivity extends AppCompatActivity {
         fill = KruxTheme.get(this, "input");
         store = new WorkspaceStore(new File(getFilesDir(), "workspace"));
         store.adoptSubfolders();
+        projects = new ProjectStore(new File(getFilesDir(), "projects"));
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -119,15 +122,100 @@ public class FilesActivity extends AppCompatActivity {
         return t;
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (list != null && projects != null) refresh(); // un projet importé dans Krux Code apparaît au retour
+    }
+
     private void refresh() {
         list.removeAllViews();
         List<File> files = store.list();
+        List<File> projs = projects.list();
         long total = 0;
         for (File f : files) total += f.length();
-        summary.setText(files.isEmpty() ? "" : files.size() + (files.size() > 1 ? " fichiers" : " fichier") + "  ·  " + WorkspaceStore.sizeLabel(total));
-        if (files.isEmpty()) { list.addView(emptyState()); return; }
+        for (File pr : projs) total += ProjectStore.treeSize(pr);
+        String sum = "";
+        if (!projs.isEmpty()) sum += projs.size() + (projs.size() > 1 ? " projets" : " projet");
+        if (!files.isEmpty()) sum += (sum.isEmpty() ? "" : "  ·  ") + files.size() + (files.size() > 1 ? " fichiers" : " fichier");
+        summary.setText(sum.isEmpty() ? "" : sum + "  ·  " + WorkspaceStore.sizeLabel(total));
+        if (files.isEmpty() && projs.isEmpty()) { list.addView(emptyState()); return; }
         SimpleDateFormat fmt = new SimpleDateFormat("d MMM · HH:mm", Locale.FRENCH);
+        for (File pr : projs) list.addView(projectCard(pr, fmt));
         for (File f : files) list.addView(card(f, fmt));
+    }
+
+    /** Un projet importé (zip ou dossier) : s'ouvre dans le navigateur de Krux Code. */
+    private View projectCard(final File dir, SimpleDateFormat fmt) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding((int) (12 * d), (int) (10 * d), (int) (12 * d), (int) (10 * d));
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(16 * d);
+        row.setBackground(g);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
+        rp.bottomMargin = (int) (8 * d);
+        row.setLayoutParams(rp);
+
+        TextView badge = new TextView(this);
+        badge.setText("DIR");
+        badge.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        badge.setTextSize(11);
+        badge.setTextColor(bg);
+        badge.setGravity(Gravity.CENTER);
+        GradientDrawable bgd = new GradientDrawable();
+        bgd.setColor(ac);
+        bgd.setCornerRadius(12 * d);
+        badge.setBackground(bgd);
+        row.addView(badge, new LinearLayout.LayoutParams((int) (46 * d), (int) (46 * d)));
+
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding((int) (12 * d), 0, 0, 0);
+        TextView name = new TextView(this);
+        name.setText(dir.getName() + "/");
+        name.setTextColor(tx);
+        name.setTextSize(14);
+        name.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        TextView det = new TextView(this);
+        int n = ProjectStore.treeFiles(dir);
+        det.setText(n + (n > 1 ? " fichiers" : " fichier") + "  ·  " + WorkspaceStore.sizeLabel(ProjectStore.treeSize(dir)) + "  ·  " + fmt.format(new Date(dir.lastModified())));
+        det.setTextColor(tx2);
+        det.setTextSize(11);
+        col.addView(name);
+        col.addView(det);
+        row.addView(col, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        row.setClickable(true);
+        row.setOnClickListener(v -> projectMenu(v, dir));
+        return row;
+    }
+
+    private void projectMenu(View anchor, final File dir) {
+        PopupMenu pm = new PopupMenu(this, anchor);
+        pm.getMenu().add(0, 1, 0, "Ouvrir dans Krux Code");
+        pm.getMenu().add(0, 2, 1, "Supprimer le projet");
+        pm.setOnMenuItemClickListener(it -> {
+            if (it.getItemId() == 1) {
+                startActivity(new Intent(this, KruxCodeActivity.class).putExtra(KruxCodeActivity.EXTRA_PROJECT, projects.relative(dir)));
+            } else {
+                confirmDeleteProject(dir);
+            }
+            return true;
+        });
+        pm.show();
+    }
+
+    private void confirmDeleteProject(final File dir) {
+        KruxTheme.skin(new AlertDialog.Builder(this)
+                .setTitle("Supprimer ce projet ?")
+                .setMessage(dir.getName() + " et tous ses fichiers seront supprimés de Krux. Cette action est définitive.")
+                .setNegativeButton("Annuler", null)
+                .setPositiveButton("Supprimer", (dd, w) -> { projects.delete(dir); refresh(); })
+                .show(), this);
     }
 
     private View emptyState() {

@@ -47,6 +47,8 @@ import java.util.regex.Pattern;
 public class KruxCodeActivity extends AppCompatActivity {
 
     public static final String EXTRA_FILE = "file";
+    /** Chemin relatif d'un projet importé à ouvrir dans le navigateur (depuis l'onglet Fichiers). */
+    public static final String EXTRA_PROJECT = "projet";
 
     private static final int MAX_CHARS = 40000;
     private static final int MAX_DIFF_LINES = 140;
@@ -74,6 +76,8 @@ public class KruxCodeActivity extends AppCompatActivity {
     private WorkspaceStore store;
     private com.virtixstudio.kruxai.core.ProjectStore projects;
     private File current;
+    /** Dossier d'un projet où sera créé le prochain nouveau fichier (null = onglet Fichiers). */
+    private File newDir;
     private String currentText = "";
     private String pendingText;
     private String pendingName;
@@ -255,7 +259,64 @@ public class KruxCodeActivity extends AppCompatActivity {
         updateLabel();
 
         String wanted = getIntent() == null ? null : getIntent().getStringExtra(EXTRA_FILE);
-        if (wanted != null) openFile(store.resolve(wanted));
+        if (wanted != null) openFile(resolveKey(wanted));
+        String proj = getIntent() == null ? null : getIntent().getStringExtra(EXTRA_PROJECT);
+        if (proj != null) { File pd = projects.resolveRel(proj); if (pd != null && pd.isDirectory()) browse(pd); }
+    }
+
+    // ------------------------------------------------------------------ fichiers : onglet Fichiers ou projet importé
+
+    private boolean inProject(File f) { return f != null && projects.isInside(f); }
+    private String readAny(File f) throws IOException { return inProject(f) ? projects.readText(f) : store.readText(f); }
+    private void writeAny(File f, String t) throws IOException { if (inProject(f)) projects.writeText(f, t); else store.writeText(f, t); }
+    private boolean deleteAny(File f) { return inProject(f) ? projects.delete(f) : store.delete(f); }
+    /** Nom montré (et envoyé à Krux) : chemin relatif dans le projet, sinon le nom du fichier. */
+    private String shownName(File f) { return inProject(f) ? projects.relative(f) : f.getName(); }
+    /** Clé gardée dans la session pour retrouver le fichier après réouverture. */
+    private String sessKey(File f) { return f == null ? "" : (inProject(f) ? "projet:" + projects.relative(f) : f.getName()); }
+    private File resolveKey(String key) {
+        if (key == null || key.isEmpty()) return null;
+        return key.startsWith("projet:") ? projects.resolveRel(key.substring(7)) : store.resolve(key);
+    }
+
+    /** Navigateur de projets : dossiers, fichiers texte, « Nouveau fichier ici ». */
+    private void browse(final File dir) {
+        final boolean atRoot = projects.relative(dir).isEmpty();
+        final List<File> kids = projects.listDir(dir);
+        final List<File> targets = new ArrayList<>();
+        final List<String> labels = new ArrayList<>();
+        if (!atRoot) { targets.add(dir.getParentFile()); labels.add("⬆  Dossier parent"); }
+        int shown = 0;
+        for (File k : kids) {
+            if (shown++ >= 400) { break; }
+            targets.add(k);
+            labels.add(k.isDirectory() ? "📁  " + k.getName() + "/" : k.getName() + "   (" + WorkspaceStore.sizeLabel(k.length()) + ")");
+        }
+        if (kids.size() > 400) { targets.add(null); labels.add("… " + (kids.size() - 400) + " autres éléments non affichés"); }
+        if (kids.isEmpty()) { targets.add(null); labels.add(atRoot ? "Aucun projet importé (Fichier > Importer un projet)" : "Dossier vide"); }
+        android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this)
+                .setTitle(atRoot ? "Projets importés" : projects.relative(dir) + "/")
+                .setItems(labels.toArray(new String[0]), (dd, i) -> {
+                    File t = targets.get(i);
+                    if (t == null) return;
+                    if (t.isDirectory()) browse(t); else openProjectFile(t);
+                })
+                .setNegativeButton("Fermer", null);
+        if (!atRoot) b.setNeutralButton("Nouveau fichier ici", (dd, w) -> {
+            discardPending();
+            current = null;
+            currentText = "";
+            newDir = dir;
+            updateLabel();
+            line("· Nouveau fichier dans " + projects.relative(dir) + "/ : décris ce que Krux doit écrire.", DIM);
+        });
+        b.show();
+    }
+
+    private void openProjectFile(File f) {
+        if (!projects.isText(f)) { Toast.makeText(this, "Fichier non texte : non modifiable ici", Toast.LENGTH_LONG).show(); return; }
+        if (f.length() > WorkspaceStore.MAX_BYTES) { Toast.makeText(this, "Fichier trop gros (1 Mo maximum)", Toast.LENGTH_LONG).show(); return; }
+        openFile(f);
     }
 
     // ------------------------------------------------------------------ interface
@@ -301,12 +362,12 @@ public class KruxCodeActivity extends AppCompatActivity {
     }
 
     private void updateLabel() {
-        setSessFile(current == null ? "" : current.getName());
+        setSessFile(sessKey(current));
         if (current == null) {
-            fileLabel.setText("nouveau fichier");
+            fileLabel.setText(newDir != null ? "nouveau fichier · " + projects.relative(newDir) + "/" : "nouveau fichier");
         } else {
             int lines = currentText.isEmpty() ? 0 : currentText.split("\n", -1).length;
-            fileLabel.setText(current.getName() + "  ·  " + lines + " lignes");
+            fileLabel.setText(shownName(current) + "  ·  " + lines + " lignes");
         }
     }
 
@@ -466,6 +527,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         saveSessions();
         log.removeAllViews();
         current = null;
+        newDir = null;
         currentText = "";
         restoreSession();
         updateLabel();
@@ -488,9 +550,9 @@ public class KruxCodeActivity extends AppCompatActivity {
         String fn = o.optString("file", "");
         if (!fn.isEmpty()) {
             try {
-                File f = store.resolve(fn);
+                File f = resolveKey(fn);
                 if (f != null && f.exists()) {
-                    currentText = store.readText(f);
+                    currentText = readAny(f);
                     current = f;
                 }
             } catch (Exception ignored) { }
@@ -579,12 +641,14 @@ public class KruxCodeActivity extends AppCompatActivity {
         pm.getMenu().add(0, 101, 101, "Ajouter des fichiers…");
         pm.getMenu().add(0, 102, 102, "Importer un projet (zip)…");
         pm.getMenu().add(0, 103, 103, "Importer un dossier / projet Android…");
+        pm.getMenu().add(0, 104, 104, "Projets importés…");
         pm.setOnMenuItemClickListener(it -> {
             int id = it.getItemId();
             if (id == 100) newFile();
             else if (id == 101) pickFiles();
             else if (id == 102) pickProjectZip();
             else if (id == 103) pickProjectFolder();
+            else if (id == 104) browse(projects.root());
             else if (id >= 0 && id < files.size()) openFile(files.get(id));
             return true;
         });
@@ -594,6 +658,7 @@ public class KruxCodeActivity extends AppCompatActivity {
     private void newFile() {
         discardPending();
         current = null;
+        newDir = null;
         currentText = "";
         updateLabel();
         line("· Nouveau fichier : décris ce que Krux doit écrire.", DIM);
@@ -602,12 +667,13 @@ public class KruxCodeActivity extends AppCompatActivity {
     private void openFile(File f) {
         if (f == null) return;
         try {
-            String text = store.readText(f);
+            String text = readAny(f);
             discardPending();
             current = f;
+            newDir = null;
             currentText = text;
             updateLabel();
-            line("· Fichier ouvert : " + f.getName(), DIM);
+            line("· Fichier ouvert : " + shownName(f), DIM);
             showFileView(text);
             if (text.length() > MAX_CHARS) {
                 line("· Ce fichier est long (" + text.length() + " caractères) : Krux Code accepte " + MAX_CHARS + " caractères au maximum pour l'instant.", RED);
@@ -999,7 +1065,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         String hist = recentAsks();
         String user = hist + (current == null
                 ? "NOUVEAU FICHIER.\nDEMANDE : " + ask
-                : "FICHIER : " + current.getName() + "\n```\n" + currentText + "\n```\n\nDEMANDE : " + ask);
+                : "FICHIER : " + shownName(current) + "\n```\n" + currentText + "\n```\n\nDEMANDE : " + ask);
         if (!observations.isEmpty()) user = user + "\n\nOBSERVATIONS (pages consultées) :\n" + observations;
         ApiClient.sendRequest(KruxModel.KRUX_CODEUR_PRO, SYSTEM, user, new ApiClient.ApiCallback() {
             @Override
@@ -1045,7 +1111,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         if (current != null && r.contains("<<<<<<< CHERCHER")) {
             String res = applyEdits(currentText, r);
             if (res == null) { line("· " + editError + " Rien n'a été modifié.", RED); return; }
-            pendingName = current.getName();
+            pendingName = shownName(current);
             if (res.equals(currentText)) { line("· Aucun changement.", DIM); return; }
             pendingText = res;
             showDiff(currentText, res);
@@ -1065,7 +1131,7 @@ public class KruxCodeActivity extends AppCompatActivity {
         String code = r.substring(nl + 1, close).replaceAll("[\\r\\n]+$", "");
         if (currentText.endsWith("\n")) code += "\n";
 
-        pendingName = current != null ? current.getName() : (name != null ? name : "krux-code.txt");
+        pendingName = current != null ? shownName(current) : (name != null ? name : "krux-code.txt");
         if (current != null && code.equals(currentText)) {
             line("· Aucun changement.", DIM);
             return;
@@ -1208,15 +1274,16 @@ public class KruxCodeActivity extends AppCompatActivity {
             File target = current;
             File prevFile = current;
             String prevText = current == null ? null : currentText;
-            if (current == null) target = store.saveGenerated(pendingName, pendingText);
-            else store.writeText(current, pendingText);
+            if (current == null) target = newDir != null ? projects.createFile(newDir, pendingName, pendingText) : store.saveGenerated(pendingName, pendingText);
+            else writeAny(current, pendingText);
             undoFile = prevFile;
             undoText = prevText;
             current = target;
+            newDir = null;
             currentText = pendingText;
             discardPending();
             updateLabel();
-            line("✓ " + current.getName() + " enregistré dans Fichiers.", GREEN);
+            line("✓ " + shownName(current) + (inProject(current) ? " enregistré dans le projet." : " enregistré dans Fichiers."), GREEN);
             addUndoButton();
         } catch (IOException e) {
             line("· Écriture impossible : " + e.getMessage(), RED);
@@ -1240,11 +1307,11 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
         try {
             if (undoFile == null) {
-                if (current != null) store.delete(current);
+                if (current != null) deleteAny(current);
                 current = null;
                 currentText = "";
             } else {
-                store.writeText(undoFile, undoText == null ? "" : undoText);
+                writeAny(undoFile, undoText == null ? "" : undoText);
                 current = undoFile;
                 currentText = undoText == null ? "" : undoText;
             }

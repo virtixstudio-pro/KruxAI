@@ -171,6 +171,121 @@ public final class ProjectStore {
         return out;
     }
 
+    // ------------------------------------------------------------------ navigation et édition dans un projet
+
+    /** Vrai si le fichier (ou dossier) est dans projects/ (chemin canonique : pas d'évasion par « .. » ni lien). */
+    public boolean isInside(File f) {
+        if (f == null) return false;
+        try {
+            String base = root.getCanonicalPath() + File.separator;
+            String p = f.getCanonicalPath();
+            return p.startsWith(base);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** Chemin relatif à projects/ avec des « / » (vide pour projects/ lui-même). */
+    public String relative(File f) {
+        try {
+            String base = root.getCanonicalPath();
+            String p = f.getCanonicalPath();
+            if (p.equals(base)) return "";
+            if (!p.startsWith(base + File.separator)) return f.getName();
+            return p.substring(base.length() + 1).replace(File.separatorChar, '/');
+        } catch (IOException e) {
+            return f.getName();
+        }
+    }
+
+    /** Le fichier ou dossier existant à ce chemin relatif, ou null s'il n'existe pas ou sort de projects/. */
+    public File resolveRel(String rel) {
+        if (rel == null) return null;
+        String clean = rel.isEmpty() ? "" : cleanPath(rel);
+        if (clean == null) return null;
+        File f = clean.isEmpty() ? root : new File(root, clean);
+        return (f.equals(root) || isInside(f)) && f.exists() ? f : null;
+    }
+
+    /** Contenu d'un dossier : sous-dossiers d'abord, puis fichiers, par ordre alphabétique. */
+    public List<File> listDir(File dir) {
+        List<File> out = new ArrayList<>();
+        if (!(dir.equals(root) || isInside(dir))) return out;
+        File[] all = dir.listFiles();
+        if (all == null) return out;
+        for (File f : all) if (!f.getName().startsWith(".import-")) out.add(f);
+        out.sort((a, b) -> {
+            if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
+            return a.getName().compareToIgnoreCase(b.getName());
+        });
+        return out;
+    }
+
+    /** Fichier texte (pas binaire) : on regarde les premiers octets. */
+    public boolean isText(File f) {
+        if (!f.isFile()) return false;
+        try (InputStream in = new java.io.FileInputStream(f)) {
+            byte[] b = new byte[4096];
+            int n = in.read(b);
+            return n <= 0 || !WorkspaceStore.looksBinary(b, n);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public String readText(File f) throws IOException {
+        if (!isInside(f)) throw new IOException("Fichier hors des projets");
+        if (f.length() > WorkspaceStore.MAX_BYTES) throw new IOException("Fichier trop gros (1 Mo maximum)");
+        return new String(java.nio.file.Files.readAllBytes(f.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    public void writeText(File f, String text) throws IOException {
+        if (!isInside(f)) throw new IOException("Fichier hors des projets");
+        byte[] data = (text == null ? "" : text).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (data.length > WorkspaceStore.MAX_BYTES) throw new IOException("Fichier trop gros (1 Mo maximum)");
+        try (FileOutputStream out = new FileOutputStream(f)) { out.write(data); }
+    }
+
+    /** Crée un fichier dans ce dossier de projet ; jamais d'écrasement (« nom (2).ext »). */
+    public synchronized File createFile(File dir, String rawName, String text) throws IOException {
+        if (!isInside(dir) || !dir.isDirectory()) throw new IOException("Dossier de projet introuvable");
+        String name = WorkspaceStore.safeName(rawName);
+        String ext = WorkspaceStore.extension(name);
+        String stem = ext.isEmpty() ? name : name.substring(0, name.length() - ext.length() - 1);
+        File f = new File(dir, name);
+        int k = 2;
+        while (f.exists()) f = new File(dir, stem + " (" + (k++) + ")" + (ext.isEmpty() ? "" : "." + ext));
+        writeText(f, text);
+        return f;
+    }
+
+    /** Supprime un fichier ou tout un projet/dossier (seulement s'il est dans projects/). */
+    public boolean delete(File f) {
+        if (f == null || f.equals(root) || !isInside(f)) return false;
+        deleteTree(f);
+        return !f.exists();
+    }
+
+    /** Taille totale (octets) d'un dossier. */
+    public static long treeSize(File f) {
+        if (f == null) return 0;
+        if (f.isFile()) return f.length();
+        long t = 0;
+        File[] k = f.listFiles();
+        if (k != null) for (File c : k) t += treeSize(c);
+        return t;
+    }
+
+    /** Nombre de fichiers d'un dossier. */
+    public static int treeFiles(File f) {
+        if (f == null) return 0;
+        if (f.isFile()) return 1;
+        int t = 0;
+        File[] k = f.listFiles();
+        if (k != null) for (File c : k) t += treeFiles(c);
+        return t;
+    }
+
     public static void deleteTree(File f) {
         if (f == null || !f.exists()) return;
         File[] kids = f.listFiles();
