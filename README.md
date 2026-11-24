@@ -291,3 +291,23 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 ### Nettoyage du README à faire
 - Le bloc « À faire, noté le 22/11/2026 » est en double.
 - `README.m` est vide : à supprimer seulement avec ton accord.
+
+## Journal du 24/11/2026 (nuit)
+
+### Fait
+- [x] Emoji remplacés par des icônes SVG dans l'app, en 3 patchs poussés (afd4b80, 7a7a244, c8b8cf3).
+  - Nouvelles icônes au trait : ic_line_agent, globe, package, file, mic, trash, check, pin, play, chat. Helper ui/UiIcons (teinte et taille par le code).
+  - Écrans touchés : Capacités, fichiers livrés, Mémoire (micro, corbeille), Live (micro), liste des modèles (coche), Krux Code (barre de page, liste de fichiers), historique (épingle), boutons de code (codebar.js, SVG intégrés), écran Studio.
+  - Emoji simplement retirés du texte : photo jointe, remerciement du retour, minuteur de BuildProgress (tests mis à jour, 21/21), vidéo WebScraper, commentaires de KruxModel.
+- [x] Patchs du soir (recherche 45 s, vérif des clés CI, boutons d'action et pastille, import zip et dossier, projets dans Fichiers) : présents dans l'historique git, donc poussés.
+
+### À tester sur téléphone (rien n'est compilé en local)
+- Micro de LiveActivity : icône centrée dans le rond ? (sinon passer à un ImageView).
+- Écran Studio : icônes des deux boutons (teinte fixe, ne suit pas le thème par tags).
+- Barre Copier / Partager / Télécharger sous les blocs de code.
+
+### Laissé volontairement
+- Périmètre : l'app seulement. Les emoji des .md ne sont pas touchés.
+- ChatAdapter : les caractères de coche dans la regex de nettoyage restent (ce n'est pas de l'affichage).
+- Symboles typographiques (flèches, coches, ▶ ■) : 38 occurrences gardées comme icônes d'interface.
+- clav/arrays.xml : emoji gardés (clavier d'emoji).
