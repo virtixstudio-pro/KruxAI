@@ -3,6 +3,7 @@ package com.virtixstudio.kruxai.ui;
 import android.app.AlertDialog;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.content.Intent;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -35,6 +36,10 @@ public class MemoryActivity extends AppCompatActivity {
     private TextView learnBtn;
     private TextView undoBtn;
     private boolean learning;
+    private String openCat;
+    private TextView titleView, menuBtn;
+    private LinearLayout bottomBar;
+    private EditText instruction;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -58,75 +63,184 @@ public class MemoryActivity extends AppCompatActivity {
         boolean light = ColorUtils.calculateLuminance(bg) > 0.5;
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView()).setAppearanceLightStatusBars(light);
 
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(bg);
-        scroll.setFillViewport(true);
-        scroll.setFitsSystemWindows(true);
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(12), dp(18), dp(28));
-        scroll.addView(root);
+        getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        // contrôles de l'ancien écran, gardés hors écran car learnFromChats() et render() les mettent à jour
+        summary = new TextView(this);
+        learnBtn = new TextView(this);
+        undoBtn = new TextView(this);
+
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(bg);
+        page.setFitsSystemWindows(true);
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(14), dp(10), dp(14), dp(10));
         TextView back = new TextView(this);
         back.setText("←");
         back.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
         back.setTextColor(text);
-        back.setPadding(dp(4), dp(8), dp(16), dp(8));
+        back.setPadding(dp(4), dp(8), dp(12), dp(8));
         back.setContentDescription("Retour");
-        back.setOnClickListener(v -> finish());
+        back.setOnClickListener(v -> onBackPressed());
         header.addView(back);
-        TextView title = new TextView(this);
-        title.setText("Mémoire");
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
-        title.setTypeface(null, Typeface.BOLD);
-        title.setTextColor(text);
-        header.addView(title);
-        root.addView(header);
+        titleView = new TextView(this);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setTextColor(text);
+        header.addView(titleView, new LinearLayout.LayoutParams(0, -2, 1f));
+        menuBtn = new TextView(this);
+        menuBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        menuBtn.setPadding(dp(12), dp(6), dp(4), dp(6));
+        menuBtn.setOnClickListener(v -> {
+            if (openCat != null) { trashDialog(); return; }
+            android.widget.PopupMenu pm = new android.widget.PopupMenu(this, v);
+            pm.getMenu().add(0, 1, 1, "Ajouter un souvenir");
+            pm.getMenu().add(0, 2, 2, "Apprendre de mes discussions");
+            if (memory.undoCount() > 0) pm.getMenu().add(0, 3, 3, "Annuler la dernière modification");
+            pm.getMenu().add(0, 4, 4, "Tout effacer");
+            pm.setOnMenuItemClickListener(it -> {
+                switch (it.getItemId()) {
+                    case 1: addDialog(); break;
+                    case 2: learnFromChats(); break;
+                    case 3: undoLastChange(); break;
+                    default: clearDialog();
+                }
+                return true;
+            });
+            pm.show();
+        });
+        header.addView(menuBtn);
+        page.addView(header);
 
-        TextView hint = new TextView(this);
-        hint.setText("Ce que KRUX sait de toi. Touche un souvenir pour le modifier ou le supprimer.");
-        hint.setTextColor(text2);
-        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        hint.setPadding(0, dp(6), 0, dp(10));
-        root.addView(hint);
-
-        summary = new TextView(this);
-        summary.setTextColor(text);
-        summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        summary.setLineSpacing(0, 1.15f);
-        summary.setBackgroundColor(surface);
-        summary.setPadding(dp(14), dp(12), dp(14), dp(12));
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
-        slp.setMargins(0, 0, 0, dp(10));
-        root.addView(summary, slp);
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.addView(button("Ajouter", this::addDialog), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        actions.addView(button("Tout effacer", this::clearDialog), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        root.addView(actions);
-        LinearLayout actions2 = new LinearLayout(this);
-        learnBtn = button("Apprendre de mes discussions", this::learnFromChats);
-        actions2.addView(learnBtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        LinearLayout.LayoutParams a2 = new LinearLayout.LayoutParams(-1, -2);
-        a2.setMargins(0, dp(6), 0, 0);
-        root.addView(actions2, a2);
-
-        LinearLayout actions3 = new LinearLayout(this);
-        undoBtn = button("Annuler la dernière modification", this::undoLastChange);
-        undoBtn.setVisibility(android.view.View.GONE);
-        actions3.addView(undoBtn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        LinearLayout.LayoutParams a3 = new LinearLayout.LayoutParams(-1, -2);
-        a3.setMargins(0, dp(6), 0, 0);
-        root.addView(actions3, a3);
-
+        ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(bg);
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        root.addView(list);
+        list.setPadding(dp(16), dp(4), dp(16), dp(20));
+        scroll.addView(list);
+        page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        setContentView(scroll);
+        bottomBar = new LinearLayout(this);
+        bottomBar.setGravity(Gravity.CENTER_VERTICAL);
+        bottomBar.setPadding(dp(14), dp(8), dp(14), dp(12));
+        android.graphics.drawable.GradientDrawable bar = new android.graphics.drawable.GradientDrawable();
+        bar.setColor(surface);
+        bar.setCornerRadius(dp(26));
+        LinearLayout pill = new LinearLayout(this);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setBackground(bar);
+        pill.setPadding(dp(16), dp(6), dp(8), dp(6));
+        instruction = new EditText(this);
+        instruction.setHint("Indiquez à Krux ce qu'il faut modifier");
+        instruction.setHintTextColor(text2);
+        instruction.setTextColor(text);
+        instruction.setBackground(null);
+        instruction.setMaxLines(4);
+        instruction.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        pill.addView(instruction, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView mic = new TextView(this);
+        mic.setText("🎤");
+        mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        mic.setPadding(dp(10), dp(6), dp(10), dp(6));
+        mic.setOnClickListener(v -> {
+            try {
+                Intent i = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault());
+                startActivityForResult(i, 71);
+            } catch (Exception e) {
+                android.widget.Toast.makeText(this, "Dictée indisponible sur cet appareil", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
+        pill.addView(mic);
+        TextView send = new TextView(this);
+        send.setText("↑");
+        send.setGravity(Gravity.CENTER);
+        send.setTextColor(buttonText);
+        send.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        android.graphics.drawable.GradientDrawable sg = new android.graphics.drawable.GradientDrawable();
+        sg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        sg.setColor(buttonBg);
+        send.setBackground(sg);
+        send.setOnClickListener(v -> sendInstruction());
+        pill.addView(send, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        bottomBar.addView(pill, new LinearLayout.LayoutParams(-1, -2));
+        page.addView(bottomBar);
+
+        setContentView(page);
         render();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (openCat != null) { openCat = null; render(); } else super.onBackPressed();
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == 71 && res == RESULT_OK && data != null) {
+            java.util.ArrayList<String> r = data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);
+            if (r != null && !r.isEmpty() && instruction != null) instruction.setText(r.get(0));
+        }
+    }
+
+    private String ago(long ts) {
+        long d = System.currentTimeMillis() / 1000L - ts;
+        if (d < 60) return "à l'instant";
+        if (d < 3600) return "il y a " + (d / 60) + (d / 60 > 1 ? " minutes" : " minute");
+        if (d < 86400) return "il y a " + (d / 3600) + (d / 3600 > 1 ? " heures" : " heure");
+        if (d < 30L * 86400) return "il y a " + (d / 86400) + (d / 86400 > 1 ? " jours" : " jour");
+        return MemoryBook.date(ts);
+    }
+
+    private void trashDialog() {
+        final String cat = openCat;
+        if (cat == null) return;
+        AlertDialog d = new AlertDialog.Builder(this)
+                .setTitle("Supprimer « " + MemoryBook.label(cat) + " » ?")
+                .setMessage("Tous les souvenirs de ce fichier seront effacés. Tu pourras annuler juste après.")
+                .setPositiveButton("Supprimer", (x, w) -> {
+                    for (MemoryBook.Entry e : new java.util.ArrayList<>(memory.all())) if (cat.equals(e.cat)) memory.delete(e.text);
+                    openCat = null;
+                    changed();
+                })
+                .setNegativeButton("Annuler", null)
+                .create();
+        d.show();
+        KruxTheme.skin(d, this);
+    }
+
+    /** « Indiquez à Krux ce qu'il faut modifier » : l'IA applique la demande à la mémoire. */
+    private void sendInstruction() {
+        final String ask = instruction.getText().toString().trim();
+        if (ask.length() < 3 || learning) return;
+        learning = true;
+        instruction.setText("");
+        instruction.setHint("Krux met la mémoire à jour…");
+        String where = openCat == null ? "" : " (fichier « " + MemoryBook.label(openCat) + " »)";
+        String usr = MemoryBook.extractionUserPrompt(memory.all(),
+                "DEMANDE DE MODIFICATION DE LA MÉMOIRE" + where + " : " + ask,
+                "(l'utilisateur te demande de modifier sa mémoire : applique exactement sa demande, ajoute, corrige ou supprime)");
+        com.virtixstudio.kruxai.api.ApiClient.sendQuiet(MemoryBook.extractionSystemPrompt(), usr, out -> {
+            int n = 0;
+            try {
+                if (out != null) {
+                    List<MemoryBook.Op> ops = MemoryBook.parseOps(out, System.currentTimeMillis() / 1000L);
+                    if (!ops.isEmpty()) n = memory.apply(ops).size();
+                }
+            } catch (Exception ignore) { }
+            final int fn = n;
+            runOnUiThread(() -> {
+                learning = false;
+                instruction.setHint("Indiquez à Krux ce qu'il faut modifier");
+                if (fn > 0) CloudSync.markMemoryReplace(this, user);
+                render();
+                android.widget.Toast.makeText(this, fn > 0 ? "Mémoire mise à jour" : "Je n'ai rien changé", android.widget.Toast.LENGTH_SHORT).show();
+            });
+        });
     }
 
     private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density); }
@@ -149,12 +263,29 @@ public class MemoryActivity extends AppCompatActivity {
     private void render() {
         list.removeAllViews();
         List<MemoryBook.Entry> all = memory.all();
-        String sum = MemoryBook.summary(all, 700);
-        summary.setText(sum.isEmpty() ? "Je ne sais encore rien sur toi." : "Ce que je sais de toi\n\n" + sum);
-        if (undoBtn != null) {
-            int n = memory.undoCount();
-            undoBtn.setVisibility(n > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
-            undoBtn.setText(n > 1 ? "Annuler (" + n + ")" : "Annuler la dernière modification");
+        if (undoBtn != null) undoBtn.setVisibility(memory.undoCount() > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
+        boolean file = openCat != null;
+        titleView.setText(file ? MemoryBook.label(openCat) : "Fichiers mémoire");
+        menuBtn.setText(file ? "🗑" : "⋯");
+        menuBtn.setTextColor(file ? 0xFFE5736F : text);
+        bottomBar.setVisibility(file ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (file) {
+            boolean any = false;
+            for (int i = all.size() - 1; i >= 0; i--) {
+                final MemoryBook.Entry e = all.get(i);
+                if (!openCat.equals(e.cat)) continue;
+                any = true;
+                TextView t = new TextView(this);
+                t.setText("•  " + e.text);
+                t.setTextColor(text);
+                t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+                t.setLineSpacing(0, 1.1f);
+                t.setPadding(dp(4), dp(10), dp(4), dp(10));
+                t.setOnClickListener(v -> editDialog(e));
+                list.addView(t);
+            }
+            if (!any) { openCat = null; render(); }
+            return;
         }
         if (all.isEmpty()) {
             TextView empty = new TextView(this);
@@ -164,41 +295,55 @@ public class MemoryActivity extends AppCompatActivity {
             list.addView(empty);
             return;
         }
-        for (String cat : MemoryBook.CATEGORIES) {
-            boolean first = true;
-            for (int i = all.size() - 1; i >= 0; i--) { // le plus récent d'abord
-                final MemoryBook.Entry e = all.get(i);
-                if (!cat.equals(e.cat)) continue;
-                if (first) {
-                    TextView label = new TextView(this);
-                    label.setText(MemoryBook.label(cat).toUpperCase());
-                    label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-                    label.setLetterSpacing(0.12f);
-                    label.setTypeface(null, Typeface.BOLD);
-                    label.setTextColor(accent);
-                    label.setPadding(0, dp(18), 0, dp(6));
-                    list.addView(label);
-                    first = false;
+        String[][] groups = {
+                {"Toi", MemoryBook.PROFIL, MemoryBook.PREF},
+                {"Projets et personnes", MemoryBook.PROJETS, MemoryBook.PERSONNES},
+                {"Divers", MemoryBook.DIVERS}
+        };
+        for (String[] g : groups) {
+            LinearLayout card = null;
+            for (int gi = 1; gi < g.length; gi++) {
+                final String cat = g[gi];
+                long last = 0; int count = 0;
+                for (MemoryBook.Entry e : all) if (cat.equals(e.cat)) { count++; last = Math.max(last, e.ts); }
+                if (count == 0) continue;
+                if (card == null) {
+                    TextView sec = new TextView(this);
+                    sec.setText(g[0]);
+                    sec.setTextColor(text2);
+                    sec.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                    sec.setPadding(dp(4), dp(18), 0, dp(8));
+                    list.addView(sec);
+                    card = new LinearLayout(this);
+                    card.setOrientation(LinearLayout.VERTICAL);
+                    android.graphics.drawable.GradientDrawable bgc = new android.graphics.drawable.GradientDrawable();
+                    bgc.setColor(surface);
+                    bgc.setCornerRadius(dp(20));
+                    card.setBackground(bgc);
+                    card.setClipToOutline(true);
+                    list.addView(card, new LinearLayout.LayoutParams(-1, -2));
                 }
-                LinearLayout card = new LinearLayout(this);
-                card.setOrientation(LinearLayout.VERTICAL);
-                card.setBackgroundColor(surface);
-                card.setPadding(dp(14), dp(10), dp(14), dp(10));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-                lp.setMargins(0, 0, 0, dp(6));
-                card.setLayoutParams(lp);
-                TextView t = new TextView(this);
-                t.setText(e.text);
-                t.setTextColor(text);
-                t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-                card.addView(t);
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(dp(18), dp(14), dp(18), dp(14));
+                TextView n = new TextView(this);
+                n.setText(MemoryBook.label(cat));
+                n.setTextColor(text);
+                n.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                row.addView(n);
                 TextView d = new TextView(this);
-                d.setText(MemoryBook.date(e.ts));
+                d.setText("Mis à jour : " + ago(last) + "  ·  " + count + (count > 1 ? " souvenirs" : " souvenir"));
                 d.setTextColor(text2);
-                d.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-                card.addView(d);
-                card.setOnClickListener(v -> editDialog(e));
-                list.addView(card);
+                d.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                d.setPadding(0, dp(2), 0, 0);
+                row.addView(d);
+                row.setOnClickListener(v -> { openCat = cat; render(); });
+                if (card.getChildCount() > 0) {
+                    android.view.View div = new android.view.View(this);
+                    div.setBackgroundColor(ColorUtils.setAlphaComponent(text2, 40));
+                    card.addView(div, new LinearLayout.LayoutParams(-1, 1));
+                }
+                card.addView(row);
             }
         }
     }
