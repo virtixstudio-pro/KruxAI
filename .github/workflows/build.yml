@@ -59,6 +59,18 @@ jobs:
           echo "Secret KRUX_DEBUG_KEYSTORE_B64 absent : cle debug temporaire (chaque APK aura une signature differente)"
         fi
 
+    - name: Verifier les cles IA (noms seulement)
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        HF_API_KEY: ${{ secrets.HF_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        for k in GROQ_API_KEY CEREBRAS_API_KEY MISTRAL_API_KEY HF_API_KEY GEMINI_API_KEY; do
+          if [ -n "${!k}" ]; then echo "OK      $k present"; else echo "::warning::$k VIDE : cette IA sera sautee dans l'APK"; fi
+        done
+
     - name: Build Debug APK
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
