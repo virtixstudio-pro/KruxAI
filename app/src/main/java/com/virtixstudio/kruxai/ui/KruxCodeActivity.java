@@ -578,11 +578,13 @@ public class KruxCodeActivity extends AppCompatActivity {
         pm.getMenu().add(0, 100, 100, "Nouveau fichier");
         pm.getMenu().add(0, 101, 101, "Ajouter des fichiers…");
         pm.getMenu().add(0, 102, 102, "Importer un projet (zip)…");
+        pm.getMenu().add(0, 103, 103, "Importer un dossier / projet Android…");
         pm.setOnMenuItemClickListener(it -> {
             int id = it.getItemId();
             if (id == 100) newFile();
             else if (id == 101) pickFiles();
             else if (id == 102) pickProjectZip();
+            else if (id == 103) pickProjectFolder();
             else if (id >= 0 && id < files.size()) openFile(files.get(id));
             return true;
         });
@@ -718,6 +720,67 @@ public class KruxCodeActivity extends AppCompatActivity {
         }
     }
 
+    private void pickProjectFolder() {
+        try {
+            startActivityForResult(new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT_TREE), 74);
+        } catch (Exception e) {
+            Toast.makeText(this, "Sélecteur de dossier indisponible", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Copie un dossier choisi (arbre Android) dans projects/, en arrière-plan, sans appeler l'IA. */
+    private void importProjectFolder(final android.net.Uri tree) {
+        line("· Import du dossier…", DIM);
+        new Thread(() -> {
+            com.virtixstudio.kruxai.core.ProjectStore.Import imp = null;
+            try {
+                String rootId = android.provider.DocumentsContract.getTreeDocumentId(tree);
+                String rootName = "dossier";
+                try (android.database.Cursor c = getContentResolver().query(
+                        android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, rootId),
+                        new String[]{android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+                    if (c != null && c.moveToFirst() && c.getString(0) != null) rootName = c.getString(0);
+                } catch (Exception ignored) { }
+                imp = projects.begin(rootName);
+                copyTree(imp, tree, rootId, "");
+                final com.virtixstudio.kruxai.core.ProjectStore.Result r = projects.finish(imp);
+                runOnUiThread(() -> {
+                    line("· Projet « " + r.dir.getName() + " » importé : " + r.files + " fichiers, "
+                            + WorkspaceStore.sizeLabel(r.bytes)
+                            + (r.skipped > 0 ? " (" + r.skipped + " ignorés)" : "") + ".", DIM);
+                    line(r.androidGradle ? "· Projet Android (Gradle) reconnu." : "· Pas de projet Android Gradle reconnu (settings.gradle + app/).", DIM);
+                });
+            } catch (Exception e) {
+                if (imp != null) projects.abort(imp);
+                final String msg = e.getMessage();
+                runOnUiThread(() -> line("· Import impossible : " + msg, RED));
+            }
+        }).start();
+    }
+
+    private void copyTree(com.virtixstudio.kruxai.core.ProjectStore.Import imp, android.net.Uri tree, String docId, String prefix) throws Exception {
+        android.net.Uri kids = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId);
+        java.util.ArrayList<String[]> entries = new java.util.ArrayList<>();
+        try (android.database.Cursor c = getContentResolver().query(kids, new String[]{
+                android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE}, null, null, null)) {
+            while (c != null && c.moveToNext()) entries.add(new String[]{c.getString(0), c.getString(1), c.getString(2)});
+        }
+        for (String[] e : entries) {
+            if (e[1] == null) continue;
+            if (android.provider.DocumentsContract.Document.MIME_TYPE_DIR.equals(e[2])) {
+                if (com.virtixstudio.kruxai.core.ProjectStore.skipDir(e[1])) continue;
+                copyTree(imp, tree, e[0], prefix + e[1] + "/");
+            } else {
+                try (java.io.InputStream in = getContentResolver().openInputStream(
+                        android.provider.DocumentsContract.buildDocumentUriUsingTree(tree, e[0]))) {
+                    if (in != null) projects.add(imp, prefix + e[1], in);
+                }
+            }
+        }
+    }
+
     /** Importe le zip en arrière-plan (jusqu'à 60 Mo) sans appeler l'IA. */
     private void importProjectZip(final android.net.Uri u) {
         String nm = "projet.zip";
@@ -744,6 +807,7 @@ public class KruxCodeActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int req, int res, android.content.Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == 74 && res == RESULT_OK && data != null && data.getData() != null) { importProjectFolder(data.getData()); return; }
         if (req == 73 && res == RESULT_OK && data != null && data.getData() != null) { importProjectZip(data.getData()); return; }
         if (req != 72 || res != RESULT_OK || data == null) return;
         java.util.ArrayList<android.net.Uri> uris = new java.util.ArrayList<>();
