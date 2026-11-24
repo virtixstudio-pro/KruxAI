@@ -4015,7 +4015,8 @@ private final ActivityResultLauncher<String[]> filePicker =
                 "Remplacer par une photo de la galerie",
                 "Remplacer par une nouvelle photo",
                 "Pivoter à droite",
-                "Rogner au centre (carré)"
+                "Rogner au centre (carré)",
+                "Dessiner / entourer (éditeur photo)"
         };
         android.app.AlertDialog dlg = new android.app.AlertDialog.Builder(this)
                 .setTitle("Modifier la photo")
@@ -4026,6 +4027,15 @@ private final ActivityResultLauncher<String[]> filePicker =
                     } else if (which == 1) {
                         replaceImageIndex = idx;
                         launchCamera(cameraReplaceLauncher);
+                    } else if (which == 4) {
+                        try {
+                            byte[] raw = android.util.Base64.decode(selectedImagesB64.get(idx), android.util.Base64.NO_WRAP);
+                            android.graphics.Bitmap src = android.graphics.BitmapFactory.decodeByteArray(raw, 0, raw.length);
+                            if (src == null) throw new Exception("image illisible");
+                            PhotoEditorDialog.show(this, src, edited -> applyEditedBitmap(idx, edited));
+                        } catch (Throwable t) {
+                            Toast.makeText(this, "Impossible d'ouvrir l'éditeur photo", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
                         transformImage(idx, which == 2);
                     }
@@ -4034,6 +4044,22 @@ private final ActivityResultLauncher<String[]> filePicker =
                 .create();
         dlg.show();
         KruxTheme.skin(dlg, this);
+    }
+
+    /** Remet dans la liste d'envoi la photo retouchée dans l'éditeur. */
+    private void applyEditedBitmap(int idx, android.graphics.Bitmap res) {
+        if (idx < 0 || idx >= selectedImagesB64.size() || res == null) return;
+        int q = 80;
+        byte[] jpg;
+        do {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            res.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, bos);
+            jpg = bos.toByteArray();
+            q -= 10;
+        } while (jpg.length > 600 * 1024 && q >= 40);
+        selectedImagesB64.set(idx, android.util.Base64.encodeToString(jpg, android.util.Base64.NO_WRAP));
+        selectedThumbs.set(idx, thumbOf(res));
+        refreshAttachmentStrip();
     }
 
     private void transformImage(int idx, boolean rotate) {
