@@ -631,11 +631,9 @@ private final ActivityResultLauncher<String[]> filePicker =
         texts.addView(info);
 
         if (selected) {
-            TextView check = new TextView(this);
-            check.setText("✔");
-            check.setTextColor(KruxTheme.get(this, "text"));
-            check.setTextSize(15);
-            row.addView(check);
+            android.widget.ImageView check = new android.widget.ImageView(this);
+            check.setImageDrawable(UiIcons.get(this, R.drawable.ic_line_check, KruxTheme.get(this, "text"), 18));
+            row.addView(check, new LinearLayout.LayoutParams(dp(18), dp(18)));
         }
 
         row.setOnClickListener(v -> {
@@ -1595,7 +1593,7 @@ private final ActivityResultLauncher<String[]> filePicker =
             refreshAttachmentStrip();
             refreshSendIcon();
         }
-        ChatMessage userMessage = new ChatMessage((withPhoto ? (photoCount > 1 ? "📷 " + photoCount + " photos jointes\n" : "📷 Photo jointe\n") : "") + prompt, true);
+        ChatMessage userMessage = new ChatMessage((withPhoto ? (photoCount > 1 ? photoCount + " photos jointes\n" : "Photo jointe\n") : "") + prompt, true);
         saveMessageToDatabase(userMessage);
         handleMemoryCommands(prompt);
         updateWelcomePanel();
@@ -4631,7 +4629,7 @@ private final ActivityResultLauncher<String[]> filePicker =
 
             Toast.makeText(
                     this,
-                    "Merci pour ton retour 👍",
+                    "Merci pour ton retour",
                     Toast.LENGTH_SHORT
             ).show();
 

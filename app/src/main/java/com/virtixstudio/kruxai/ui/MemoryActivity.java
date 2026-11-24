@@ -12,6 +12,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.virtixstudio.kruxai.R;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.view.WindowCompat;
@@ -141,8 +143,9 @@ public class MemoryActivity extends AppCompatActivity {
         instruction.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         pill.addView(instruction, new LinearLayout.LayoutParams(0, -2, 1f));
         TextView mic = new TextView(this);
-        mic.setText("🎤");
-        mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        mic.setText("");
+        UiIcons.left(mic, R.drawable.ic_line_mic, text, 22, 0);
+        mic.setContentDescription("Dicter");
         mic.setPadding(dp(10), dp(6), dp(10), dp(6));
         mic.setOnClickListener(v -> {
             try {
@@ -266,8 +269,15 @@ public class MemoryActivity extends AppCompatActivity {
         if (undoBtn != null) undoBtn.setVisibility(memory.undoCount() > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
         boolean file = openCat != null;
         titleView.setText(file ? MemoryBook.label(openCat) : "Fichiers mémoire");
-        menuBtn.setText(file ? "🗑" : "⋯");
+        menuBtn.setText(file ? "" : "⋯");
         menuBtn.setTextColor(file ? 0xFFE5736F : text);
+        if (file) {
+            UiIcons.left(menuBtn, R.drawable.ic_line_trash, 0xFFE5736F, 22, 0);
+            menuBtn.setContentDescription("Supprimer");
+        } else {
+            menuBtn.setCompoundDrawablesRelative(null, null, null, null);
+            menuBtn.setContentDescription("Menu");
+        }
         bottomBar.setVisibility(file ? android.view.View.VISIBLE : android.view.View.GONE);
         if (file) {
             boolean any = false;

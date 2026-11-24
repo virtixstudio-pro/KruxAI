@@ -112,8 +112,8 @@ public class LiveActivity extends AppCompatActivity {
         root.addView(status, sp);
 
         mic = new TextView(this);
-        mic.setText("🎙");
-        mic.setTextSize(30);
+        mic.setText("");
+        com.virtixstudio.kruxai.ui.UiIcons.left(mic, com.virtixstudio.kruxai.R.drawable.ic_line_mic, accent, 34, 0);
         mic.setGravity(Gravity.CENTER);
         mic.setTypeface(null, Typeface.BOLD);
         GradientDrawable g = new GradientDrawable();

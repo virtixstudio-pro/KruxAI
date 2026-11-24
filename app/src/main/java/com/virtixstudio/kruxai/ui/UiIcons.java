@@ -8,11 +8,11 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 
 /** Icônes vectorielles (remplacent les emoji) : teinte et taille appliquées par le code. */
-final class UiIcons {
+public final class UiIcons {
     private UiIcons() {}
 
     /** Icône teintée, carrée, de {@code sizeDp} dp. */
-    static Drawable get(Context c, int res, int color, int sizeDp) {
+    public static Drawable get(Context c, int res, int color, int sizeDp) {
         Drawable d = ContextCompat.getDrawable(c, res);
         if (d == null) return null;
         d = d.mutate();
@@ -23,7 +23,7 @@ final class UiIcons {
     }
 
     /** Place l'icône à gauche du texte, avec un espace de {@code padDp} dp. */
-    static void left(TextView t, int res, int color, int sizeDp, int padDp) {
+    public static void left(TextView t, int res, int color, int sizeDp, int padDp) {
         Context c = t.getContext();
         t.setCompoundDrawablesRelative(get(c, res, color, sizeDp), null, null, null);
         t.setCompoundDrawablePadding(Math.round(padDp * c.getResources().getDisplayMetrics().density));
