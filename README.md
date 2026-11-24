@@ -217,3 +217,23 @@ Méthode : le téléphone d'abord, puis un ou deux points à la fois. Économie 
 - Mis de côté : barre latérale, à refaire plus sobre.
 
 - [~] **Guide d'activation de la lecture d'écran (22/11)** : écran pas à pas (Accessibilité, puis « paramètres restreints » si grisé), détecte l'activation et se ferme tout seul ; ouvert par le visage de Krux et par Réglages > Lecture de l'écran. À tester sur téléphone.
+
+## Journal du 24/11/2026
+
+### Fait
+- Mode web : Krux ne refuse plus les demandes Java ou natif, il les réalise en React + TypeScript.
+- API : délai de lecture porté à 120 s pour les longues générations.
+- Appui long sur une réponse : feuille de sélection presque plein écran, sans « tout sélectionner » d'office.
+- « Réessayer » : efface la réponse puis régénère au même endroit.
+- Clés IA : les 5 secrets GitHub sont créés (GROQ, CEREBRAS, MISTRAL, HF, GEMINI). `gh` est connecté dans Termux.
+
+### Reste à faire
+- Tester l'APK une seule fois, après toutes les modifications (photos, appui long, réessayer, longues générations).
+- Plantage pendant l'écriture des réponses (mises à jour trop fréquentes de la liste).
+- Boutons d'action : plus modernes, visibles seulement une fois la réponse terminée.
+- Tableaux à refaire.
+- Écran mémoire : liste par sections, comme dans l'app Claude.
+- Krux Code : import d'un zip, de fichiers ou d'un projet Android, compilation sans appeler l'IA ; pilotage de sites ; clonage de dépôts et commandes.
+- Sites générés trop sobres : ajouter des consignes de design dans le prompt.
+- Panneau de questions avant la création d'une app, réflexion, envoi de photos, menu « + ».
+- Cloudflare : token (bouton « Continuer » bloqué), proxy, puis révocation des clés.
