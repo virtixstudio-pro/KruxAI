@@ -73,7 +73,8 @@ public class WelcomeGlobeView extends View {
         float cx = w / 2f, cy = h / 2f;
         float r = Math.min(w, h) * 0.46f;
         float t = (SystemClock.uptimeMillis() - start) / 1000f;
-        float k = lightBg ? 1.35f : 1f;
+        // Tracé adouci : le titre, le sous-titre et les suggestions passent par-dessus le globe.
+        float k = (lightBg ? 1.35f : 1f) * 0.6f;
 
         if (!minimal) {
             paint.setStyle(Paint.Style.FILL);

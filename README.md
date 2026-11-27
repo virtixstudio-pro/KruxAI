@@ -311,3 +311,21 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 - ChatAdapter : les caractères de coche dans la regex de nettoyage restent (ce n'est pas de l'affichage).
 - Symboles typographiques (flèches, coches, ▶ ■) : 38 occurrences gardées comme icônes d'interface.
 - clav/arrays.xml : emoji gardés (clavier d'emoji).
+
+## Journal du 27/11/2026
+
+### Fait
+- [x] Menu latéral refait (896ffbf) : Nouveau chat = seul bouton plein, liste de navigation sans cadres avec une icône au trait par entrée (apps, dossier, code, studio, réglages, loupe, croix), quota inchangé placé sous la liste, loupe à côté du titre Discussions, Se déconnecter retiré du menu (il reste dans Paramètres).
+- [x] Historique (fa5e84c) : groupes Épinglées / Aujourd'hui / Hier / 7 derniers jours / Plus ancien ; emoji retirés des anciens titres à l'affichage ; repli sur la date de l'identifiant session_ quand la date du message est invalide.
+- [x] Accueil : tracé du globe adouci (facteur 0.6 sur k dans WelcomeGlobeView) pour que le titre et les suggestions restent lisibles.
+- [x] Correctif CI (be08a19) : this remplacé par KruxCodeActivity.this dans le callback agent de Krux Code.
+
+### À tester sur téléphone (rien n'est compilé en local)
+- Menu latéral : couleur du bouton Nouveau chat selon le thème, icônes teintées, loupe qui ouvre la recherche.
+- Historique : titres de groupes lisibles dans tous les thèmes ; anciennes discussions rangées dans Plus ancien si leur date est invalide.
+- Accueil : globe encore visible mais sans gêner le texte (ajuster le 0.6 de WelcomeGlobeView si besoin).
+
+### Reste à faire
+- Paramètres : même logique de hiérarchie ; la ligne Mes apps y double l'entrée du menu.
+- README.m (fichier vide) : à supprimer sur accord.
+- Écran de stockage dans les quotas, sauvegarde en ligne (D1), proxy Cloudflare pour retirer les clés de l'APK.
