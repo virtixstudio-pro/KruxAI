@@ -2424,9 +2424,9 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void paintChip(TextView c, boolean on, int accent, int text) {
         GradientDrawable g = new GradientDrawable();
         g.setCornerRadius(dp(18));
-        g.setColor(on ? accent : 0xFF1F1A2E);
+        g.setColor(on ? accent : KruxTheme.get(this, "input"));
         c.setBackground(g);
-        c.setTextColor(on ? 0xFF0B0A12 : text);
+        c.setTextColor(on ? KruxTheme.get(this, "buttontext") : text);
     }
 
     /** Une rangée de choix : un seul (multi = false) ou plusieurs ; sel[] garde l'état. */
@@ -2477,14 +2477,14 @@ private final ActivityResultLauncher<String[]> filePicker =
     private void showAppQuestions(final String desc, final java.util.function.Consumer<String> go) {
         final BottomSheetDialog dlg = new BottomSheetDialog(this);
         final int accent = KruxTheme.get(this, "accent");
-        final int text = 0xFFF8FAFC;
-        final int dim = 0xFF9A90AD;
+        final int text = KruxTheme.get(this, "text");
+        final int dim = KruxTheme.get(this, "text2");
         questionIconB64 = null;
 
         android.widget.ScrollView sv = new android.widget.ScrollView(this);
         android.widget.LinearLayout col = new android.widget.LinearLayout(this);
         col.setOrientation(android.widget.LinearLayout.VERTICAL);
-        col.setBackgroundColor(0xFF111318);
+        col.setBackgroundColor(KruxTheme.get(this, "bg"));
         col.setPadding(dp(18), dp(14), dp(18), dp(20));
         sv.addView(col);
 
@@ -2522,7 +2522,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         etName.setSingleLine(true);
         etName.setPadding(dp(14), dp(10), dp(14), dp(10));
         GradientDrawable nb = new GradientDrawable();
-        nb.setColor(0xFF1F1A2E);
+        nb.setColor(KruxTheme.get(this, "input"));
         nb.setCornerRadius(dp(14));
         etName.setBackground(nb);
         col.addView(etName);
@@ -2534,7 +2534,7 @@ private final ActivityResultLauncher<String[]> filePicker =
         questionIconPreview = new android.widget.ImageView(this);
         questionIconPreview.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
         GradientDrawable ib = new GradientDrawable();
-        ib.setColor(0xFF1F1A2E);
+        ib.setColor(KruxTheme.get(this, "input"));
         ib.setCornerRadius(dp(14));
         questionIconPreview.setBackground(ib);
         iconRow.addView(questionIconPreview, new android.widget.LinearLayout.LayoutParams(dp(56), dp(56)));

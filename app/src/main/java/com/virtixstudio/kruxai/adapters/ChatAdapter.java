@@ -238,6 +238,17 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         AiViewHolder aiHolder = (AiViewHolder) holder;
         Context context = aiHolder.itemView.getContext();
 
+        // Icônes d'action et titre des sources : couleurs du thème (sinon elles restent violettes en thème Blanc).
+        android.content.res.ColorStateList sec = android.content.res.ColorStateList.valueOf(secondaryTextColor);
+        aiHolder.btnCopy.setImageTintList(sec);
+        aiHolder.btnShare.setImageTintList(sec);
+        aiHolder.btnDownload.setImageTintList(sec);
+        aiHolder.btnSpeak.setImageTintList(sec);
+        aiHolder.btnFeedbackPositive.setImageTintList(sec);
+        aiHolder.btnFeedbackNegative.setImageTintList(sec);
+        TextView srcLabel = aiHolder.itemView.findViewById(R.id.tvSourcesLabel);
+        if (srcLabel != null) srcLabel.setTextColor(aiTextColor);
+
         citationSources = message.getSources() == null
                 ? java.util.Collections.emptyList() : message.getSources();
         writing = message.isStreaming(); // copier, partager, etc. : seulement quand Krux a fini d'écrire

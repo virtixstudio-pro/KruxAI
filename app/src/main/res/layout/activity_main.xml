@@ -275,6 +275,7 @@
                 android:paddingVertical="6dp">
 
                 <ImageButton
+                    android:tag="krux:text2"
                     android:id="@+id/btnPlus"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
