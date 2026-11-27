@@ -60,7 +60,7 @@
             android:exported="false" />
         <activity android:name=".ui.PrivacyActivity" android:exported="false" />
         <activity android:name=".ui.MainActivity" android:exported="false" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" />
-        <activity android:name=".ui.StudioActivity" android:exported="false" />
+        <activity android:name=".ui.StudioActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
 
             <provider
             android:name="androidx.core.content.FileProvider"

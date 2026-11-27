@@ -1,188 +1,341 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <LinearLayout android:tag="krux:bg" xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/bg_main_gradient"
-    android:padding="12dp">
+    android:background="@drawable/bg_main_gradient">
 
-    <TextView android:tag="krux:text"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="KRUX STUDIO"
-        android:textColor="#FFFFFF"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
 
-    <TextView android:tag="krux:accent"
-        android:id="@+id/tvStudioStatus"
+        <TextView android:tag="krux:text"
+            android:id="@+id/btnStudioBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="Retour"
+            android:padding="8dp"
+            android:text="←"
+            android:textSize="24sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="6dp">
+
+            <TextView android:tag="krux:text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Studio"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView android:tag="krux:text2"
+                android:id="@+id/tvStudioStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Compose ton équipe d'agents"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Configure ton équipe"
-        android:textColor="#38BDF8"
-        android:textSize="13sp"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
 
-    <ScrollView
-        android:id="@+id/configScroll"
+        <TextView android:id="@+id/tabTeam"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:padding="10dp"
+            android:text="Équipe"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView android:id="@+id/tabRun"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:padding="10dp"
+            android:text="Lancer"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView android:id="@+id/tabResults"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="10dp"
+            android:text="Résultats"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/studioProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:visibility="gone" />
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <LinearLayout
+        <ScrollView android:id="@+id/paneTeam"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
-            <EditText android:tag="krux:input,text,hint"
-                android:id="@+id/etStudioName"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_rounded_input"
-                android:hint="Nom du Studio"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:padding="12dp" />
-
-            <EditText android:tag="krux:input,text,hint"
-                android:id="@+id/etStudioObjective"
-                android:layout_width="match_parent"
-                android:layout_height="90dp"
-                android:gravity="top"
-                android:layout_marginBottom="12dp"
-                android:background="@drawable/bg_rounded_input"
-                android:hint="Objectif global du Studio"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:padding="12dp" />
-
-            <TextView android:tag="krux:text"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Ajouter un agent"
-                android:textColor="#FFFFFF"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:padding="8dp" />
+                android:orientation="vertical"
+                android:padding="12dp">
 
-            <EditText android:tag="krux:input,text,hint"
-                android:id="@+id/etAgentName"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_rounded_input"
-                android:hint="Nom de l'agent"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:padding="12dp" />
+                <TextView android:tag="krux:text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="ÉQUIPES PRÊTES"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <EditText android:tag="krux:input,text,hint"
-                android:id="@+id/etAgentRole"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_rounded_input"
-                android:hint="Rôle de l'agent"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:padding="12dp" />
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:scrollbars="none">
 
-            <EditText android:tag="krux:input,text,hint"
-                android:id="@+id/etAgentObjective"
-                android:layout_width="match_parent"
-                android:layout_height="70dp"
-                android:gravity="top"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_rounded_input"
-                android:hint="Objectif personnel de l'agent"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#94A3B8"
-                android:padding="12dp" />
+                    <LinearLayout android:id="@+id/chipTemplates"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
 
-            <TextView android:tag="krux:input,text"
-                android:id="@+id/tvSelectedModel"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_rounded_input"
-                android:text="Modèle : Krux 3.3 70B"
-                android:textColor="#FFFFFF"
-                android:padding="12dp"
-                android:clickable="true"
-                android:focusable="true" />
+                <TextView android:tag="krux:text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="STUDIO"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <Button android:tag="krux:button,buttontext"
-                android:id="@+id/btnAddAgent"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="12dp"
-                android:text="＋ Ajouter l'agent"
-                android:textColor="#38BDF8"
-                android:background="@drawable/bg_rounded_button" />
+                <EditText android:tag="krux:input,text,hint"
+                    android:id="@+id/etStudioName"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:hint="Nom du Studio"
+                    android:inputType="textCapSentences"
+                    android:maxLines="1"
+                    android:padding="12dp" />
 
-            <TextView android:tag="krux:text"
-                android:id="@+id/tvAgentsList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#CBD5E1"
-                android:textSize="14sp"
-                android:padding="8dp" />
+                <EditText android:tag="krux:input,text,hint"
+                    android:id="@+id/etStudioObjective"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="50dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:hint="Objectif global (facultatif)"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:padding="12dp" />
 
-                    <EditText android:tag="krux:text,hint"
-            android:id="@+id/etStudioTask"
+                <TextView android:tag="krux:text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="AJOUTER UN AGENT"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <EditText android:tag="krux:input,text,hint"
+                    android:id="@+id/etAgentName"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:hint="Nom (ex. Designer)"
+                    android:inputType="textCapSentences"
+                    android:maxLines="1"
+                    android:padding="12dp" />
+
+                <EditText android:tag="krux:input,text,hint"
+                    android:id="@+id/etAgentRole"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="50dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:hint="Rôle (ce qu'il doit faire)"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:padding="12dp" />
+
+                <Button android:tag="krux:button,buttontext"
+                    android:id="@+id/btnAddAgent"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/bg_rounded_button"
+                    android:text="Ajouter l'agent"
+                    android:textAllCaps="false" />
+
+                <TextView android:tag="krux:text2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="ÉQUIPE"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView android:tag="krux:text2"
+                    android:id="@+id/tvNoAgents"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="Aucun agent pour l'instant. Choisis une équipe prête ou ajoute le premier."
+                    android:textSize="14sp" />
+
+                <LinearLayout android:id="@+id/listAgents"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView android:id="@+id/paneRun"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="Décris la tâche du Studio..."
-            android:inputType="textMultiLine"
-            android:minLines="3"
-            android:gravity="top|start"
-            android:textColor="#F8FAFC"
-            android:textColorHint="#94A3B8" />
+            android:layout_height="match_parent"
+            android:visibility="gone">
 
-<Button android:tag="krux:button,buttontext"
-                android:id="@+id/btnRunStudio"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="12dp"
-                android:text="Démarrer le Studio"
-                android:drawableStart="@drawable/ic_line_play"
-                android:drawablePadding="10dp"
-                android:drawableTint="#FFFFFF"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:textColor="#FFFFFF"
-                android:background="@drawable/bg_rounded_button" />
-
-            <Button android:tag="krux:button,buttontext"
-                android:id="@+id/btnOpenStudioChat"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="8dp"
-                android:text="Ouvrir le chat Studio"
-                android:drawableStart="@drawable/ic_line_chat"
-                android:drawablePadding="10dp"
-                android:drawableTint="#38BDF8"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:textColor="#38BDF8"
-                android:background="@drawable/bg_rounded_button"
-                android:visibility="gone" />
-
-            <TextView android:tag="krux:text"
-                android:id="@+id/tvStudioOutput"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textColor="#F8FAFC"
-                android:textSize="14sp"
-                android:lineSpacingExtra="3dp" />
+                android:orientation="vertical"
+                android:padding="12dp">
 
-        </LinearLayout>
-    </ScrollView>
+                <EditText android:tag="krux:input,text,hint"
+                    android:id="@+id/etStudioTask"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="100dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_rounded_input"
+                    android:gravity="top"
+                    android:hint="Quelle tâche confier à l'équipe ?"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:padding="12dp" />
 
+                <TextView android:tag="krux:text2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="Les agents travaillent à la suite : chacun reçoit le travail des précédents."
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:orientation="horizontal">
+
+                    <Button android:tag="krux:button,buttontext"
+                        android:id="@+id/btnRunStudio"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_rounded_button"
+                        android:text="Lancer l'équipe"
+                        android:textAllCaps="false" />
+
+                    <Button android:tag="krux:input,text"
+                        android:id="@+id/btnStopStudio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_rounded_input"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="20dp"
+                        android:text="Stop"
+                        android:textAllCaps="false"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/listSteps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView android:id="@+id/paneResults"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout android:id="@+id/rowResultActions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <Button android:tag="krux:button,buttontext"
+                        android:id="@+id/btnCopyAll"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_rounded_button"
+                        android:text="Tout copier"
+                        android:textAllCaps="false" />
+
+                    <Button android:tag="krux:button,buttontext"
+                        android:id="@+id/btnShareAll"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_rounded_button"
+                        android:text="Partager"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <TextView android:tag="krux:text2"
+                    android:id="@+id/tvResultsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="Aucun résultat. Lance l'équipe depuis l'onglet Lancer."
+                    android:textSize="14sp" />
+
+                <LinearLayout android:id="@+id/listResults"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
 </LinearLayout>
