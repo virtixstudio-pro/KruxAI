@@ -147,7 +147,7 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp">
 
-            <ImageButton android:tag="krux:input"
+            <ImageButton android:tag="krux:input,text"
                 android:id="@+id/btnMenu"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
@@ -336,7 +336,7 @@
 
                 </LinearLayout>
 
-                <ImageButton
+                <ImageButton android:tag="krux:text"
                     android:id="@+id/btnMic"
                     android:layout_width="38dp"
                     android:layout_height="38dp"
