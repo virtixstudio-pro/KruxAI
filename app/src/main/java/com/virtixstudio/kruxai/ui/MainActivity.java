@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements ChatAdapter.OnSpe
     private DrawerLayout drawerLayout;
     private KruxTerminalView terminal;
     private ImageButton btnMenu, btnPlus, btnMic, btnStopMic, btnSend, btnCloseSidebar, btnScrollBottom, btnTtsControl;
-    private View navSearchChats, navStudio, navCustomize, navLogout;
+    private View navSearchChats, navStudio, navCustomize;
     private TextView btnNewChat;
 
     // Sélecteur de modèle Krux
@@ -312,7 +312,6 @@ private final ActivityResultLauncher<String[]> filePicker =
         navSearchChats = findViewById(R.id.navSearchChats);
         navStudio = findViewById(R.id.navStudio);
         navCustomize = findViewById(R.id.navCustomize);
-        navLogout = findViewById(R.id.navLogout);
 
         etSearchHistory = findViewById(R.id.etSearchHistory);
 
@@ -5035,25 +5034,6 @@ private final ActivityResultLauncher<String[]> filePicker =
                 if (etSearchHistory.getVisibility() == View.VISIBLE) {
                     etSearchHistory.requestFocus();
                 }
-            });
-        }
-
-        if (navLogout != null) {
-            navLogout.setOnClickListener(v -> {
-                drawerLayout.closeDrawer(Gravity.LEFT);
-
-                if (mAuth != null) {
-                    mAuth.signOut();
-                }
-
-                startActivity(
-                        new Intent(
-                                MainActivity.this,
-                                LoginActivity.class
-                        )
-                );
-
-                finish();
             });
         }
 
