@@ -342,3 +342,7 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 - [ ] Écran de stockage dans les quotas, sauvegarde en ligne (D1), Krux Code : compiler un projet importé sans IA, bouton Réessayer, tableaux, consignes de design des sites.
 - [ ] Proxy Cloudflare pour retirer les clés de l'APK.
 - [ ] README.m (fichier vide) : à supprimer sur accord ; clav/arrays.xml : à confirmer.
+
+- [~] **Studio v1 (28/11)** : `studio-equipe.patch` : onglets Équipe / Lancer / Résultats, équipes prêtes, cartes d agents (ordre, suppression), équipe sauvegardée, Stop, Copier et Partager. À tester sur téléphone.
+
+- [~] **Studio v2 (28/11)** : `studio-chat.patch` : liste des studios, création en 3 étapes (sans choix de modèle), chat avec agents, test réel des apps HTML dans un WebView caché (erreurs JS, clics, correction auto x2), Ouvrir l app. À tester sur téléphone.
