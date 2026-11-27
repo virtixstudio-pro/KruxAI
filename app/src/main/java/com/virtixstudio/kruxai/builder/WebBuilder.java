@@ -44,6 +44,7 @@ public final class WebBuilder {
             if (!SRC_FILE.matcher(path).matches() || path.endsWith(".d.ts") || WebTemplates.isShellPath(path)) continue;
             String c = e.getValue() == null ? "" : e.getValue().replace("\r\n", "\n");
             if (c.startsWith("\uFEFF")) c = c.substring(1);
+            c = TsStringRepair.repair(path, c);
             out.put(path, c);
         }
         return out;
