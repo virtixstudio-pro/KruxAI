@@ -329,3 +329,7 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 - Paramètres : même logique de hiérarchie ; la ligne Mes apps y double l'entrée du menu.
 - README.m (fichier vide) : à supprimer sur accord.
 - Écran de stockage dans les quotas, sauvegarde en ligne (D1), proxy Cloudflare pour retirer les clés de l'APK.
+
+## 27/11/2026 (suite)
+- [x] Thème Blanc : icônes d'action du chat, bouton + et fenêtre Précise ton application suivent maintenant le thème (theme-blanc-1).
+- [ ] À tester : thème Blanc, plus de rose ni de noir sur noir. Reste : autres icônes violettes fixes (recherche, mémoire, réflexion, pièce jointe), Paramètres + accessibilité, consignes de Krux (sarcasme, pas d'imitation d'apps ou de sites, pas de pilotage de sites comme un humain).
