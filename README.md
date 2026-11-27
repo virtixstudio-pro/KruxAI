@@ -333,3 +333,12 @@ Ordre d'application : editeur-photo, capacites-agent, krux-code-edition-ciblee, 
 ## 27/11/2026 (suite)
 - [x] Thème Blanc : icônes d'action du chat, bouton + et fenêtre Précise ton application suivent maintenant le thème (theme-blanc-1).
 - [ ] À tester : thème Blanc, plus de rose ni de noir sur noir. Reste : autres icônes violettes fixes (recherche, mémoire, réflexion, pièce jointe), Paramètres + accessibilité, consignes de Krux (sarcasme, pas d'imitation d'apps ou de sites, pas de pilotage de sites comme un humain).
+
+## Reste à faire (27/11/2026)
+- [ ] Paramètres : hiérarchie claire comme le menu, supprimer la ligne Mes apps en double, accessibilité (taille du texte, contraste, descriptions des boutons).
+- [ ] Thème Blanc : icônes violettes fixes restantes (recherche, mémoire, réflexion, pièce jointe, apprentissage, flèche) ; adoucir les boutons blanc sur noir si confirmé.
+- [ ] Consignes de Krux : ton sarcastique (tout le temps ou seulement au refus, à trancher), ne pas imiter d'apps ou de sites existants, ne pas piloter un site comme un humain.
+- [ ] Accueil : ajuster le 0.6 du globe (WelcomeGlobeView) après test.
+- [ ] Écran de stockage dans les quotas, sauvegarde en ligne (D1), Krux Code : compiler un projet importé sans IA, bouton Réessayer, tableaux, consignes de design des sites.
+- [ ] Proxy Cloudflare pour retirer les clés de l'APK.
+- [ ] README.m (fichier vide) : à supprimer sur accord ; clav/arrays.xml : à confirmer.
